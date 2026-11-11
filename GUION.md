@@ -59,3 +59,21 @@
 - **Las cuatro piezas** del despiece son las cuatro placas de impresión (cabeza; pelo con antenas; torso, brazos y guitarra; piernas y zapatos), cortadas del modelo por el cuello, por el bajo de la camiseta y por el contorno del pelo, con un casquete oscuro bajo el pelo como en la pieza impresa.
 - **La foto real** aparece al final como prueba de que la figura existe: la transición del render a la realidad cierra la historia.
 - **Acabado:** etalonaje cálido, halo suave en las altas luces, grano fino de película y viñeta discreta. Sin aberraciones, sin temblores, sin cortes bruscos.
+
+---
+
+## Teaser de 32 s para OBEKET
+
+Versión corta y épica para redes, con los mismos renders del modelo real. 90 BPM: cada corte cae en un golpe de tambor con un destello de luz.
+
+| Tiempo | Imagen | Texto | Música |
+|---|---|---|---|
+| 0:00 – 0:02.7 | El símbolo de OBEKET aparece en la oscuridad y un brillo lo recorre | — | Golpe grave y campanas |
+| 0:02.7 – 0:05.3 | Macro de los ojos; macro de la antena | — | Tambor en cada corte |
+| 0:05.3 – 0:08.0 | Capa a capa: la línea dorada imprime la figura | **MÁS DE DOS DÍAS** *de impresión* | Entran el ostinato de cuerdas y los metales graves |
+| 0:08.0 – 0:10.7 | Las cuatro piezas se separan y vuelven a encajar de golpe | **TRES SEMANAS** *de trabajo intenso* | Re menor: i – VI – III – VII |
+| 0:10.7 – 0:13.3 | Órbita rápida alrededor de Yampi | **PARA CREAR** *una figura…* | El ritmo crece |
+| 0:13.3 – 0:18.7 | Rostro, clavijero, cuerdas y contrapicado, un corte por golpe | **CON UN DETALLE** *perfecto* · **Y UNA CALIDAD** *impoluta.* | Semicorcheas y crescendo |
+| 0:18.7 – 0:21.3 | Negro | **PRESENTAMOS** | Nota aguda, subida y redoble; silencio absoluto |
+| 0:21.3 – 0:26.7 | Revelación: Yampi en la peana y el nombre con sus antenas | **YAMPI** · *Impreso en 3D · capa a capa* | Gran golpe y acorde de Re mayor |
+| 0:26.7 – 0:32.0 | Cierre de marca | Símbolo y logotipo de **OBEKET** · @obeket.co | Golpe final y campanas |

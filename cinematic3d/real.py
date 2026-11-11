@@ -31,7 +31,7 @@ PIECES = ("pelo", "cabeza", "torso", "piernas")
 # oscura bajo el flequillo (las dos se ven en la figura impresa y no tienen zona en el 3MF).
 PALETTE = {
     1: dict(name="piel", color=(128, 78, 58), rough=0.46, spec=0.45),
-    2: dict(name="pelo", color=(108, 82, 68), rough=0.55, spec=0.40),
+    2: dict(name="pelo", color=(108, 82, 68), rough=0.55, spec=0.40, hollow=True),
     3: dict(name="blanco", color=(232, 228, 220), rough=0.56, spec=0.40),
     4: dict(name="negro", color=(20, 20, 24), rough=0.34, spec=0.50),
     5: dict(name="rojo", color=(168, 16, 24), rough=0.36, spec=0.50),
@@ -293,6 +293,17 @@ def _material(key, info):
     b.inputs["Roughness"].default_value = info["rough"]
     if "Specular IOR Level" in b.inputs:
         b.inputs["Specular IOR Level"].default_value = info["spec"]
+    if info.get("hollow"):
+        # el pelo es una pieza hueca: su cara interior se vuelve transparente para que,
+        # renderizado solo (despiece), no tape la cara con el interior del casco
+        out = nt.nodes["Material Output"]
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+        mx = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(geo.outputs["Backfacing"], mx.inputs["Fac"])
+        nt.links.new(b.outputs["BSDF"], mx.inputs[1])
+        nt.links.new(tr.outputs["BSDF"], mx.inputs[2])
+        nt.links.new(mx.outputs["Shader"], out.inputs["Surface"])
     attr = nt.nodes.new("ShaderNodeGroup")
     attr.node_tree = _color_group()
     if info.get("grain"):
