@@ -1,5 +1,6 @@
-"""Teaser épico de 32 s para OBEKET: el modelo 3D real de Yampi en cortes rápidos,
-apertura con el símbolo de OBEKET y cierre con el logotipo y @obeket.co.
+"""Teaser épico de 33 s para OBEKET: el modelo 3D real de Yampi en cortes rápidos,
+la foto real de la figura en la mano y, de apertura y cierre, el símbolo y el
+logotipo de OBEKET con @obeket.co.
 
 Uso:
     python -m cinematic.audio_teaser --out build/score_teaser.wav
@@ -36,7 +37,7 @@ def bar(n):
 T5 = dict(
     logo=0.0, ojos=bar(1), antena=bar(1.5), imp=bar(2), despiece=bar(3), orbita=bar(4), cara=bar(5),
     clavijero=bar(5.5), cuerdas=bar(6), contrapicado=bar(6.5), presentamos=bar(7), revelacion=bar(8),
-    marca=bar(10), fin=bar(12),
+    realidad=bar(9.5), marca=bar(11), fin=bar(12.5),
 )
 DURATION5 = T5["fin"]
 # golpes de montaje (destello y empujón de cámara en cada corte)
@@ -286,7 +287,7 @@ def sc_presentamos(t):
 
 def sc_revelacion(t):
     tl = t - T5["revelacion"]
-    k = lin(t, T5["revelacion"], T5["marca"] + 0.7)
+    k = lin(t, T5["revelacion"], T5["realidad"] + 0.6)
     z = punch(t, T5["revelacion"], 0.05, 0.25)
     f = F2.still("heroe_izq", k, 1.0 * z, 1.06 * z, (0.5, 0.5), (0.47, 0.49))
     rise = smoother(lin(tl, 0.0, 0.55))
@@ -300,6 +301,20 @@ def sc_revelacion(t):
         f = F2.wordmark(f, W * 0.685, H * 0.50, 150, ta * 1.25, opacity=1.0, sweep=sw,
                         tagline="IMPRESO EN 3D  ·  CAPA A CAPA", tag_t=ta * 1.25 - 1.9)
     return f
+
+
+def sc_realidad(t):
+    """La figura real en la mano (foto de la ventana): del render a la realidad."""
+    A, V1 = F2._epilogue_parts()
+    r0 = T5["realidad"]
+    e = ease_in_out_sine(lin(t, r0, T5["marca"] + 0.45))
+    s = mix(0.585, 0.615, e)
+    cx, cy = 960 / s + 18, mix(1052, 1034, e)
+    f = V1.reveal_base(V1.C["reveal"] + 3.0, s, cx, cy)
+    f = f * np.float32([1.0, 0.985, 0.95])
+    f = head(f, "DEL RENDER…", t, r0 + 0.45, T5["marca"] + 0.1, W * 0.70, 505, size=54, align="center",
+             tracking=0.12)
+    return sub(f, "a la realidad.", t, r0 + 1.05, T5["marca"] + 0.1, W * 0.70, 585, size=62, align="center")
 
 
 def sc_marca(t):
@@ -352,7 +367,8 @@ SHOTS5 = [
     (T5["cuerdas"], T5["contrapicado"], 0.0, sc_cuerdas),
     (T5["contrapicado"], T5["presentamos"] + 0.2, 0.0, sc_contrapicado),
     (T5["presentamos"], T5["revelacion"], 0.2, sc_presentamos),
-    (T5["revelacion"], T5["marca"] + 0.45, 0.0, sc_revelacion),
+    (T5["revelacion"], T5["realidad"] + 0.6, 0.0, sc_revelacion),
+    (T5["realidad"], T5["marca"] + 0.45, 0.6, sc_realidad),
     (T5["marca"], DURATION5 + 1, 0.45, sc_marca),
 ]
 

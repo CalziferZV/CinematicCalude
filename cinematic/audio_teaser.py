@@ -1,9 +1,10 @@
-"""Banda sonora épica del teaser de OBEKET (32 s, 90 BPM, Re menor que se abre a Re
+"""Banda sonora épica del teaser de OBEKET (33 s, 90 BPM, Re menor que se abre a Re
 mayor en la revelación), sincronizada con cinematic/teaser.py.
 
 Golpe grave con el símbolo de OBEKET, tambores en cada corte, ostinato de cuerdas y
 metales graves que crecen, subida con redoble y silencio antes de YAMPI, gran golpe
-con el acorde mayor y firma final con campanas para el logotipo.
+con el acorde mayor, la guitarra de Yampi bajo la foto real y firma final con
+campanas para el logotipo.
 
 Uso: python -m cinematic.audio_teaser --out build/score_teaser.wav
 """
@@ -16,7 +17,7 @@ import numpy as np
 from . import audio as A
 from .audio import (SR, Bus, apply_reverb, bell, boom, bp, braam, env_exp, fade, hp, loudness, lp, note,
                     reverb_ir, riser, saw, tt, whoosh, write_wav)
-from .audio2 import cello, strings
+from .audio2 import cello, pluck, strings
 from .teaser import BAR5, DURATION5, T5
 
 BEAT = BAR5 / 4
@@ -142,7 +143,14 @@ def compose():
                          bright=0.7), 0.50)
     drums.add(R0 + B, taiko(54, 2.0), 0.55)
 
-    # 6. firma de OBEKET
+    # 6. la foto real: el acorde se calma y suena la guitarra de Yampi
+    F0 = T5["realidad"]
+    strg.add(F0 - 0.4, strings([note(n) for n in ("D3", "A3", "D4", "F#4")], T5["marca"] - F0 + 0.6, attack=1.0,
+                               release=1.0, bright=0.3), 0.30)
+    for k, n in enumerate(("D3", "A3", "D4", "F#4", "A4", "F#4", "D4", "A3")):
+        strg.add(F0 + 0.15 + k * b / 2, pluck(n, 3.0, bright=0.5, seed=k), 0.55, p=-0.2 + 0.05 * k)
+
+    # 7. firma de OBEKET
     M0 = T5["marca"]
     hits.add(M0, boom(5.0, f0=85, f1=26, drive=1.5, noise=0.3), 0.70)
     fx.add(M0 + 0.40, bell(note("D5"), 4.0), 0.13, p=-0.2)

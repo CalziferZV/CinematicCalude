@@ -62,7 +62,7 @@
 
 ---
 
-## Teaser de 32 s para OBEKET
+## Teaser de 33 s para OBEKET
 
 Versión corta y épica para redes, con los mismos renders del modelo real. 90 BPM: cada corte cae en un golpe de tambor con un destello de luz.
 
@@ -75,5 +75,6 @@ Versión corta y épica para redes, con los mismos renders del modelo real. 90 B
 | 0:10.7 – 0:13.3 | Órbita rápida alrededor de Yampi | **PARA CREAR** *una figura…* | El ritmo crece |
 | 0:13.3 – 0:18.7 | Rostro, clavijero, cuerdas y contrapicado, un corte por golpe | **CON UN DETALLE** *perfecto* · **Y UNA CALIDAD** *impoluta.* | Semicorcheas y crescendo |
 | 0:18.7 – 0:21.3 | Negro | **PRESENTAMOS** | Nota aguda, subida y redoble; silencio absoluto |
-| 0:21.3 – 0:26.7 | Revelación: Yampi en la peana y el nombre con sus antenas | **YAMPI** · *Impreso en 3D · capa a capa* | Gran golpe y acorde de Re mayor |
-| 0:26.7 – 0:32.0 | Cierre de marca | Símbolo y logotipo de **OBEKET** · @obeket.co | Golpe final y campanas |
+| 0:21.3 – 0:25.3 | Revelación: Yampi en la peana y el nombre con sus antenas | **YAMPI** · *Impreso en 3D · capa a capa* | Gran golpe y acorde de Re mayor |
+| 0:25.3 – 0:29.3 | El render se funde con la foto real: la figura impresa en la mano | **DEL RENDER…** *a la realidad.* | El acorde se calma y suena la guitarra de Yampi |
+| 0:29.3 – 0:33.3 | Cierre de marca | Símbolo y logotipo de **OBEKET** · @obeket.co | Golpe final y campanas |
