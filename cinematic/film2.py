@@ -25,7 +25,9 @@ from .core import (ROOT, Grain, bloom, draw_text, ease_in_out_cubic, ease_in_out
 
 W, H = 1920, 1080
 FPS = 24
-R3D = ROOT / "build" / "3d"
+# carpeta de renders (la v4 la cambia a build/3d_real; por variable de entorno para que
+# también la vean los procesos del pool)
+R3D = Path(os.environ.get("YAMPI_R3D", str(ROOT / "build" / "3d")))
 ORBIT_DIR = R3D / "orbita_24"
 
 IVORY = np.float32([0.955, 0.925, 0.865])
@@ -407,7 +409,7 @@ def _orbit_frames():
     return sorted(ORBIT_DIR.glob("o_*.png"))
 
 
-ORBIT_FRONT = 86  # fotograma (24 fps) con la cámara de frente
+ORBIT_FRONT = int(os.environ.get("YAMPI_ORBIT_FRONT", "86"))  # fotograma (24 fps) con la cámara de frente
 
 
 def sc_orbita(t):

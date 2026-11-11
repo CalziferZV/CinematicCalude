@@ -12,14 +12,14 @@ import bpy
 from mathutils import Vector
 
 from . import studio as S
-from .model import build_yampi
+from .real import build_real_yampi
 
-# Puntos de interés (metros)
+# Puntos de interés (metros) medidos sobre el modelo real (3MF del autor)
 P = dict(
-    eyes=(0.0, -0.023, 0.1565), eye_r=(0.0095, -0.0236, 0.1565), nose=(0.0, -0.026, 0.150),
-    antenna=(0.0116, 0.0035, 0.2017), hole=(0.0057, -0.0265, 0.0951), headstock=(-0.0626, -0.026, 0.1466),
-    hand_r=(0.0221, -0.0312, 0.0923), hand_l=(-0.0434, -0.0297, 0.1321), shoes=(0.0, -0.01, 0.008),
-    body=(0.0, 0.0, 0.102),
+    eyes=(0.0002, -0.0193, 0.1563), eye_r=(0.0090, -0.0196, 0.1563), eye_l=(-0.0086, -0.0189, 0.1563),
+    nose=(0.0002, -0.0212, 0.1511), antenna=(0.0162, 0.0050, 0.1980), hole=(-0.0014, -0.0265, 0.0992),
+    headstock=(-0.0633, -0.0282, 0.1403), hand_r=(0.0127, -0.0309, 0.0964), hand_l=(-0.0449, -0.0313, 0.1304),
+    shoes=(0.0011, -0.0065, 0.0042), body=(0.0, 0.0, 0.102),
 )
 
 # luz: (principal, contraluz, contraluz_izq, relleno, halo de fondo)
@@ -32,17 +32,17 @@ LIGHT = {
 
 # nombre: dict(cam, objetivo, lente, f, foco, res, muestras, luz, transparente, partes)
 SHOTS = {
-    "ojos": dict(cam=(0.018, -0.150, 0.1590), tgt=(0.0, -0.023, 0.1545), lens=100, f=3.2, focus=P["eye_r"],
+    "ojos": dict(cam=(0.018, -0.146, 0.1588), tgt=(0.0, -0.019, 0.1548), lens=100, f=3.2, focus=P["eye_r"],
                  res=(1920, 1080), spp=40, light="penumbra"),
     "antena": dict(cam=(0.055, -0.085, 0.216), tgt=P["antenna"], lens=100, f=2.4, focus=P["antenna"],
                    res=(1920, 1080), spp=40, light="penumbra"),
-    "cara34": dict(cam=(-0.13, -0.29, 0.168), tgt=(0.0, -0.005, 0.150), lens=100, f=5.6, focus=(-0.008, -0.024, 0.156),
+    "cara34": dict(cam=(-0.13, -0.29, 0.168), tgt=(0.0, -0.002, 0.152), lens=100, f=5.6, focus=P["eye_l"],
                    res=(1920, 1080), spp=40, light="producto"),
-    "clavijero": dict(cam=(-0.135, -0.165, 0.172), tgt=(-0.058, -0.026, 0.142), lens=100, f=5.0, focus=P["headstock"],
+    "clavijero": dict(cam=(-0.135, -0.165, 0.168), tgt=(-0.058, -0.028, 0.137), lens=100, f=5.0, focus=P["headstock"],
                       res=(1920, 1080), spp=40, light="producto"),
-    "cuerdas": dict(cam=(0.075, -0.155, 0.112), tgt=(0.008, -0.028, 0.094), lens=100, f=4.0, focus=P["hand_r"],
+    "cuerdas": dict(cam=(0.075, -0.155, 0.114), tgt=(0.004, -0.028, 0.096), lens=100, f=4.0, focus=P["hand_r"],
                     res=(1920, 1080), spp=40, light="producto"),
-    "cuerdas_boca": dict(cam=(0.075, -0.155, 0.112), tgt=(0.008, -0.028, 0.094), lens=100, f=4.0, focus=P["hole"],
+    "cuerdas_boca": dict(cam=(0.075, -0.155, 0.114), tgt=(0.004, -0.028, 0.096), lens=100, f=4.0, focus=P["hole"],
                          res=(1920, 1080), spp=40, light="producto"),
     "zapatos": dict(cam=(0.085, -0.17, 0.016), tgt=(0.0, -0.012, 0.022), lens=100, f=4.0, focus=(0.011, -0.026, 0.009),
                     res=(1920, 1080), spp=40, light="producto"),
@@ -85,7 +85,7 @@ def build_scene():
     bd = S.backdrop()
     ped = S.pedestal()
     L = S.studio_lights()
-    root, parts, M = build_yampi()
+    root, parts = build_real_yampi()
     return dict(backdrop=bd, pedestal=ped, lights=L, root=root, parts=parts)
 
 
@@ -146,7 +146,7 @@ def main(argv):
         render_shot(scn, n, outdir, preview)
 
 
-def render_orbit(outdir, n=81, az0=-30.0, az1=24.0, radius=0.95, height=0.125, res=(1600, 900), spp=20,
+def render_orbit(outdir, n=60, az0=0.0, az1=36.0, radius=0.95, height=0.125, res=(1600, 900), spp=20,
                  start=0):
     """Órbita de cámara alrededor de la figura (fotogramas a 12 fps)."""
     scn = build_scene()

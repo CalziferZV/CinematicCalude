@@ -21,36 +21,40 @@ Spot de 67 segundos para presentar **Yampi**, una figura impresa en 3D en cuatro
 
 ## Cómo está hecho
 
-1. **Modelo 3D de Yampi** (`cinematic3d/model.py`). Se construye por código en Blender a partir de la foto de la figura real: proporciones, colores medidos en la foto, pelo peinado en mechones diagonales, antenas, orejas, guitarra con seis clavijas y las cuatro piezas de impresión separadas (cabeza; pelo con antenas; torso, brazos y guitarra; piernas y zapatos).
-2. **Plató y planos** (`cinematic3d/studio.py`, `cinematic3d/shots.py`). Ciclorama oscuro, peana mate, luz principal cálida, contraluces y objetivos de 38 a 100 mm con profundidad de campo real, renderizados con Cycles. La órbita se renderiza a 12 fps y se interpola a 24 fps con flujo óptico.
-3. **Montaje y acabado** (`cinematic/film2.py`). Movimientos lentos sobre los renders, efecto "capa a capa", despiece animado, tipografía Cormorant Garamond y Montserrat, etalonaje cálido, halo en las altas luces, grano fino y viñeta suave.
-4. **Música original** (`cinematic/audio2.py`). Piano por síntesis aditiva, guitarra Karplus-Strong afinada, cuerdas y chelo, a 72 BPM en Re mayor. Mezcla con reverb de sala y sonoridad de -16 LUFS.
+1. **El modelo 3D real** (`tools/load3mf.py`, `cinematic3d/real.py`). La geometría sale del proyecto de impresión de Bambu Studio (`YAMPI_200mm_COMPLETO_CORREGIDO_COLOR_P1S.3mf`: 200 mm, 1,9 millones de triángulos). Del 3MF solo se usan la forma y las zonas pintadas, que separan los materiales; los colores se miden en las fotos de la figura impresa. También se corrigen las zonas que no coinciden con la figura real: iris, cejas y puente de la guitarra en negro, laterales de la guitarra en marrón oscuro, franja oscura bajo el flequillo y motas sueltas. El color va por vértice, así los bordes quedan suaves.
+2. **Las cuatro piezas.** El modelo se corta por el cuello y por el bajo de la camiseta, y el pelo se separa por su zona, con tapas en los cortes y un casquete oscuro bajo el pelo. Así se obtienen las cuatro placas de impresión del despiece: cabeza; pelo con antenas; torso, brazos y guitarra; piernas y zapatos.
+3. **Plató y planos** (`cinematic3d/studio.py`, `cinematic3d/shots.py`). Ciclorama oscuro, peana mate, luz principal cálida, contraluces y objetivos de 38 a 100 mm con profundidad de campo real, renderizados con Cycles. La órbita se renderiza a 12 fps y se interpola a 24 fps con flujo óptico.
+4. **Montaje y acabado** (`cinematic/film4.py` sobre `cinematic/film2.py`). Movimientos lentos sobre los renders, efecto "capa a capa", despiece animado, tipografía Cormorant Garamond y Montserrat, etalonaje cálido, halo en las altas luces, grano fino y viñeta suave.
+5. **Música original** (`cinematic/audio2.py`). Piano por síntesis aditiva, guitarra Karplus-Strong afinada, cuerdas y chelo, a 72 BPM en Re mayor. Mezcla con reverb de sala y sonoridad de -16 LUFS.
 
 ## Regenerar el vídeo
 
-Requisitos: Python 3.10+, `ffmpeg` y las dependencias de `requirements.txt` (incluye `bpy`, Blender como módulo de Python).
+Requisitos: Python 3.10+, `ffmpeg` y las dependencias de `requirements.txt` (incluye `bpy`, Blender como módulo de Python). El 3MF no está en el repositorio: cópialo en `assets/source/`.
 
 ```bash
 pip install -r requirements.txt
 
-# 1. Renders 3D (unos 40 min en 4 núcleos)
-python -m cinematic3d.shots build/3d ojos antena cara34 clavijero cuerdas_boca contrapicado entero \
-    entero_fondo entero_alfa heroe_izq capa_todo capa_cabeza capa_pelo capa_torso capa_piernas capa_fondo
-python -m cinematic3d.shots build/3d/orbita --orbita
-python -m cinematic.film2 --prepare-orbit
+# 1. Modelo: geometría y zonas pintadas del 3MF
+python -I tools/load3mf.py assets/source/YAMPI_200mm_COMPLETO_CORREGIDO_COLOR_P1S.3mf build/real/yampi_mesh.npz
 
-# 2. Música
+# 2. Renders 3D (unos 50 min en 4 núcleos)
+python -m cinematic3d.shots build/3d_real ojos antena entero entero_fondo entero_alfa cara34 clavijero \
+    cuerdas_boca contrapicado heroe_izq capa_cabeza capa_pelo capa_torso capa_piernas capa_todo capa_fondo
+python -m cinematic3d.shots build/3d_real/orbita --orbita
+python -m cinematic.film4 --prepare-orbit
+
+# 3. Música
 python -m cinematic.audio2 --out build/score2.wav
 
-# 3. Vídeo final
-python -m cinematic.film2 --audio build/score2.wav --out video/YAMPI_cinematica_1080p.mp4
+# 4. Vídeo final
+python -m cinematic.film4 --audio build/score2.wav --out video/YAMPI_cinematica_1080p.mp4
 
 # Vistas rápidas del modelo y fotogramas sueltos
-python -m cinematic3d.preview build/preview frente cara tresc
-python -m cinematic.film2 --stills 2,18,50
+python -m cinematic3d.real_preview build/real/prev
+python -m cinematic.film4 --stills 2,18,50
 ```
 
-La primera versión (estilo tráiler tecnológico) sigue en `cinematic/scenes.py`, `cinematic/render.py` y `cinematic/audio.py`. La v2 reutiliza de ella las herramientas comunes y la composición de la foto real del epílogo.
+Versiones anteriores: la v1 (estilo tráiler tecnológico) está en `cinematic/scenes.py`, `cinematic/render.py` y `cinematic/audio.py`; la v2 usaba un modelo procedural (`cinematic3d/model.py`) en lugar del modelo real. La v4 reutiliza el montaje de la v2 y la composición de la foto real del epílogo.
 
 ## Créditos
 

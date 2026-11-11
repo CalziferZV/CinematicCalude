@@ -1,6 +1,6 @@
-# YAMPI — Guion de la cinemática (v2)
+# YAMPI — Guion de la cinemática (v4)
 
-> **Logline:** Una pieza de presentación con la elegancia de un spot de producto de alta gama: luz cálida, cámara lenta, tipografía serif y música de piano, cuerdas y guitarra. Primero, el render 3D perfecto de Yampi; al final, la figura real.
+> **Logline:** Una pieza de presentación con la elegancia de un spot de producto de alta gama: luz cálida, cámara lenta, tipografía serif y música de piano, cuerdas y guitarra. Primero, el render 3D del modelo real de Yampi, con los colores de la figura impresa; al final, la figura en la mano.
 
 ---
 
@@ -11,7 +11,7 @@
 | **Duración** | 67 s |
 | **Formato** | 1920×1080 (16:9), 24 fps |
 | **Tono** | Sofisticado, cálido, sereno. Nada de HUD ni efectos tecnológicos: solo luz, materia y tiempo |
-| **Imagen** | Render 3D de Yampi modelado desde la foto de la figura real (Blender + Cycles): plató oscuro de terciopelo, peana mate, luz principal cálida y contraluz que dibuja el perfil. Objetivos de 85–100 mm y profundidad de campo real |
+| **Imagen** | Render 3D del modelo real de Yampi (la geometría del 3MF de impresión, 1,9 millones de triángulos) con los colores de la figura impresa, en Blender + Cycles: plató oscuro, peana mate, luz principal cálida y contraluz que dibuja el perfil. Objetivos de 38–100 mm y profundidad de campo real |
 | **Paleta** | Negro cálido (#0B0907), marfil (#F2EADF), oro suave (#C9A66B) y los colores de Yampi: azul, rojo, madera |
 | **Tipografía** | Cormorant Garamond (titulares, cursiva para los matices) y Montserrat Light en versalitas espaciadas para las notas |
 | **Música** | Composición original a 72 BPM en Re mayor: piano de fieltro, guitarra punteada (el instrumento de Yampi), cuerdas y chelo. Una respiración en silencio antes de la revelación |
@@ -40,7 +40,7 @@
 | 02 | 0:03.3 – 0:06.7 | **La antena.** Macro de la bola roja de la antena contra el negro, el pelo desenfocado debajo. Ligero movimiento lateral. | — | El piano dibuja el motivo principal. |
 | 03 | 0:06.7 – 0:13.3 | **Capa a capa.** Yampi completo sobre la peana, en penumbra. Una línea de luz dorada sube desde los zapatos hasta las antenas y, a su paso, la figura aparece capa a capa. | *Más de dos días de impresión* | Entra la guitarra punteada. |
 | 04 | 0:13.3 – 0:23.3 | **Las cuatro piezas.** La cámara se aleja desde el encuadre anterior mientras la figura se despieza: cabeza, pelo con antenas, torso con brazos y guitarra, y piernas con zapatos flotan separadas, cada una con su nota en versalitas y un filete dorado. Después se ensamblan con suavidad y la cámara vuelve a acercarse hasta enlazar con la órbita. | *Tres semanas de trabajo intenso* · I Cabeza · II Pelo y antenas · III Torso, brazos y guitarra · IV Piernas y zapatos | Guitarra y piano; el chelo marca la armonía. |
-| 05 | 0:23.3 – 0:30.0 | **La figura.** Desde el plano frontal, la cámara orbita despacio alrededor de Yampi (animación 3D real, renderizada a 12 fps e interpolada a 24 fps), con la luz recorriendo el pelo y la guitarra. | *Para crear una figura…* | Las cuerdas empiezan a crecer. |
+| 05 | 0:23.3 – 0:30.0 | **La figura.** Desde el plano frontal, la cámara gira despacio alrededor de Yampi hasta verlo de tres cuartos (animación 3D real, renderizada a 12 fps e interpolada a 24 fps), con la luz recorriendo el pelo y la guitarra. | *Para crear una figura…* | Las cuerdas empiezan a crecer. |
 | 06 | 0:30.0 – 0:33.3 | **El rostro.** Primer plano de tres cuartos: los mechones del pelo, los ojos, la sonrisa. | *…con un detalle perfecto* | Vuelve el motivo del piano, doblado por los violines. |
 | 07 | 0:33.3 – 0:36.7 | **El clavijero.** Las seis clavijas y la mano que pisa el mástil. Paneo lento. | — | — |
 | 08 | 0:36.7 – 0:40.0 | **Las cuerdas.** Macro de las cuerdas sobre la roseta, con la mano que rasguea desenfocada en primer término. | — | Las cuerdas suben. |
@@ -54,7 +54,8 @@
 
 ## Notas de producción
 
-- **Render 3D perfecto:** Yampi se ha modelado en 3D tomando como referencia la foto real (proporciones, colores medidos en la foto, pelo peinado en diagonal, antenas, orejas, guitarra con seis clavijas). Así no hay imperfecciones de recorte, ruido ni fondos domésticos.
-- **Las cuatro piezas** del despiece son las mismas cuatro placas de impresión del proyecto (cabeza completa; pelo con antenas; torso, brazos y guitarra; piernas y zapatos), presentadas como un objeto de diseño y no como capturas de pantalla.
+- **El modelo real:** la figura es la del proyecto de impresión del autor (`YAMPI_200mm_COMPLETO_CORREGIDO_COLOR_P1S.3mf`, 200 mm, 1,9 millones de triángulos). Del archivo solo se usa la geometría y las zonas pintadas, que sirven para separar los materiales.
+- **Los colores de la foto:** cada material toma el color medido en las fotos de la figura impresa (piel, pelo, blanco, negro, rojo, azul y madera). Además, las zonas que en el 3MF no coinciden con la figura impresa se corrigen: iris, cejas y puente de la guitarra en negro, laterales de la guitarra en marrón oscuro, la franja oscura bajo el flequillo y las motas de pintura sueltas. El color va por vértice para que los bordes de ojos, cejas y boca queden limpios.
+- **Las cuatro piezas** del despiece son las cuatro placas de impresión (cabeza; pelo con antenas; torso, brazos y guitarra; piernas y zapatos), cortadas del modelo por el cuello, por el bajo de la camiseta y por el contorno del pelo, con un casquete oscuro bajo el pelo como en la pieza impresa.
 - **La foto real** aparece al final como prueba de que la figura existe: la transición del render a la realidad cierra la historia.
 - **Acabado:** etalonaje cálido, halo suave en las altas luces, grano fino de película y viñeta discreta. Sin aberraciones, sin temblores, sin cortes bruscos.

@@ -1,3 +1,5 @@
 build/
 __pycache__/
 *.pyc
+# modelo de impresión del autor (no se publica en el repositorio)
+assets/source/*.3mf
