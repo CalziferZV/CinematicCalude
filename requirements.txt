@@ -2,5 +2,6 @@ numpy>=1.26
 opencv-python-headless>=4.9
 pillow>=10.0
 scipy>=1.11
-# solo para regenerar la máscara de la figura (tools/segment.py)
+bpy>=5.1      # Blender como módulo: modelo 3D y renders Cycles (cinematic3d/)
+# solo para regenerar la máscara de la figura real (tools/segment.py)
 onnxruntime>=1.17

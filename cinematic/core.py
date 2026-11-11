@@ -234,6 +234,8 @@ FONT_FILES = {
     "bebas": "BebasNeue-Regular.ttf",
     "mono": "JetBrainsMono-VF.ttf",
     "fredoka": "Fredoka-VF.ttf",
+    "cormorant": "CormorantGaramond-VF.ttf",
+    "cormorant_it": "CormorantGaramond-Italic-VF.ttf",
 }
 
 

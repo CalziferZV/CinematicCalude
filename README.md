@@ -1,77 +1,58 @@
 # YAMPI — Cinemática de presentación
 
-Tráiler cinematográfico de 72 segundos para presentar **Yampi**, una figura impresa en 3D en cuatro placas, con más de 48 horas de impresión y tres semanas de trabajo.
+Spot de 67 segundos para presentar **Yampi**, una figura impresa en 3D en cuatro placas, con más de dos días de impresión y tres semanas de trabajo. Tiene el tono de un anuncio de producto de alta gama: luz cálida, cámara lenta, tipografía serif y música de piano, guitarra y cuerdas.
 
-- 🎬 **Vídeo final:** [`video/YAMPI_cinematica_1080p.mp4`](video/YAMPI_cinematica_1080p.mp4) — 1920×1080, 24 fps, H.264 + AAC estéreo, -14 LUFS
+- 🎬 **Vídeo final:** [`video/YAMPI_cinematica_1080p.mp4`](video/YAMPI_cinematica_1080p.mp4). 1920×1080, 24 fps, H.264 + AAC estéreo
 - 📝 **Guion plano a plano:** [`GUION.md`](GUION.md)
 - 🖼️ **Fotogramas clave:** [`video/fotogramas/`](video/fotogramas/)
 
-## Estructura del vídeo
+## Estructura
 
-| Tiempo | Acto | Qué pasa |
+| Tiempo | Bloque | Texto |
 |---|---|---|
-| 0:00 | **I · El gancho** | *"Lo que estás a punto de ver… no es un render."* + destellos macro de detalles |
-| 0:08 | **II · Lo digital** | *3 semanas de trabajo intenso*: las 4 placas de Bambu Studio como pantallas flotantes, el dato de **+1.000.000 de triángulos** |
-| 0:24 | **III · Lo físico** | *Más de 2 días de impresión*: la silueta de Yampi se imprime capa a capa mientras el reloj llega a 48:00:00 y el holograma se materializa en la figura real |
-| 0:36 | **IV · El detalle** | *Para crear una figura… con un detalle perfecto y una calidad impoluta*: planos macro con barridos de luz |
-| 0:52 | **V · La revelación** | *Presentamos…* silencio, golpe, se abren las bandas negras, guitarra en Re mayor y **YAMPI** |
+| 0:00 | Apertura: los ojos y la antena salen de la oscuridad | — |
+| 0:07 | Capa a capa: una línea dorada "imprime" la figura | *Más de dos días de impresión* |
+| 0:13 | Las cuatro piezas (las cuatro placas) despiezadas y ensambladas | *Tres semanas de trabajo intenso* |
+| 0:23 | Órbita de cámara alrededor de Yampi | *Para crear una figura…* |
+| 0:30 | Detalles: rostro, clavijero, cuerdas, contrapicado | *…con un detalle perfecto · y una calidad impoluta.* |
+| 0:43 | Respiración en negro | *Presentamos* |
+| 0:47 | Revelación y logotipo | **YAMPI** · *Impreso en 3D · capa a capa* |
+| 0:57 | Epílogo con la foto real | *Del render… a la realidad.* |
 
 ## Cómo está hecho
 
-Todo se genera por código a partir de las dos fotos originales (`assets/source/`). No hay plantillas ni metraje de stock.
-
-```
-assets/
-  source/        fotos originales (figura final + captura de Bambu Studio)
-  generated/     máscaras de la figura y placas recortadas una a una
-  fonts/         tipografías libres (licencia OFL)
-cinematic/
-  core.py        cámara, tipografía, etalonaje y efectos (grano, bloom, destellos, bandas…)
-  scenes.py      las escenas de cada acto
-  logo.py        logotipo YAMPI con extrusión "impresa en 3D" y antenas
-  timeline.py    puntos de sincronía compartidos por imagen y sonido
-  audio.py       banda sonora original sintetizada (dron, pulso, impactos, guitarra Karplus-Strong)
-  render.py      composición de fotogramas y codificación con ffmpeg
-tools/
-  segment.py         máscara de la figura con un modelo ISNet (ONNX)
-  refine_mask.py     limpieza de la máscara (separa a Yampi de la mano)
-  extract_plates.py  recorta, endereza y limpia cada placa por separado
-```
-
-### Detalles técnicos
-
-- **Placas de Bambu Studio**: cada una se recorta por separado de la foto del monitor, se corrige la rotación de la pantalla curva, se elimina el moiré y se realza. La foto completa de la pantalla no aparece en el vídeo.
-- **Silueta holográfica**: la máscara de la figura (sin la mano) alimenta la impresión capa a capa, los barridos de luz y la luz de contorno.
-- **Revelación**: el fondo de la foto se extiende con un desenfoque progresivo para dejar sitio al logotipo, con un cambio de foco que hace "saltar" a la figura.
-- **Sonido**: todo sintetizado (sin muestras externas). Re menor durante el proceso y Re mayor en la revelación.
+1. **Modelo 3D de Yampi** (`cinematic3d/model.py`). Se construye por código en Blender a partir de la foto de la figura real: proporciones, colores medidos en la foto, pelo peinado en mechones diagonales, antenas, orejas, guitarra con seis clavijas y las cuatro piezas de impresión separadas (cabeza; pelo con antenas; torso, brazos y guitarra; piernas y zapatos).
+2. **Plató y planos** (`cinematic3d/studio.py`, `cinematic3d/shots.py`). Ciclorama oscuro, peana mate, luz principal cálida, contraluces y objetivos de 38 a 100 mm con profundidad de campo real, renderizados con Cycles. La órbita se renderiza a 12 fps y se interpola a 24 fps con flujo óptico.
+3. **Montaje y acabado** (`cinematic/film2.py`). Movimientos lentos sobre los renders, efecto "capa a capa", despiece animado, tipografía Cormorant Garamond y Montserrat, etalonaje cálido, halo en las altas luces, grano fino y viñeta suave.
+4. **Música original** (`cinematic/audio2.py`). Piano por síntesis aditiva, guitarra Karplus-Strong afinada, cuerdas y chelo, a 72 BPM en Re mayor. Mezcla con reverb de sala y sonoridad de -16 LUFS.
 
 ## Regenerar el vídeo
 
-Requisitos: Python 3.10+, `ffmpeg` y las dependencias de `requirements.txt`.
+Requisitos: Python 3.10+, `ffmpeg` y las dependencias de `requirements.txt` (incluye `bpy`, Blender como módulo de Python).
 
 ```bash
 pip install -r requirements.txt
 
-# 1. Banda sonora (≈10 s)
-python -m cinematic.audio --out build/soundtrack.wav
+# 1. Renders 3D (unos 40 min en 4 núcleos)
+python -m cinematic3d.shots build/3d ojos antena cara34 clavijero cuerdas_boca contrapicado entero \
+    entero_fondo entero_alfa heroe_izq capa_todo capa_cabeza capa_pelo capa_torso capa_piernas capa_fondo
+python -m cinematic3d.shots build/3d/orbita --orbita
+python -m cinematic.film2 --prepare-orbit
 
-# 2. Vídeo con sonido (≈5 min con 4 núcleos)
-python -m cinematic.render --audio build/soundtrack.wav --out video/YAMPI_cinematica_1080p.mp4
+# 2. Música
+python -m cinematic.audio2 --out build/score2.wav
 
-# Fotogramas sueltos para revisar (segundos separados por comas)
-python -m cinematic.render --stills 3.0,30.0,60.0
+# 3. Vídeo final
+python -m cinematic.film2 --audio build/score2.wav --out video/YAMPI_cinematica_1080p.mp4
+
+# Vistas rápidas del modelo y fotogramas sueltos
+python -m cinematic3d.preview build/preview frente cara tresc
+python -m cinematic.film2 --stills 2,18,50
 ```
 
-Las máscaras y las placas ya están en `assets/generated/`. Para regenerarlas:
-
-```bash
-python tools/extract_plates.py assets/source/bambu_studio_placas.jpg assets/generated 2.5
-# la máscara necesita un modelo ISNet en ONNX (no incluido en el repositorio)
-python tools/segment.py isnet.onnx assets/source/yampi_final.jpg assets/generated/yampi_mask_isnet.png
-python tools/refine_mask.py assets/source/yampi_final.jpg assets/generated/yampi_mask_isnet.png assets/generated
-```
+La primera versión (estilo tráiler tecnológico) sigue en `cinematic/scenes.py`, `cinematic/render.py` y `cinematic/audio.py`. La v2 reutiliza de ella las herramientas comunes y la composición de la foto real del epílogo.
 
 ## Créditos
 
 - Figura, diseño e impresión: el autor de Yampi.
-- Tipografías (SIL Open Font License): Cinzel, Montserrat, Bebas Neue, JetBrains Mono y Fredoka.
+- Tipografías (SIL Open Font License): Cormorant Garamond, Montserrat, Cinzel, Bebas Neue, JetBrains Mono y Fredoka.
