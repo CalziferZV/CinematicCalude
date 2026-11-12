@@ -61,6 +61,34 @@ SHOTS["entero_alfa"] = dict(SHOTS["entero"], transparent=True, parts="sinpeana",
 # héroe con la figura a la izquierda (sitio para el título) y peana completa
 SHOTS["heroe_izq"] = dict(cam=(0.03, -1.25, 0.112), tgt=(0.0, 0.0, 0.095), lens=85, f=4.0, focus=(0.0, -0.02, 0.10),
                           res=(2240, 1260), spp=48, light="heroe", shift_x=0.17)
+# --- versión vertical 9:16 (Reels), renderizada un 20 % mayor que 1080x1920 para los empujes de cámara ---
+VR = (1296, 2304)
+SHOTS["v_ojos"] = dict(cam=(0.012, -0.135, 0.157), tgt=(0.0, -0.019, 0.1525), lens=62, f=3.2, focus=P["eye_r"],
+                       res=VR, spp=64, light="penumbra")
+SHOTS["v_antena"] = dict(cam=(0.055, -0.085, 0.216), tgt=P["antenna"], lens=100, f=2.4, focus=P["antenna"],
+                         res=VR, spp=64, light="penumbra")
+SHOTS["v_entero"] = dict(cam=(0.0, -0.98, 0.122), tgt=(0.0, 0.0, 0.128), lens=105, f=8.0, focus=P["body"],
+                         res=VR, spp=48, light="producto")
+SHOTS["v_entero_fondo"] = dict(SHOTS["v_entero"], parts="ninguna", spp=32)
+SHOTS["v_entero_alfa"] = dict(SHOTS["v_entero"], transparent=True, parts="sinpeana", spp=32)
+SHOTS["v_cara34"] = dict(cam=(-0.13, -0.29, 0.168), tgt=(0.0, -0.002, 0.150), lens=100, f=5.6, focus=P["eye_l"],
+                         res=VR, spp=64, light="producto")
+SHOTS["v_clavijero"] = dict(cam=(-0.135, -0.165, 0.168), tgt=(-0.058, -0.028, 0.137), lens=85, f=5.0,
+                            focus=P["headstock"], res=VR, spp=64, light="producto")
+SHOTS["v_cuerdas"] = dict(cam=(0.075, -0.155, 0.114), tgt=(0.004, -0.028, 0.096), lens=85, f=4.0, focus=P["hole"],
+                          res=VR, spp=64, light="producto")
+SHOTS["v_contrapicado"] = dict(cam=(0.055, -0.40, 0.006), tgt=(0.0, 0.0, 0.112), lens=50, f=5.6,
+                               focus=(0.0, -0.025, 0.10), res=VR, spp=64, light="penumbra")
+SHOTS["v_heroe"] = dict(cam=(0.03, -1.25, 0.10), tgt=(0.0, 0.0, 0.10), lens=100, f=4.0, focus=(0.0, -0.02, 0.10),
+                        res=VR, spp=64, light="heroe", shift_y=0.14)
+# despiece vertical: misma cámara que v_entero con un objetivo 1,389 veces más abierto y la misma
+# densidad de píxeles (el centro 1296x2304 de la capa coincide exactamente con v_entero)
+for part in ("cabeza", "pelo", "torso", "piernas", "todo"):
+    SHOTS[f"v_capa_{part}"] = dict(SHOTS["v_entero"], lens=105 * 1296 / 1800, f=None, focus=None, res=(1800, 3200),
+                                   spp=32, transparent=True, parts=part)
+SHOTS["v_capa_fondo"] = dict(SHOTS["v_entero"], lens=105 * 1296 / 1800, f=None, focus=None, res=(1800, 3200),
+                             spp=24, parts="ninguna")
+
 # capas de la vista despiezada (mismo encuadre, fondo transparente)
 for part in ("cabeza", "pelo", "torso", "piernas", "todo"):
     SHOTS[f"capa_{part}"] = dict(cam=(0.0, -1.75, 0.135), tgt=(0.0, 0.0, 0.130), lens=85, f=None, focus=None,
@@ -121,7 +149,7 @@ def render_shot(scn, name, outdir, preview=False):
         show_parts(scn, parts)
     scn["backdrop"].hide_render = transparent
     cam = S.camera(f"cam_{name}", cfg["cam"], cfg["tgt"], lens=cfg["lens"], fstop=cfg["f"],
-                   shift_x=cfg.get("shift_x", 0.0))
+                   shift_x=cfg.get("shift_x", 0.0), shift_y=cfg.get("shift_y", 0.0))
     if cfg["f"] is not None and cfg.get("focus") is not None:
         cam.data.dof.focus_distance = (Vector(cfg["focus"]) - Vector(cfg["cam"])).length
     out = Path(outdir) / f"{name}.png"
@@ -135,6 +163,9 @@ def render_shot(scn, name, outdir, preview=False):
 
 def main(argv):
     outdir = argv[0]
+    if "--orbita-v" in argv:
+        render_orbit_v(outdir)
+        return
     if "--orbita" in argv:
         render_orbit(outdir)
         return
@@ -174,3 +205,30 @@ def render_orbit(outdir, n=60, az0=0.0, az1=36.0, radius=0.95, height=0.125, res
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+
+def render_orbit_v(outdir, n=64, az1=36.0, radius=0.95, height=0.125, res=(1134, 2016), spp=24, lens=105):
+    """Órbita vertical para el teaser: fotogramas nativos a 24 fps (2,67 s), con la misma curva de
+    movimiento que el montaje (arranque con impulso y frenada suave), un 5 % mayores que 1080x1920."""
+    scn = build_scene()
+    S.render_settings(res=res, samples=spp)
+    set_lights(scn["lights"], "producto")
+    show_parts(scn, "todo")
+    tgt = Vector((0.0, 0.0, 0.128))
+    cam = S.camera("cam_orbita_v", (0, -radius, height), tgt, lens=lens, fstop=4.5)
+    Path(outdir).mkdir(parents=True, exist_ok=True)
+    for i in range(n):
+        u = i / (n - 1)
+        x = 1 - (1 - u) ** 2
+        e = x * x * (3 - 2 * x)
+        az = math.radians(az1 * e)
+        cam.location = (radius * math.sin(az), -radius * math.cos(az), height + 0.012 * math.sin(math.pi * x))
+        S.look_at(cam, tgt)
+        cam.data.dof.focus_distance = (tgt + Vector((0, -0.02, 0)) - cam.location).length
+        out = Path(outdir) / f"v_orbita_{i:03d}.png"
+        if out.exists():
+            continue
+        bpy.context.scene.render.filepath = str(out)
+        t = time.time()
+        bpy.ops.render.render(write_still=True)
+        print(f"ORBITA_V {i}/{n} {time.time() - t:.1f}s", flush=True)

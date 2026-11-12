@@ -4,6 +4,7 @@ Spot de 67 segundos para presentar **Yampi**, una figura impresa en 3D en cuatro
 
 - 🎬 **Vídeo final:** [`video/YAMPI_cinematica_1080p.mp4`](video/YAMPI_cinematica_1080p.mp4). 1920×1080, 24 fps, H.264 + AAC estéreo
 - ⚡ **Teaser épico de 33 s para OBEKET:** [`video/YAMPI_OBEKET_teaser_1080p.mp4`](video/YAMPI_OBEKET_teaser_1080p.mp4). Abre con el símbolo de OBEKET, termina con la foto real de la figura y cierra con el logotipo y @obeket.co
+- 📱 **Teaser en vertical 9:16 (Reels y TikTok), máxima calidad:** [`video/YAMPI_OBEKET_teaser_vertical_1080x1920.mp4`](video/YAMPI_OBEKET_teaser_vertical_1080x1920.mp4). Todos los planos 3D se renderizan en vertical a resolución nativa. Copia ligera para ver en el móvil: [`video/YAMPI_OBEKET_teaser_vertical_movil.mp4`](video/YAMPI_OBEKET_teaser_vertical_movil.mp4)
 - 📝 **Guion plano a plano:** [`GUION.md`](GUION.md)
 - 🖼️ **Fotogramas clave:** [`video/fotogramas/`](video/fotogramas/)
 
@@ -27,7 +28,7 @@ Spot de 67 segundos para presentar **Yampi**, una figura impresa en 3D en cuatro
 3. **Plató y planos** (`cinematic3d/studio.py`, `cinematic3d/shots.py`). Ciclorama oscuro, peana mate, luz principal cálida, contraluces y objetivos de 38 a 100 mm con profundidad de campo real, renderizados con Cycles. La órbita se renderiza a 12 fps y se interpola a 24 fps con flujo óptico.
 4. **Montaje y acabado** (`cinematic/film4.py` sobre `cinematic/film2.py`). Movimientos lentos sobre los renders, efecto "capa a capa", despiece animado, tipografía Cormorant Garamond y Montserrat, etalonaje cálido, halo en las altas luces, grano fino y viñeta suave.
 5. **Música original** (`cinematic/audio2.py`). Piano por síntesis aditiva, guitarra Karplus-Strong afinada, cuerdas y chelo, a 72 BPM en Re mayor. Mezcla con reverb de sala y sonoridad de -16 LUFS.
-6. **Teaser para OBEKET** (`cinematic/teaser.py`, `cinematic/audio_teaser.py`). Montaje rápido de 33 s a 90 BPM sobre los mismos renders: cortes con destello en cada golpe, rótulos en Cinzel y Cormorant, revelación de YAMPI, la foto real de la figura en la mano y cierre con los logotipos de OBEKET (`assets/source/obeket_*.png`) y la cuenta @obeket.co. Música de tráiler (tambores, ostinato de cuerdas, metales graves, subida, silencio y gran golpe) a -14 LUFS.
+6. **Teaser para OBEKET** (`cinematic/teaser.py`, `cinematic/audio_teaser.py`). Montaje rápido de 33 s a 90 BPM sobre los mismos renders: cortes con destello en cada golpe, rótulos en Cinzel y Cormorant, revelación de YAMPI, la foto real de la figura en la mano y cierre con los logotipos de OBEKET (`assets/source/obeket_*.png`) y la cuenta @obeket.co. Música de tráiler (tambores, ostinato de cuerdas, metales graves, subida, silencio y gran golpe) a -14 LUFS. La versión vertical (`cinematic/teaser_v.py`) usa los mismos tiempos y música con planos 3D renderizados en 9:16 (`v_*` en `cinematic3d/shots.py`), la órbita fotograma a fotograma a 24 fps y la foto real, que ya es vertical.
 
 ## Regenerar el vídeo
 
@@ -54,6 +55,13 @@ python -m cinematic.film4 --audio build/score2.wav --out video/YAMPI_cinematica_
 # 5. Teaser de 33 s para OBEKET (mismos renders, música propia)
 python -m cinematic.audio_teaser --out build/score_teaser.wav
 python -m cinematic.teaser --audio build/score_teaser.wav --out video/YAMPI_OBEKET_teaser_1080p.mp4
+
+# 6. Teaser vertical 9:16 (planos 3D en vertical, órbita nativa a 24 fps)
+python -m cinematic3d.shots build/3d_real v_ojos v_antena v_entero v_entero_fondo v_entero_alfa v_cara34 \
+    v_clavijero v_cuerdas v_contrapicado v_heroe v_capa_cabeza v_capa_pelo v_capa_torso v_capa_piernas \
+    v_capa_todo v_capa_fondo
+python -m cinematic3d.shots build/3d_real/v_orbita --orbita-v
+python -m cinematic.teaser_v --audio build/score_teaser.wav --out video/YAMPI_OBEKET_teaser_vertical_1080x1920.mp4
 
 # Vistas rápidas del modelo y fotogramas sueltos
 python -m cinematic3d.real_preview build/real/prev
