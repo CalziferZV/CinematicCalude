@@ -324,7 +324,7 @@ SHOTS = [
 def titles(f, t):
     k = smooth(lin(t, T5["cara"], T5["cara"] + 0.3)) * (1 - smooth(lin(t, T5["presentamos"] - 0.3,
                                                                        T5["presentamos"])))
-    f = shade(f, top=True, height=560, strength=0.66 * k)
+    f = shade(f, top=True, height=700, strength=0.84 * k)
     f = head(f, "CON UN DETALLE", t, T5["cara"] + 0.25, T5["cuerdas"] - 0.05, W / 2, 205, size=56, align="center")
     f = sub(f, "perfecto", t, T5["cara"] + 0.50, T5["cuerdas"] - 0.05, W / 2, 280, size=58, align="center")
     f = head(f, "Y UNA CALIDAD", t, T5["cuerdas"] + 0.25, T5["presentamos"] - 0.05, W / 2, 205, size=56,

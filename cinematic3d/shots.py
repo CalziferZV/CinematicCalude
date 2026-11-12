@@ -203,10 +203,6 @@ def render_orbit(outdir, n=60, az0=0.0, az1=36.0, radius=0.95, height=0.125, res
         print(f"ORBITA {i}/{n} {time.time() - t:.1f}s", flush=True)
 
 
-if __name__ == "__main__":
-    main(sys.argv[1:])
-
-
 def render_orbit_v(outdir, n=64, az1=36.0, radius=0.95, height=0.125, res=(1134, 2016), spp=24, lens=105):
     """Órbita vertical para el teaser: fotogramas nativos a 24 fps (2,67 s), con la misma curva de
     movimiento que el montaje (arranque con impulso y frenada suave), un 5 % mayores que 1080x1920."""
@@ -232,3 +228,7 @@ def render_orbit_v(outdir, n=64, az1=36.0, radius=0.95, height=0.125, res=(1134,
         t = time.time()
         bpy.ops.render.render(write_still=True)
         print(f"ORBITA_V {i}/{n} {time.time() - t:.1f}s", flush=True)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
