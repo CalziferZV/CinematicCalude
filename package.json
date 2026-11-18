@@ -1,0 +1,32 @@
+{
+  "name": "filament-studio",
+  "version": "1.0.0",
+  "description": "Personalizador de color en tiempo real para piezas de impresión 3D, con catálogo de filamentos en vivo e IA",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/server.js",
+    "dev": "node --watch --env-file-if-exists=.env server/server.js",
+    "snapshot": "node scripts/snapshot.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CalziferZV/CinematicCalude.git"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/CalziferZV/CinematicCalude/issues"
+  },
+  "homepage": "https://github.com/CalziferZV/CinematicCalude#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "express": "^5.3.0",
+    "three": "^0.170.0",
+    "three-mesh-bvh": "^0.8.3"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "private": true
+}

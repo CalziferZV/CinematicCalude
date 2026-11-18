@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Filament Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ff6a13'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/",
+        "three-mesh-bvh": "/vendor/three-mesh-bvh/build/index.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo"></span>Filament&nbsp;Studio</div>
+    <div class="file-name" id="fileName">Sin modelo</div>
+    <div class="top-actions">
+      <button class="btn primary" id="btnOpen" title="Abrir STL, 3MF, OBJ, PLY o GLB">Abrir modelo</button>
+      <input type="file" id="fileInput" accept=".stl,.3mf,.obj,.ply,.glb,.gltf,.fsproj,.json" hidden />
+      <div class="dropdown">
+        <button class="btn" data-dd="samplesMenu">Ejemplos ▾</button>
+        <div class="menu" id="samplesMenu">
+          <button data-sample="trofeo.stl">Trofeo con texto</button>
+          <button data-sample="llavero.stl">Llavero / placa con nombre</button>
+          <button data-sample="caja.stl">Caja con tapa y pomo</button>
+        </div>
+      </div>
+      <span class="sep"></span>
+      <button class="btn icon" id="btnUndo" title="Deshacer (Ctrl+Z)" disabled>↶</button>
+      <button class="btn icon" id="btnRedo" title="Rehacer (Ctrl+Y)" disabled>↷</button>
+      <span class="sep"></span>
+      <button class="btn" id="btnPresent" title="Modo cliente: oculta los paneles para compartir pantalla (tecla P)">Modo cliente</button>
+      <div class="dropdown">
+        <button class="btn" data-dd="exportMenu">Exportar ▾</button>
+        <div class="menu right" id="exportMenu">
+          <button data-export="png">Imagen para el cliente (PNG)</button>
+          <button data-export="copy">Copiar imagen al portapapeles</button>
+          <button data-export="3mf">3MF pintado (Bambu Studio / Orca / Prusa)</button>
+          <button data-export="stlzip">STL por color (ZIP)</button>
+          <button data-export="sheet">Ficha de filamentos (TXT)</button>
+          <button data-export="project">Guardar proyecto (.fsproj)</button>
+        </div>
+      </div>
+      <button class="btn ai" id="btnAI" title="Asistente IA">✦ IA</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ======================= PANEL IZQUIERDO: partes y herramientas -->
+    <aside class="panel left">
+      <section>
+        <h3>Detectar partes</h3>
+        <div class="seg-grid">
+          <button class="btn small" data-seg="smart" title="Piezas sueltas + base + texto/relieve + escalones">✨ Inteligente</button>
+          <button class="btn small" data-seg="shells" title="Una parte por cada cuerpo suelto">Piezas sueltas</button>
+          <button class="btn small" data-seg="regions" title="Regiones separadas por aristas vivas">Por caras</button>
+          <button class="btn small" data-seg="heights" title="Bandas por escalones de altura (cambio de filamento por capa)">Por capas</button>
+        </div>
+        <div class="notes" id="segNotes"></div>
+      </section>
+
+      <section class="grow">
+        <h3>Partes <span class="muted" id="partsCount"></span></h3>
+        <div class="parts-list" id="partsList"><div class="empty-small">Abre un modelo para empezar</div></div>
+        <div class="row gap">
+          <button class="btn small" id="btnNewPart" title="Crea una parte vacía y activa el pincel">+ Nueva parte</button>
+          <button class="btn small" id="btnMerge" title="Unir las partes seleccionadas">Unir</button>
+          <button class="btn small" id="btnDeletePart" title="Devuelve la parte a la pieza vecina">Quitar</button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Herramientas</h3>
+        <div class="tools">
+          <button class="tool active" data-tool="select" title="Seleccionar partes (V)"><span>⌖</span>Seleccionar</button>
+          <button class="tool" data-tool="brush" title="Pincel (B)"><span>✎</span>Pincel</button>
+          <button class="tool" data-tool="fill" title="Relleno inteligente (F)"><span>◧</span>Relleno</button>
+          <button class="tool" data-tool="cut" title="Cortar por altura (C)"><span>⫶</span>Cortar</button>
+        </div>
+        <div class="tool-opts" id="toolOpts">
+          <div data-opts="select" class="hint-text">Clic: seleccionar parte · Mayús+clic: varias · Doble clic en la lista: renombrar</div>
+          <div data-opts="brush" hidden>
+            <label>Tamaño del pincel <output id="brushRadiusOut">3 mm</output></label>
+            <input type="range" id="brushRadius" min="0.5" max="30" step="0.5" value="3" />
+            <div class="hint-text">Pinta sobre la parte seleccionada (o crea una nueva con el color activo). Teclas [ ] para el tamaño.</div>
+          </div>
+          <div data-opts="fill" hidden>
+            <label>Tolerancia de ángulo <output id="fillAngleOut">20°</output></label>
+            <input type="range" id="fillAngle" min="1" max="90" step="1" value="20" />
+            <label class="check"><input type="checkbox" id="fillSamePart" checked /> Solo dentro de la misma parte</label>
+            <div class="hint-text">Clic en una cara: rellena la zona continua (una cara plana, una letra, un borde…).</div>
+          </div>
+          <div data-opts="cut" hidden>
+            <label>Altura de corte</label>
+            <div class="row gap">
+              <input type="range" id="cutZ" min="0" max="100" step="0.1" value="0" class="grow" />
+              <input type="number" id="cutZNum" step="0.1" value="0" class="num" /> <span class="muted">mm</span>
+            </div>
+            <label class="check"><input type="checkbox" id="layerSnap" checked /> Ajustar a capa de <input type="number" id="layerHeight" value="0.2" step="0.04" min="0.04" class="num tiny" /> mm</label>
+            <div class="row gap">
+              <button class="btn small primary" id="btnCut">Cortar aquí</button>
+              <button class="btn small" id="btnAutoLevels" title="Detecta escalones y corta por ellos">Auto escalones</button>
+            </div>
+            <div class="hint-text">Corta la parte seleccionada (o todo) en dos por esta altura. Ideal para cambiar de filamento por capa.</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <details>
+          <summary>Modelo y vista</summary>
+          <div class="row gap wrap">
+            <button class="btn small" data-rot="x" title="Girar 90° sobre X">↻ X</button>
+            <button class="btn small" data-rot="y" title="Girar 90° sobre Y">↻ Y</button>
+            <button class="btn small" data-rot="z" title="Girar 90° sobre Z">↻ Z</button>
+            <button class="btn small" id="btnScale" title="Escalar">Escala…</button>
+          </div>
+          <label>Detalle para pintar (subdividir)</label>
+          <div class="row gap">
+            <select id="subdivSize" class="grow">
+              <option value="2">Fino (2 mm)</option>
+              <option value="1" selected>Muy fino (1 mm)</option>
+              <option value="0.5">Extra (0,5 mm)</option>
+            </select>
+            <button class="btn small" id="btnSubdivide" title="Divide triángulos grandes para pintar con más precisión">Subdividir</button>
+          </div>
+          <label class="check"><input type="checkbox" id="showBoundaries" checked /> Mostrar líneas entre partes</label>
+          <label>Fondo</label>
+          <select id="bgSelect">
+            <option value="studio">Estudio</option>
+            <option value="white">Blanco</option>
+            <option value="dark">Oscuro</option>
+          </select>
+          <div class="stats" id="modelStats"></div>
+        </details>
+      </section>
+    </aside>
+
+    <!-- ======================= VISOR -->
+    <section class="viewport-wrap">
+      <div id="viewport"></div>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-card">
+          <div class="big-icon">⬡</div>
+          <h2>Arrastra aquí tu archivo 3D</h2>
+          <p>STL · 3MF · OBJ · PLY · GLB — la pieza en blanco que quieras personalizar con tu cliente</p>
+          <div class="row gap center">
+            <button class="btn primary" id="btnOpen2">Abrir archivo</button>
+            <button class="btn" data-sample="trofeo.stl">Probar con un trofeo</button>
+          </div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dropZone">Suelta el archivo para cargarlo</div>
+      <div class="view-bar">
+        <button data-view="iso" title="Vista 3D">3D</button>
+        <button data-view="front">Frente</button>
+        <button data-view="back">Detrás</button>
+        <button data-view="left">Izq.</button>
+        <button data-view="right">Der.</button>
+        <button data-view="top">Arriba</button>
+        <button id="btnSpin" title="Girar automáticamente">⟳</button>
+      </div>
+      <div class="present-bar" id="presentBar"></div>
+      <div class="hint" id="hint"></div>
+      <div class="loading" id="loading" hidden><div class="spinner"></div><span id="loadingText">Cargando…</span></div>
+    </section>
+
+    <!-- ======================= PANEL DERECHO: filamentos -->
+    <aside class="panel right">
+      <section>
+        <div class="row between">
+          <h3>Filamentos</h3>
+          <div class="cat-status" id="catStatus" title="Estado de la conexión con el catálogo"><span class="dot"></span><span class="txt">…</span>
+            <button class="btn icon tiny" id="btnRefreshCat" title="Actualizar ahora desde la web">⟳</button>
+          </div>
+        </div>
+        <select id="brandSelect" class="brand-select"></select>
+        <input type="search" id="colorSearch" placeholder="Buscar color… (dorado, negro mate, silk rojo)" />
+        <div class="chips" id="catChips"></div>
+      </section>
+      <section class="grow scroll">
+        <div id="lineList"></div>
+      </section>
+      <section class="active-box">
+        <div class="row between">
+          <h3>Color activo</h3>
+          <button class="btn small" id="btnApplyActive" title="Aplicar a las partes seleccionadas">Aplicar a selección</button>
+        </div>
+        <div id="activeFil" class="active-fil"><span class="muted">Haz clic en un color</span></div>
+        <h3 class="mt">Paleta del proyecto</h3>
+        <div id="projectPalette" class="palette"><span class="muted">Aún no hay colores asignados</span></div>
+        <details class="shop">
+          <summary>Añadir tienda online (Shopify)</summary>
+          <div class="row gap">
+            <input type="text" id="shopUrl" placeholder="p. ej. store.sunlu.com" class="grow" />
+            <button class="btn small" id="btnShop">Cargar</button>
+          </div>
+          <div class="hint-text">Lee en vivo los colores de cualquier tienda Shopify. El tono se aproxima por el nombre del color.</div>
+        </details>
+      </section>
+    </aside>
+  </main>
+
+  <!-- ======================= ASISTENTE IA -->
+  <div class="ai-panel" id="aiPanel" hidden>
+    <div class="ai-head">
+      <strong>✦ Asistente IA</strong><span class="muted" id="aiModel"></span>
+      <button class="btn icon tiny" id="aiClear" title="Nueva conversación">⌫</button>
+      <button class="btn icon tiny" id="aiClose" title="Cerrar">✕</button>
+    </div>
+    <div class="ai-messages" id="aiMessages"></div>
+    <div class="ai-quick" id="aiQuick">
+      <button>Analiza la pieza y pon nombre a las partes</button>
+      <button>Separa el texto de la base</button>
+      <button>Propón 3 combinaciones premium con Bambu Lab</button>
+      <button>¿Cuántos cambios de filamento necesito?</button>
+    </div>
+    <form class="ai-input" id="aiForm">
+      <textarea id="aiInput" rows="2" placeholder="Pídele lo que quieras: «la base en negro mate y el texto dorado silk»"></textarea>
+      <button class="btn primary" id="aiSend">Enviar</button>
+    </form>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
