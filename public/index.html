@@ -42,6 +42,7 @@
         <div class="menu right" id="exportMenu">
           <button data-export="png">Imagen para el cliente (PNG)</button>
           <button data-export="copy">Copiar imagen al portapapeles</button>
+          <button data-export="compare">Comparar propuestas A/B/C (PNG)</button>
           <button data-export="3mf">3MF pintado (Bambu Studio / Orca / Prusa)</button>
           <button data-export="stlzip">STL por color (ZIP)</button>
           <button data-export="sheet">Ficha de filamentos (TXT)</button>
@@ -85,7 +86,10 @@
           <button class="tool" data-tool="cut" title="Cortar por altura (C)"><span>⫶</span>Cortar</button>
         </div>
         <div class="tool-opts" id="toolOpts">
-          <div data-opts="select" class="hint-text">Clic: seleccionar parte · Mayús+clic: varias · Doble clic en la lista: renombrar</div>
+          <div data-opts="select">
+            <label class="check"><input type="checkbox" id="clickApply" /> Clic en una parte = aplicar el color activo</label>
+            <div class="hint-text">Clic: seleccionar parte · Mayús+clic: varias · Alt+clic: aplicar color activo · Doble clic en la lista: renombrar</div>
+          </div>
           <div data-opts="brush" hidden>
             <label>Tamaño del pincel <output id="brushRadiusOut">3 mm</output></label>
             <input type="range" id="brushRadius" min="0.5" max="30" step="0.5" value="3" />
@@ -155,6 +159,7 @@
             <button class="btn primary" id="btnOpen2">Abrir archivo</button>
             <button class="btn" data-sample="trofeo.stl">Probar con un trofeo</button>
           </div>
+          <div id="recoverBox" class="recover"></div>
         </div>
       </div>
       <div class="drop-zone" id="dropZone">Suelta el archivo para cargarlo</div>
@@ -166,6 +171,17 @@
         <button data-view="right">Der.</button>
         <button data-view="top">Arriba</button>
         <button id="btnSpin" title="Girar automáticamente">⟳</button>
+        <button id="btnLayers" title="Vista por capas: recorta la pieza a una altura (como el laminador)">☰ Capas</button>
+      </div>
+      <div class="variants-bar" id="variantsBar" hidden>
+        <span class="vb-title">Propuestas</span>
+        <div id="variantChips" class="vb-chips"></div>
+        <button class="btn small" id="btnSaveVariant" title="Guarda la combinación de colores actual como propuesta (A, B, C…) para compararlas con el cliente">+ Guardar</button>
+      </div>
+      <div class="layer-slider" id="layerSlider" hidden>
+        <div class="ls-top" id="layerLabel">Todo</div>
+        <input type="range" id="layerRange" min="0" max="1000" value="1000" orient="vertical" />
+        <button class="btn tiny" id="layerReset" title="Ver la pieza completa">↺</button>
       </div>
       <div class="present-bar" id="presentBar"></div>
       <div class="hint" id="hint"></div>

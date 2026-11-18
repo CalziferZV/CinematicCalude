@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import * as S from '/home/user/CinematicCalude/public/js/state.js';
+import * as S from '../../public/js/state.js';
 function readSTL(p){const b=fs.readFileSync(p);const n=b.readUInt32LE(80);const pos=new Float32Array(n*9);for(let i=0;i<n;i++){for(let k=0;k<9;k++)pos[i*9+k]=b.readFloatLE(84+i*50+12+k*4)}return pos}
 for (const f of ['trofeo','llavero','caja']) {
   S.loadMesh(readSTL(`public/samples/${f}.stl`), f);

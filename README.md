@@ -16,7 +16,10 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Tiendas online** | Pega la dirección de cualquier tienda Shopify (p. ej. de una marca) y lee sus colores y disponibilidad en vivo. |
 | **Aspecto realista** | Silk brillante, Matte, translúcido, metálico, sparkle, glow, y filamentos **bicolor / tricolor / degradado**. |
 | **Asistente IA** | Ve la pieza, reconoce base/texto/trofeo, pone nombres, divide por alturas, busca filamentos reales y los aplica. Le hablas normal: *«la base en negro mate y el texto dorado silk»*. |
-| **Modo cliente** | Oculta los paneles y deja la pieza y la leyenda de colores, ideal para compartir pantalla (tecla **P**). |
+| **Propuestas A / B / C** | Guarda varias combinaciones de colores y cambia entre ellas con un clic delante del cliente. **Exportar → Comparar propuestas** crea una sola imagen con todas lado a lado para que elija. |
+| **Vista por capas** | Deslizador que recorta la pieza a cualquier altura, como la vista previa del laminador (tecla **L**). Con la herramienta *Cortar* activa, mueve también el plano de corte. |
+| **Modo cliente** | Oculta los paneles y deja la pieza, la leyenda de colores y las propuestas, ideal para compartir pantalla (tecla **P**). |
+| **Autoguardado** | Si se cierra o recarga la página durante la llamada, al volver aparece «Recuperar» con todo tal cual estaba. |
 | **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF pintado** que abre Bambu Studio / OrcaSlicer / PrusaSlicer con los colores por zonas · **STL por color** (ZIP) · Ficha de filamentos (incluye en qué capa cambiar de filamento si la pieza va por bandas) · Proyecto `.fsproj` para seguir otro día. |
 
 ## Instalación (una sola vez)
@@ -51,9 +54,10 @@ ANTHROPIC_API_KEY=tu_clave
 1. **Abrir modelo** (o arrástralo). La app detecta las partes automáticamente.
 2. Haz clic en una parte (en la pieza o en la lista) y después en un color del panel derecho: se aplica al instante.
 3. ¿El cliente quiere otro color en una zona que no es una parte? Usa **Cortar** (por altura), **Relleno** o **Pincel**, o pídeselo a la IA.
-4. Pulsa **Modo cliente** (tecla P) para enseñar solo la pieza y la leyenda de colores. Gira con el ratón o con ⟳.
-5. **Exportar → Copiar imagen** y pégala en el chat de la llamada, o descarga el PNG.
-6. Cuando esté aprobado: **Exportar → 3MF pintado** y ábrelo en Bambu Studio / OrcaSlicer. Asigna los filamentos en el orden de la ficha (filamento 1, 2, 3…).
+4. ¿Dudas entre varias combinaciones? Pulsa **+ Guardar** (arriba a la derecha del visor) para crear la propuesta A, cambia colores, guarda la B… y alterna entre ellas con un clic.
+5. Pulsa **Modo cliente** (tecla P) para enseñar solo la pieza y la leyenda de colores. Gira con el ratón o con ⟳.
+6. **Exportar → Copiar imagen** y pégala en el chat de la llamada, descarga el PNG, o **Comparar propuestas** para mandar todas juntas.
+7. Cuando esté aprobado: **Exportar → 3MF pintado** y ábrelo en Bambu Studio / OrcaSlicer. Asigna los filamentos en el orden de la ficha (filamento 1, 2, 3…).
 
 ### Imprimir
 
@@ -69,6 +73,8 @@ ANTHROPIC_API_KEY=tu_clave
 | [ y ] | Tamaño del pincel |
 | 1 – 7 | Vistas: 3D, frente, detrás, izquierda, derecha, arriba, abajo |
 | P | Modo cliente |
+| L | Vista por capas |
+| Alt + clic | Aplicar el color activo a la parte pulsada |
 | Ctrl+Z / Ctrl+Y | Deshacer / rehacer |
 | Supr | Quitar la parte seleccionada |
 | Esc | Quitar selección |

@@ -70,8 +70,8 @@ export function init(el) {
   ro.observe(el);
   resize();
   on('mesh', rebuild);
-  on('parts', refreshParts);
-  on('selection', refreshParts);
+  on('parts', scheduleRefresh);
+  on('selection', scheduleRefresh);
   animate();
 }
 
@@ -158,6 +158,19 @@ function rebuild() {
 }
 export function resetCameraOnNextLoad() { rebuild.keepCamera = false; }
 
+// Agrupa varios cambios en un solo refresco por fotograma (pincel fluido en mallas grandes).
+let refreshQueued = false;
+function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(() => { refreshQueued = false; refreshParts(); });
+}
+let painting = false;
+export function setPainting(v) {
+  painting = v;
+  if (!v) scheduleRefresh();
+}
+
 // Reordena el índice por parte y asigna un material a cada grupo.
 function refreshParts() {
   if (!model || !S.mesh) return;
@@ -214,7 +227,7 @@ function refreshParts() {
 
 function buildBoundaries() {
   if (boundary) { scene.remove(boundary); boundary.geometry.dispose(); boundary = null; }
-  if (!showBoundaries || S.parts.length < 2 || partsOverride) return;
+  if (!showBoundaries || S.parts.length < 2 || partsOverride || painting) return;
   const t = topo();
   const fp = S.mesh.faceParts;
   const P = S.mesh.pos;
@@ -440,6 +453,14 @@ function drawPartLabels(ctx, cam, w, h) {
     ctx.fillStyle = '#fff';
     ctx.fillText(label, x + 2, y + 1);
   });
+}
+
+// Vista por capas: oculta todo lo que está por encima de Z (como la vista previa del laminador)
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+export function setClipZ(z) {
+  if (z == null) renderer.clippingPlanes = [];
+  else { clipPlane.constant = z; renderer.clippingPlanes = [clipPlane]; }
+  needsRender = true;
 }
 
 export function domElement() { return renderer.domElement; }

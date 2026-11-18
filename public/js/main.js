@@ -215,6 +215,7 @@ function onPointerDown(e) {
     ST.checkpoint();
     paintPart = paintTarget();
     painting = true;
+    V.setPainting(true);
     paintAt(hit);
   }
 }
@@ -243,6 +244,7 @@ function onPointerMove(e) {
 function onPointerUp(e) {
   if (painting) {
     painting = false;
+    V.setPainting(false);
     V.getControls().enabled = true;
     return;
   }
@@ -253,6 +255,11 @@ function onPointerUp(e) {
   const hit = V.pick(e.clientX, e.clientY);
   if (S.tool === 'select') {
     if (!hit) { if (!e.shiftKey) ST.select([]); return; }
+    if (S.activeFilament && (e.altKey || $('clickApply').checked)) {
+      ST.setPartFilament([hit.partId], S.activeFilament);
+      hint(`${S.activeFilament.name} → ${ST.partById(hit.partId)?.name}`);
+      return;
+    }
     ST.select([hit.partId], e.shiftKey || e.ctrlKey || e.metaKey);
     const p = ST.partById(hit.partId);
     if (p) hint(`${p.name}${S.activeFilament ? ' · elige un color o pulsa «Aplicar a selección»' : ' · elige un color a la derecha'}`);
@@ -411,6 +418,9 @@ function bind() {
   // vistas
   document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => V.fitView(b.dataset.view)));
   $('btnSpin').addEventListener('click', (e) => e.currentTarget.classList.toggle('active', V.toggleAutoRotate()));
+  $('btnLayers').addEventListener('click', () => toggleLayers());
+  $('layerRange').addEventListener('input', () => updateLayerClip(true));
+  $('layerReset').addEventListener('click', () => { $('layerRange').value = 1000; updateLayerClip(false); });
 
   // visor
   const canvas = V.domElement();
@@ -436,6 +446,7 @@ function bind() {
       try {
         if (kind === 'png') EX.exportPNG();
         else if (kind === 'copy') { await EX.copyPNG(); toast('Imagen copiada: pégala en el chat de la videollamada'); }
+        else if (kind === 'compare') EX.exportCompare();
         else if (kind === '3mf') { const n = EX.export3MF(); toast(`3MF exportado con ${n} filamentos pintados`); }
         else if (kind === 'stlzip') EX.exportSTLZip();
         else if (kind === 'sheet') EX.exportSheet();
@@ -450,6 +461,12 @@ function bind() {
   // modo cliente
   $('btnPresent').addEventListener('click', togglePresent);
 
+  // propuestas
+  $('btnSaveVariant').addEventListener('click', () => {
+    const n = ST.saveVariant();
+    if (n) toast(`Propuesta ${n} guardada. Cambia colores y guarda otra para comparar`);
+  });
+
   // teclado
   window.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea, select')) return;
@@ -462,6 +479,7 @@ function bind() {
     else if (k === 'f') setTool('fill');
     else if (k === 'c') setTool('cut');
     else if (k === 'p') togglePresent();
+    else if (k === 'l') toggleLayers();
     else if (k === 'escape') ST.select([]);
     else if (k === '[' || k === ']') {
       S.brushRadius = Math.max(0.5, Math.min(30, S.brushRadius * (k === ']' ? 1.25 : 0.8)));
@@ -472,6 +490,105 @@ function bind() {
     } else if (k === 'delete' && S.selected.size) for (const id of [...S.selected]) ST.deletePart(id);
     else if ('1234567'.includes(k)) V.fitView(['iso', 'front', 'back', 'left', 'right', 'top', 'bottom'][+k - 1]);
   });
+}
+
+function toggleLayers(force) {
+  const on = force ?? $('layerSlider').hidden;
+  $('layerSlider').hidden = !on;
+  $('btnLayers').classList.toggle('active', on);
+  if (!on) V.setClipZ(null);
+  else updateLayerClip(false);
+}
+function updateLayerClip(fromUser) {
+  if (!S.mesh || $('layerSlider').hidden) return;
+  const b = ST.topo().bbox;
+  const H = b.maxZ - b.minZ;
+  const v = +$('layerRange').value / 1000;
+  const lh = parseFloat($('layerHeight').value) || S.layerHeight || 0.2;
+  if (v >= 0.999) { V.setClipZ(null); $('layerLabel').innerHTML = `Todo<br>${Math.ceil(H / lh)} capas`; return; }
+  const z = Math.max(lh, Math.round((v * H) / lh) * lh);
+  V.setClipZ(b.minZ + z + 1e-4);
+  $('layerLabel').innerHTML = `Capa ${Math.round(z / lh)}<br>${z.toFixed(2)} mm`;
+  if (fromUser && S.tool === 'cut') setCutZ(z);
+}
+
+// ---------------------------------------------------------------- propuestas A/B/C
+function renderVariants() {
+  $('variantsBar').hidden = !S.mesh;
+  const box = $('variantChips');
+  box.innerHTML = '';
+  const dirty = ST.variantIsDirty();
+  for (const v of S.variants) {
+    const el = document.createElement('div');
+    const active = v.name === S.activeVariant;
+    el.className = 'vchip' + (active ? ' active' : '') + (active && dirty ? ' dirty' : '');
+    const fils = [];
+    for (const f of Object.values(v.colors)) if (f && !fils.some((x) => x.hex === f.hex && x.name === f.name)) fils.push(f);
+    el.title = `Propuesta ${v.name}: ${fils.map((f) => f.name).join(', ') || 'sin colores'}\nClic: aplicar`;
+    el.innerHTML = `<span>${v.name}</span><span class="dots">${fils.slice(0, 5).map((f) => `<i style="background:${swatchCss(f)}"></i>`).join('')}</span><button class="upd" title="Guardar los cambios en la propuesta ${v.name}">↻</button><button class="x" title="Borrar la propuesta ${v.name}">×</button>`;
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.x')) { ST.deleteVariant(v.name); return; }
+      if (e.target.closest('.upd')) { ST.updateVariant(v.name); toast(`Propuesta ${v.name} actualizada`); return; }
+      ST.applyVariant(v.name);
+      hint(`Propuesta ${v.name}`);
+    });
+    box.appendChild(el);
+  }
+}
+
+// ---------------------------------------------------------------- autoguardado (por si se recarga la página)
+const IDB_NAME = 'filament-studio';
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('autosave');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbPut(key, val) {
+  try {
+    const db = await idbOpen();
+    await new Promise((res, rej) => {
+      const tx = db.transaction('autosave', 'readwrite');
+      tx.objectStore('autosave').put(val, key);
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+    });
+    db.close();
+  } catch (e) { console.warn('Autoguardado no disponible', e); }
+}
+async function idbGet(key) {
+  try {
+    const db = await idbOpen();
+    const v = await new Promise((res, rej) => {
+      const r = db.transaction('autosave', 'readonly').objectStore('autosave').get(key);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    db.close();
+    return v;
+  } catch { return null; }
+}
+let autosaveTimer;
+function scheduleAutosave() {
+  if (!S.mesh) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => idbPut('last', {
+    name: S.modelName, pos: S.mesh.pos, faceParts: S.mesh.faceParts, parts: S.parts, nextId: S.nextId, notes: S.notes,
+    variants: S.variants, variantSeq: S.variantSeq, savedAt: Date.now(),
+  }), 1500);
+}
+async function offerRecover() {
+  const last = await idbGet('last');
+  if (!last || !last.pos || S.mesh) return;
+  const mins = Math.round((Date.now() - last.savedAt) / 60000);
+  const when = mins < 1 ? 'hace un momento' : mins < 60 ? `hace ${mins} min` : mins < 2880 ? `hace ${Math.round(mins / 60)} h` : `hace ${Math.round(mins / 1440)} días`;
+  const b = document.createElement('button');
+  b.className = 'btn';
+  b.textContent = `↺ Recuperar «${last.name}» (${when})`;
+  b.addEventListener('click', () => { V.resetCameraOnNextLoad(); ST.loadProject(last); toast('Trabajo recuperado'); });
+  $('recoverBox').appendChild(b);
 }
 
 function closeMenus() {
@@ -488,9 +605,19 @@ function togglePresent() {
 // ---------------------------------------------------------------- arranque
 V.init($('viewport'));
 bind();
-ST.on('mesh', () => { renderParts(); renderNotes(); setCutZ(S.cutZ || 0); });
-ST.on('parts', renderParts);
-ST.on('selection', renderParts);
+ST.on('mesh', () => { renderParts(); renderNotes(); setCutZ(S.cutZ || 0); updateLayerClip(false); });
+let partsQueued = false;
+const scheduleParts = () => {
+  if (partsQueued) return;
+  partsQueued = true;
+  requestAnimationFrame(() => { partsQueued = false; renderParts(); });
+};
+ST.on('parts', scheduleParts);
+ST.on('selection', scheduleParts);
+ST.on('parts', () => { renderVariants(); scheduleAutosave(); });
+ST.on('mesh', () => { renderVariants(); scheduleAutosave(); });
+ST.on('variants', () => { renderVariants(); scheduleAutosave(); });
+offerRecover();
 initCatalog((fil) => setActive(fil, true));
 initAI();
 setTool('select');

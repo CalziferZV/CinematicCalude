@@ -1,6 +1,6 @@
 // Exportaciones: 3MF pintado, STL por color, imagen para el cliente, ficha y proyecto.
 import * as fflate from 'three/addons/libs/fflate.module.js';
-import { S, topo, BLANK, sceneSummary } from './state.js';
+import { S, topo, BLANK, sceneSummary, emit } from './state.js';
 import { capture } from './viewer.js';
 import { swatchCss } from './materials.js';
 import { filamentKey } from './catalog.js';
@@ -234,6 +234,63 @@ function drawSwatch(ctx, f, x, y, s) {
   ctx.stroke();
   void swatchCss;
 }
+// Imagen con todas las propuestas lado a lado (para que el cliente elija).
+export function compareImage() {
+  const vs = S.variants;
+  if (!vs.length) throw new Error('Guarda al menos una propuesta (botón «+ Guardar»)');
+  const cols = Math.min(vs.length, 3), rows = Math.ceil(vs.length / cols);
+  const CW = 760, RH = 560, LH = 230, HEAD = 96;
+  const c = document.createElement('canvas');
+  c.width = cols * CW;
+  c.height = HEAD + rows * (RH + LH);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#1d2129';
+  ctx.font = '700 36px system-ui, sans-serif';
+  ctx.fillText(`${(S.modelName || 'Tu pieza').replace(/\.[^.]+$/, '')} — propuestas de color`, 36, 60, c.width - 72);
+  const saved = S.parts.map((p) => p.filament);
+  vs.forEach((v, i) => {
+    const x = (i % cols) * CW, y = HEAD + Math.floor(i / cols) * (RH + LH);
+    for (const p of S.parts) if (p.id in v.colors) p.filament = v.colors[p.id];
+    const img = capture({ view: 'current', width: CW, height: RH });
+    ctx.drawImage(img, x, y);
+    ctx.fillStyle = '#ff6a13';
+    ctx.beginPath();
+    ctx.roundRect(x + 20, y + 20, 64, 64, 14);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '800 40px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(v.name, x + 52, y + 66);
+    ctx.textAlign = 'left';
+    let ly = y + RH + 24;
+    const list = S.parts.filter((p) => p.visible);
+    const max = Math.min(list.length, 6);
+    const rowH = (LH - 30) / Math.max(max, 1);
+    for (const p of list.slice(0, max)) {
+      const f = p.filament || BLANK;
+      drawSwatch(ctx, f, x + 28, ly, Math.min(rowH - 8, 30));
+      ctx.fillStyle = '#1d2129';
+      ctx.font = '600 17px system-ui, sans-serif';
+      ctx.fillText(p.name, x + 70, ly + 13, CW - 100);
+      ctx.fillStyle = '#5b6170';
+      ctx.font = '15px system-ui, sans-serif';
+      ctx.fillText(filLabel(f), x + 70, ly + 31, CW - 100);
+      ly += rowH;
+    }
+    if (list.length > max) { ctx.fillStyle = '#7a808c'; ctx.fillText(`+ ${list.length - max} partes más`, x + 70, ly + 10); }
+    ctx.fillStyle = '#e3e5ea';
+    ctx.fillRect(x + CW - 1, y, 1, RH + LH);
+  });
+  S.parts.forEach((p, i) => (p.filament = saved[i]));
+  emit('parts'); // restaura el render normal
+  return c;
+}
+export function exportCompare() {
+  compareImage().toBlob((b) => download(b, `${baseName()}_propuestas.png`), 'image/png');
+}
+
 export function exportPNG() {
   clientImage().toBlob((b) => download(b, `${baseName()}_propuesta.png`), 'image/png');
 }
@@ -257,7 +314,7 @@ function fromB64(b64) {
 export function exportProject() {
   const data = {
     app: 'filament-studio', version: 1, name: S.modelName, nextId: S.nextId, notes: S.notes,
-    parts: S.parts, pos: toB64(new Uint8Array(S.mesh.pos.buffer.slice(0))), faceParts: toB64(new Uint8Array(S.mesh.faceParts.buffer.slice(0))),
+    parts: S.parts, variants: S.variants, variantSeq: S.variantSeq, pos: toB64(new Uint8Array(S.mesh.pos.buffer.slice(0))), faceParts: toB64(new Uint8Array(S.mesh.faceParts.buffer.slice(0))),
   };
   const json = new TextEncoder().encode(JSON.stringify(data));
   download(new Blob([fflate.gzipSync(json)], { type: 'application/octet-stream' }), `${baseName()}.fsproj`);
@@ -268,7 +325,7 @@ export function parseProject(buf) {
   const d = JSON.parse(new TextDecoder().decode(u8));
   if (d.app !== 'filament-studio') throw new Error('No es un proyecto de Filament Studio');
   return {
-    name: d.name, nextId: d.nextId, notes: d.notes || [], parts: d.parts,
+    name: d.name, nextId: d.nextId, notes: d.notes || [], parts: d.parts, variants: d.variants || [], variantSeq: d.variantSeq || 0,
     pos: new Float32Array(fromB64(d.pos).buffer), faceParts: new Uint16Array(fromB64(d.faceParts).buffer),
   };
 }

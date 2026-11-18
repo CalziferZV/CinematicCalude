@@ -79,13 +79,13 @@ export function filamentMaterial(fil, { zRange = [0, 100] } = {}) {
   const key = `${fil.hex}|${(fil.hexes || []).join(',')}|${fil.finish}|${fil.kind}|${fil.alpha || 1}|${zRange.join(',')}`;
   if (cache.has(key)) return cache.get(key);
   const color = hexToColor(fil.hex);
-  const p = { color, roughness: 0.45, metalness: 0.0, clearcoat: 0.15, clearcoatRoughness: 0.4, side: THREE.FrontSide };
+  const p = { color, roughness: 0.45, metalness: 0.0, clearcoat: 0.15, clearcoatRoughness: 0.4, side: THREE.DoubleSide };
   switch (fil.finish) {
     case 'matte':
       Object.assign(p, { roughness: 0.92, clearcoat: 0 });
       break;
     case 'silk':
-      Object.assign(p, { roughness: 0.2, metalness: 0.55, clearcoat: 0.6, clearcoatRoughness: 0.15, sheen: 1, sheenColor: color.clone(), sheenRoughness: 0.3 });
+      Object.assign(p, { roughness: 0.22, metalness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.15, sheen: 1, sheenColor: color.clone(), sheenRoughness: 0.3 });
       break;
     case 'metal':
       Object.assign(p, { roughness: 0.3, metalness: 0.85, clearcoat: 0.3 });
@@ -129,7 +129,7 @@ export function falseColor(i) {
 }
 const flat = new Map();
 export function flatMaterial(hex) {
-  if (!flat.has(hex)) flat.set(hex, new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.8 }));
+  if (!flat.has(hex)) flat.set(hex, new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.8, side: THREE.DoubleSide }));
   return flat.get(hex);
 }
 

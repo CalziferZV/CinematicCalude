@@ -20,6 +20,9 @@ export const S = {
   modelName: '',
   notes: [],
   nextId: 1,
+  variants: [], // propuestas de color: { name, colors: { partId: filamento|null } }
+  activeVariant: null,
+  variantSeq: 0,
 };
 
 // ---------------------------------------------------------------- historial
@@ -100,7 +103,11 @@ export function loadMesh(pos, name) {
   S.parts = [makePart('Pieza completa', 'otro')];
   S.selected.clear();
   S.notes = [];
+  S.variants = [];
+  S.activeVariant = null;
+  S.variantSeq = 0;
   emit('mesh');
+  emit('variants');
   emit('selection');
   emit('history');
 }
@@ -457,8 +464,56 @@ export function loadProject(d) {
   S.parts = d.parts.map((p) => ({ ...p }));
   S.nextId = d.nextId;
   S.notes = d.notes || [];
+  S.variants = d.variants || [];
+  S.variantSeq = d.variantSeq || S.variants.length;
+  S.activeVariant = null;
   S.selected.clear();
   emit('mesh');
+  emit('variants');
   emit('selection');
   emit('history');
+}
+
+// ---------------------------------------------------------------- propuestas (A/B/C...)
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function currentColors() {
+  return Object.fromEntries(S.parts.map((p) => [p.id, p.filament ? { ...p.filament } : null]));
+}
+export function saveVariant() {
+  if (!S.mesh) return null;
+  const name = LETTERS[S.variantSeq++ % 26];
+  S.variants.push({ name, colors: currentColors() });
+  S.activeVariant = name;
+  emit('variants');
+  return name;
+}
+export function updateVariant(name) {
+  const v = S.variants.find((x) => x.name === name);
+  if (!v) return;
+  v.colors = currentColors();
+  S.activeVariant = name;
+  emit('variants');
+}
+export function applyVariant(name) {
+  const v = S.variants.find((x) => x.name === name);
+  if (!v) return;
+  checkpoint();
+  for (const p of S.parts) if (p.id in v.colors) p.filament = v.colors[p.id] ? { ...v.colors[p.id] } : null;
+  S.activeVariant = name;
+  emit('parts');
+  emit('variants');
+}
+export function deleteVariant(name) {
+  S.variants = S.variants.filter((x) => x.name !== name);
+  if (S.activeVariant === name) S.activeVariant = null;
+  emit('variants');
+}
+// ¿Los colores actuales coinciden con la propuesta activa?
+export function variantIsDirty() {
+  const v = S.variants.find((x) => x.name === S.activeVariant);
+  if (!v) return false;
+  return S.parts.some((p) => {
+    const a = v.colors[p.id] || null, b = p.filament || null;
+    return (a && a.hex) !== (b && b.hex) || (a && a.name) !== (b && b.name);
+  });
 }

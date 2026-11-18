@@ -51,7 +51,8 @@ app.post('/api/ai', async (req, res) => {
 });
 
 const PORT = Number(process.env.PORT) || 5173;
-app.listen(PORT, () => {
+const HOST = process.env.HOST || '127.0.0.1'; // solo accesible desde este ordenador
+app.listen(PORT, HOST, () => {
   if (process.argv.includes('--open')) {
     const url = `http://localhost:${PORT}`;
     const cmd = process.platform === 'win32' ? `start "" "${url}"` : process.platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`;

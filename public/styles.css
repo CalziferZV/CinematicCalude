@@ -143,11 +143,11 @@ details[open] summary { margin-bottom: 6px; }
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 2px; background: rgba(255,255,255,.92);
   border: 1px solid var(--border); border-radius: 10px; padding: 3px; box-shadow: var(--shadow);
 }
-.view-bar button { border: none; background: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; }
+.view-bar button { border: none; background: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; white-space: nowrap; }
 .view-bar button:hover { background: var(--hover); }
 .view-bar button.active { background: var(--accent-soft); color: #b8460a; }
 .hint {
-  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(29, 33, 41, 0.86); color: #fff; padding: 6px 12px;
+  position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(29, 33, 41, 0.86); color: #fff; padding: 6px 12px;
   border-radius: 8px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap;
 }
 .hint.show { opacity: 1; }
@@ -243,3 +243,29 @@ body.present .ai-panel { right: 16px; }
   .ai-panel { right: 16px; }
 }
 .btn.ai:hover:not(:disabled) { background: linear-gradient(135deg, #6a5cff, #b45cff); }
+
+.layer-slider {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%); height: min(70%, 520px); width: 64px; background: rgba(255,255,255,.92);
+  border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; padding: 8px 4px; gap: 6px;
+}
+.layer-slider input[type='range'] { writing-mode: vertical-lr; direction: rtl; flex: 1; width: 22px; }
+.ls-top { font-size: 10.5px; text-align: center; line-height: 1.2; font-weight: 600; min-height: 26px; }
+
+.variants-bar {
+  position: absolute; right: 14px; top: 12px; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.92);
+  border: 1px solid var(--border); border-radius: 12px; padding: 5px 6px 5px 10px; box-shadow: var(--shadow); max-width: calc(100% - 28px);
+}
+.vb-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; }
+.vb-chips { display: flex; gap: 4px; overflow-x: auto; }
+.vchip { position: relative; display: flex; align-items: center; gap: 5px; border: 1px solid var(--border); background: #fff; border-radius: 9px; padding: 3px 8px; cursor: pointer; font-weight: 700; }
+.vchip:hover { background: var(--hover); }
+.vchip.active { border-color: var(--accent); background: var(--accent-soft); color: #b8460a; }
+.vchip .dots { display: flex; }
+.vchip .dots i { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); margin-left: -3px; }
+.vchip .dots i:first-child { margin-left: 0; }
+.vchip .x, .vchip .upd { display: none; border: none; background: none; cursor: pointer; padding: 0 2px; font-size: 12px; color: var(--muted); }
+.vchip:hover .x { display: inline; }
+.vchip.dirty .upd { display: inline; color: var(--accent); }
+.recover { margin-top: 14px; }
+.recover button { font-size: 12.5px; }
+body.present .variants-bar .btn, body.present .vchip .x, body.present .vchip .upd { display: none !important; }
