@@ -9,7 +9,8 @@
     "dev": "node --watch server/server.js",
     "snapshot": "node scripts/snapshot.js",
     "samples": "node scripts/make-samples.js",
-    "test": "node scripts/tests/t1.mjs && node scripts/tests/t4.mjs"
+    "test": "node scripts/tests/t1.mjs && node scripts/tests/t4.mjs",
+    "build:exe": "node scripts/build-exe.mjs"
   },
   "repository": {
     "type": "git",
@@ -29,7 +30,12 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=18.17"
+    "node": ">=20.12"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6",
+    "resedit": "^3.1.1"
+  }
 }

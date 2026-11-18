@@ -1,7 +1,10 @@
 // Asistente IA de modelado / color para impresión 3D (Claude).
 // El bucle de herramientas se ejecuta en el navegador: el servidor solo reenvía cada turno
 // a la API de Claude (así la clave nunca llega al navegador) y devuelve la respuesta.
+import fs from 'node:fs';
+import path from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
+import { keyFile } from './runtime.js';
 
 const MODEL = process.env.FS_AI_MODEL || 'claude-opus-5-5';
 
@@ -9,6 +12,21 @@ let client = null;
 function getClient() {
   if (!client) client = new Anthropic();
   return client;
+}
+
+// Guarda la clave introducida desde la app (archivo .env local) y la activa al momento.
+export function saveApiKey(key) {
+  const k = String(key || '').trim();
+  if (!/^[A-Za-z0-9_\-]{20,300}$/.test(k)) throw new Error('La clave no parece válida (debe empezar por sk-ant-...)');
+  let lines = [];
+  try { lines = fs.readFileSync(keyFile, 'utf8').split(/\r?\n/); } catch { /* nuevo archivo */ }
+  lines = lines.filter((l) => !/^\s*ANTHROPIC_API_KEY\s*=/.test(l) && l.trim() !== '');
+  lines.push(`ANTHROPIC_API_KEY=${k}`);
+  fs.mkdirSync(path.dirname(keyFile), { recursive: true });
+  fs.writeFileSync(keyFile, lines.join('\n') + '\n', { mode: 0o600 });
+  process.env.ANTHROPIC_API_KEY = k;
+  client = null; // se crea de nuevo con la clave nueva
+  return aiStatus();
 }
 
 export function aiStatus() {

@@ -9,12 +9,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { fileURLToPath } from 'node:url';
+import { rootDir, cacheDir, readResource } from './runtime.js';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(here, '..', 'data');
-const CACHE_DIR = path.join(DATA_DIR, 'cache');
-const SNAPSHOT_FILE = path.join(DATA_DIR, 'snapshot', 'catalog.json.gz');
+const CACHE_DIR = cacheDir;
+const SNAPSHOT_REL = 'data/snapshot/catalog.json.gz';
+const SNAPSHOT_FILE = path.join(rootDir, SNAPSHOT_REL); // solo para generar la instantánea (npm run snapshot)
 
 const BAMBU_URL =
   'https://raw.githubusercontent.com/bambulab/BambuStudio/master/resources/profiles/BBL/filament/filaments_color_codes.json';
@@ -248,7 +247,7 @@ let snapshot = null;
 function loadSnapshot() {
   if (snapshot) return snapshot;
   try {
-    snapshot = JSON.parse(zlib.gunzipSync(fs.readFileSync(SNAPSHOT_FILE)).toString('utf8'));
+    snapshot = JSON.parse(zlib.gunzipSync(readResource(SNAPSHOT_REL)).toString('utf8'));
   } catch {
     snapshot = { brands: {}, brandList: [], at: null };
   }

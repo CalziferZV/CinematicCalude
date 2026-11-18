@@ -30,8 +30,34 @@ export async function initAI() {
 }
 
 function greet() {
-  if (enabled) addMsg('bot', 'Hola 👋 Soy tu asistente de diseño y color. Puedo ver la pieza, detectar base / texto / partes, dividirla y aplicar filamentos reales. ¿Qué quiere tu cliente?');
-  else addMsg('bot', 'La IA está desactivada. Para activarla crea un archivo .env junto a package.json con:\n\nANTHROPIC_API_KEY=tu_clave\n\ny reinicia la app (npm start). Consigue la clave en console.anthropic.com. El resto de la app funciona sin IA.');
+  if (enabled) {
+    addMsg('bot', 'Hola 👋 Soy tu asistente de diseño y color. Puedo ver la pieza, detectar base / texto / partes, dividirla y aplicar filamentos reales. ¿Qué quiere tu cliente?');
+    return;
+  }
+  addMsg('bot', 'La IA está desactivada. Para activarla pega aquí tu clave de la API de Claude (se consigue en console.anthropic.com). Se guarda solo en este ordenador. El resto de la app funciona sin IA.');
+  const box = document.createElement('form');
+  box.className = 'ai-key';
+  box.innerHTML = '<input type="password" placeholder="sk-ant-..." autocomplete="off" /><button class="btn primary">Activar IA</button>';
+  box.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const key = box.querySelector('input').value.trim();
+    if (!key) return;
+    box.querySelector('button').disabled = true;
+    try {
+      const r = await fetch('/api/ai/key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+      enabled = j.enabled;
+      $('aiModel').textContent = j.model;
+      box.remove();
+      addMsg('bot', '✅ Clave guardada. IA activada.');
+      greet();
+    } catch (err) {
+      addMsg('err', err.message);
+      box.querySelector('button').disabled = false;
+    }
+  });
+  $('aiMessages').appendChild(box);
 }
 
 function addMsg(kind, text, img) {
@@ -65,7 +91,7 @@ export function ask(text) {
 async function send() {
   const text = $('aiInput').value.trim();
   if (!text || busy) return;
-  if (!enabled) { addMsg('err', 'IA desactivada: añade ANTHROPIC_API_KEY en .env y reinicia.'); return; }
+  if (!enabled) { addMsg('err', 'IA desactivada: pega tu clave en el campo de arriba para activarla.'); return; }
   $('aiInput').value = '';
   addMsg('user', text);
   const startLen = messages.length;

@@ -22,9 +22,22 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Autoguardado** | Si se cierra o recarga la página durante la llamada, al volver aparece «Recuperar» con todo tal cual estaba. |
 | **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF pintado** que abre Bambu Studio / OrcaSlicer / PrusaSlicer con los colores por zonas · **STL por color** (ZIP) · Ficha de filamentos (incluye en qué capa cambiar de filamento si la pieza va por bandas) · Proyecto `.fsproj` para seguir otro día. |
 
-## Instalación (una sola vez)
+## Programa para Windows (.exe) — lo más fácil
 
-1. Instala **Node.js 18 o superior**: <https://nodejs.org>
+`FilamentStudio.exe` lleva todo dentro (también Node.js), así que **no hay que instalar nada**:
+
+1. Descarga `FilamentStudio-Windows.zip`. Se genera solo en GitHub: pestaña **Actions** → «Ejecutable de Windows» → la ejecución más reciente → sección **Artifacts**.
+2. **Antes de descomprimir**: clic derecho sobre el ZIP → *Propiedades* → marca **Desbloquear** → *Aceptar*. Así Windows no lo bloquea.
+3. Descomprime y haz doble clic en **FilamentStudio.exe**. Se abre una ventana negra (el motor; no la cierres) y el navegador con la app.
+4. Si aun así aparece «Windows protegió su PC»: *Más información* → *Ejecutar de todas formas*. Sale porque el programa no está firmado con un certificado de pago.
+
+La clave de la IA se puede pegar directamente en el panel **✦ IA**. Los datos se guardan en `%LOCALAPPDATA%\FilamentStudio`.
+
+Para generarlo tú mismo: `npm run build:exe` (crea `dist/FilamentStudio-Windows.zip`; funciona desde Windows, Mac o Linux).
+
+## Instalación desde el código (alternativa)
+
+1. Instala **Node.js 20.12 o superior**: <https://nodejs.org>
 2. Descarga esta carpeta.
 3. **Windows**: doble clic en `iniciar.bat` · **macOS**: doble clic en `iniciar.command` · **Linux / terminal**:
 
@@ -41,13 +54,8 @@ Se abre el navegador en <http://localhost:5173>.
 ### Activar la IA (opcional)
 
 1. Crea una clave en <https://console.anthropic.com>.
-2. Copia `.env.example` como `.env` y pon tu clave:
-
-```
-ANTHROPIC_API_KEY=tu_clave
-```
-
-3. Reinicia la app. Sin clave, todo lo demás funciona igual.
+2. Abre el panel **✦ IA** de la app y pégala (se guarda solo en tu ordenador). También puedes copiar `.env.example` como `.env` y poner `ANTHROPIC_API_KEY=tu_clave`.
+3. Sin clave, todo lo demás funciona igual.
 
 ## Cómo usarla en una videollamada
 
@@ -101,5 +109,5 @@ public/          la aplicación (three.js)
   js/catalog.js    panel de filamentos
   js/ai.js         asistente IA (herramientas que ejecuta sobre la pieza)
   js/exporters.js  3MF pintado, STL por color, imagen, ficha, proyecto
-scripts/         instantánea del catálogo, modelos de ejemplo y pruebas
+scripts/         instantánea del catálogo, modelos de ejemplo, pruebas y build-exe.mjs (el .exe)
 ```

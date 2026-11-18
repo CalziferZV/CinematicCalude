@@ -269,3 +269,6 @@ body.present .ai-panel { right: 16px; }
 .recover { margin-top: 14px; }
 .recover button { font-size: 12.5px; }
 body.present .variants-bar .btn, body.present .vchip .x, body.present .vchip .upd { display: none !important; }
+
+.ai-key { display: flex; gap: 6px; align-self: stretch; }
+.ai-key input { flex: 1; }
