@@ -303,6 +303,30 @@ export function mergeSmallRegions(topo, label, count, minAreaFrac = 0.002, maxRe
       const cur = best.get(a);
       if (!cur || n > cur.n || (n === cur.n && rArea[b] > rArea[cur.b])) best.set(a, { b, n });
     }
+    // regiones pequeñas sin vecinos (trozos sueltos de la malla): unir a la región más cercana
+    const orphans = roots.filter((r) => small.has(r) && !best.has(r));
+    if (orphans.length) {
+      const cx = new Float64Array(count), cy = new Float64Array(count), cz = new Float64Array(count);
+      for (let f = 0; f < nF; f++) {
+        const r = find(label[f]);
+        const w = area[f] + 1e-12;
+        cx[r] += topo.cen[f * 3] * w; cy[r] += topo.cen[f * 3 + 1] * w; cz[r] += topo.cen[f * 3 + 2] * w;
+      }
+      const big = roots.filter((r) => !small.has(r));
+      const targets = big.length ? big : roots;
+      for (const r of orphans) {
+        const w = rArea[r] || 1e-12;
+        const px = cx[r] / w, py = cy[r] / w, pz = cz[r] / w;
+        let bestT = -1, bestD = Infinity;
+        for (const q of targets) {
+          if (q === r) continue;
+          const wq = rArea[q] || 1e-12;
+          const d = (cx[q] / wq - px) ** 2 + (cy[q] / wq - py) ** 2 + (cz[q] / wq - pz) ** 2;
+          if (d < bestD) { bestD = d; bestT = q; }
+        }
+        if (bestT >= 0) best.set(r, { b: bestT, n: 0 });
+      }
+    }
     let merged = 0;
     for (const r of roots) {
       if (!small.has(r) || !best.has(r)) continue;
@@ -321,6 +345,39 @@ export function mergeSmallRegions(topo, label, count, minAreaFrac = 0.002, maxRe
     out[f] = remap.get(r);
   }
   return { label: out, count: remap.size };
+}
+
+// ------------------------------------------------------------------ limpieza
+// Quita trocitos sueltos minúsculos que están FUERA de la pieza (errores del archivo). No se ven,
+// pero hacen que el laminador crea que el objeto es enorme ("supera el límite de la placa").
+export function removeStrayFragments(pos) {
+  const t = buildTopology(pos);
+  const sh = shells(t);
+  if (sh.count < 2) return { pos, removed: 0 };
+  const st = groupStats(pos, t, sh.label, sh.count);
+  const sig = st.filter((q) => q.area >= t.totalArea * 0.01);
+  if (!sig.length) return { pos, removed: 0 };
+  const bb = { minX: Infinity, minY: Infinity, minZ: Infinity, maxX: -Infinity, maxY: -Infinity, maxZ: -Infinity };
+  for (const q of sig) {
+    bb.minX = Math.min(bb.minX, q.minX); bb.minY = Math.min(bb.minY, q.minY); bb.minZ = Math.min(bb.minZ, q.minZ);
+    bb.maxX = Math.max(bb.maxX, q.maxX); bb.maxY = Math.max(bb.maxY, q.maxY); bb.maxZ = Math.max(bb.maxZ, q.maxZ);
+  }
+  const m = Math.hypot(bb.maxX - bb.minX, bb.maxY - bb.minY, bb.maxZ - bb.minZ) * 0.03;
+  const stray = new Uint8Array(sh.count);
+  let removed = 0;
+  for (let i = 0; i < sh.count; i++) {
+    const q = st[i];
+    if (q.area >= t.totalArea * 0.002) continue;
+    const outside = q.maxX < bb.minX - m || q.minX > bb.maxX + m || q.maxY < bb.minY - m || q.minY > bb.maxY + m || q.maxZ < bb.minZ - m || q.minZ > bb.maxZ + m;
+    if (outside) { stray[i] = 1; removed++; }
+  }
+  if (!removed) return { pos, removed: 0 };
+  let keep = 0;
+  for (let f = 0; f < t.nF; f++) if (!stray[sh.label[f]]) keep++;
+  const out = new Float32Array(keep * 9);
+  let w = 0;
+  for (let f = 0; f < t.nF; f++) if (!stray[sh.label[f]]) { out.set(pos.subarray(f * 9, f * 9 + 9), w * 9); w++; }
+  return { pos: out, removed };
 }
 
 // ------------------------------------------------------------------ estadísticas

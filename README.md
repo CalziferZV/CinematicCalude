@@ -11,7 +11,7 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Abrir modelos** | STL, 3MF (incluidos los de Bambu Studio / Orca / Prusa), OBJ, PLY, GLB. Arrastrar y soltar. |
 | **Detección automática de partes** | ✨ *Inteligente*: piezas sueltas, **base**, **texto / relieve** (también cuando el texto está fundido en la misma malla), placas y **escalones de altura** (p. ej. copa sobre columna). También *Piezas sueltas*, *Por caras* (aristas vivas) y *Por capas*. |
 | **Partes como capas** | Lista de partes con color, % de superficie, ocultar/mostrar, renombrar (doble clic), unir y quitar. |
-| **Herramientas** | **Seleccionar** · **Pincel** (pinta zonas libres) · **Relleno inteligente** (una cara plana, una letra, un borde…) · **Cortar por altura** con plano visible y ajuste a altura de capa. **Subdividir** la malla para pintar con más detalle. Deshacer/rehacer ilimitado. |
+| **Herramientas** | **Seleccionar** · **Pincel** (pinta zonas libres) · **Relleno inteligente** (una cara plana, una letra, un borde…) · **Cortar por altura** con plano visible y ajuste a altura de capa · **Mover / Girar** cada parte por separado con flechas y aros, como en Bambu Studio (con *Apoyar en la cama* y *Separar partes*). **Subdividir** la malla para pintar con más detalle. Deshacer/rehacer ilimitado. |
 | **Catálogo de filamentos en vivo** | **Bambu Lab** (base oficial de colores de Bambu Studio, con HEX y código de cada bobina) + **más de 85 marcas** (Sunlu, eSun, Polymaker, Elegoo, Prusament, Overture, Jayo, Eryone, Creality, Anycubic…). Categorías: PLA Básico, PLA Matte, **PLA Silk**, PLA+/Tough, Translúcido, Especial (marble, sparkle, galaxy, bicolor…), Glow, Wood, Fibra, **PETG**, **ASA**, ABS, TPU, PC, PA/Nylon… Buscador en español/inglés («dorado», «negro mate», «silk rojo»). |
 | **Tiendas online** | Pega la dirección de cualquier tienda Shopify (p. ej. de una marca) y lee sus colores y disponibilidad en vivo. |
 | **Aspecto realista** | Silk brillante, Matte, translúcido, metálico, sparkle, glow, y filamentos **bicolor / tricolor / degradado**. |
@@ -20,7 +20,8 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Vista por capas** | Deslizador que recorta la pieza a cualquier altura, como la vista previa del laminador (tecla **L**). Con la herramienta *Cortar* activa, mueve también el plano de corte. |
 | **Modo cliente** | Oculta los paneles y deja la pieza, la leyenda de colores y las propuestas, ideal para compartir pantalla (tecla **P**). |
 | **Autoguardado** | Si se cierra o recarga la página durante la llamada, al volver aparece «Recuperar» con todo tal cual estaba. |
-| **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF pintado** que abre Bambu Studio / OrcaSlicer / PrusaSlicer con los colores por zonas · **STL por color** (ZIP) · Ficha de filamentos (incluye en qué capa cambiar de filamento si la pieza va por bandas) · Proyecto `.fsproj` para seguir otro día. |
+| **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF pintado** (cada zona con su número de filamento y los colores incluidos) para Bambu Studio / OrcaSlicer / PrusaSlicer · **OBJ con colores** (Bambu Studio y Orca convierten sus colores en filamentos) · **STL por color** (ZIP) · Ficha de filamentos · Proyecto `.fsproj`. Al exportar, la app muestra **qué color va en cada número de filamento**. |
+| **Limpieza automática** | Al abrir un archivo se quitan los trocitos sueltos minúsculos que estén fuera de la pieza (errores del archivo que hacen que el laminador diga que «supera el límite de la placa»). |
 
 ## Programa para Windows (.exe) — lo más fácil
 
@@ -65,7 +66,7 @@ Se abre el navegador en <http://localhost:5173>.
 4. ¿Dudas entre varias combinaciones? Pulsa **+ Guardar** (arriba a la derecha del visor) para crear la propuesta A, cambia colores, guarda la B… y alterna entre ellas con un clic.
 5. Pulsa **Modo cliente** (tecla P) para enseñar solo la pieza y la leyenda de colores. Gira con el ratón o con ⟳.
 6. **Exportar → Copiar imagen** y pégala en el chat de la llamada, descarga el PNG, o **Comparar propuestas** para mandar todas juntas.
-7. Cuando esté aprobado: **Exportar → 3MF pintado** y ábrelo en Bambu Studio / OrcaSlicer. Asigna los filamentos en el orden de la ficha (filamento 1, 2, 3…).
+7. Cuando esté aprobado: **Exportar → 3MF pintado** y ábrelo en Bambu Studio / OrcaSlicer. La app te muestra qué filamento va en cada número (1, 2, 3…): ponlos así en «Filamentos del proyecto». Si prefieres que Bambu Studio cree los filamentos con los colores exactos, usa **Exportar → OBJ con colores**.
 
 ### Imprimir
 
@@ -77,7 +78,8 @@ Se abre el navegador en <http://localhost:5173>.
 
 | Tecla | Acción |
 |---|---|
-| V / B / F / C | Seleccionar / Pincel / Relleno / Cortar |
+| V / B / F / C / M | Seleccionar / Pincel / Relleno / Cortar / Mover |
+| T / R | (con Mover) mover / girar |
 | [ y ] | Tamaño del pincel |
 | 1 – 7 | Vistas: 3D, frente, detrás, izquierda, derecha, arriba, abajo |
 | P | Modo cliente |

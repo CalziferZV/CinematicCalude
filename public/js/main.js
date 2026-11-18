@@ -56,9 +56,12 @@ async function openFile(file) {
     V.resetCameraOnNextLoad();
     ST.loadMesh(pos, name);
     await nextFrame();
-    const notes = ST.autoSegment('smart');
-    toast(`${name} cargado · ${S.parts.length} partes detectadas`);
-    void notes;
+    ST.autoSegment('smart');
+    if (S.cleanup) {
+      S.notes.unshift(`Se han quitado ${S.cleanup} trocitos sueltos minúsculos que estaban fuera de la pieza (errores del archivo)`);
+      renderNotes();
+    }
+    toast(`${name} cargado · ${S.parts.length} partes detectadas${S.cleanup ? ` · ${S.cleanup} trocitos sueltos eliminados` : ''}`);
   });
 }
 async function openSample(name) {
@@ -189,8 +192,28 @@ function setTool(tool) {
   V.showBrush(null);
   V.showCutPlane(S.cutZ, tool === 'cut' && !!S.mesh);
   V.setHover(null);
-  const msg = { select: 'Clic para seleccionar una parte', brush: 'Arrastra sobre la pieza para pintar · botón derecho para girar', fill: 'Clic en una zona para rellenarla', cut: 'Mueve el plano y pulsa «Cortar aquí»' };
+  if (tool === 'move') syncMove(true);
+  else V.stopMove();
+  const msg = { select: 'Clic para seleccionar una parte', brush: 'Arrastra sobre la pieza para pintar · botón derecho para girar', fill: 'Clic en una zona para rellenarla', cut: 'Mueve el plano y pulsa «Cortar aquí»', move: S.selected.size ? 'Arrastra las flechas para mover o los aros para girar' : 'Haz clic en la parte que quieras mover' };
   hint(msg[tool]);
+}
+
+// Abre/cierra las flechas de mover según la selección
+let warnedConnected = false;
+function syncMove(fromTool = false) {
+  if (S.tool !== 'move' || !S.mesh) return;
+  const ids = [...S.selected];
+  if (!ids.length) { V.stopMove(); return; }
+  V.startMove(ids);
+  if (!warnedConnected && ST.partsConnected(ids)) {
+    warnedConnected = true;
+    toast('Ojo: esta parte está unida a otras. Al moverla se separará de ellas (se puede deshacer).', 5000);
+  }
+  void fromTool;
+}
+function setMoveMode(mode) {
+  V.setMoveMode(mode);
+  document.querySelectorAll('[data-move-mode]').forEach((b) => b.classList.toggle('active', b.dataset.moveMode === mode));
 }
 
 function paintTarget() {
@@ -234,7 +257,7 @@ function onPointerMove(e) {
       const hit = V.pick(e.clientX, e.clientY);
       V.showBrush(hit?.point, hit?.normal, S.brushRadius);
       if (painting && hit) paintAt(hit);
-    } else if (S.tool === 'select' || S.tool === 'fill') {
+    } else if (S.tool === 'select' || S.tool === 'fill' || S.tool === 'move') {
       if (e.buttons) return;
       const hit = V.pick(e.clientX, e.clientY);
       V.setHover(hit ? hit.partId : null);
@@ -251,11 +274,11 @@ function onPointerUp(e) {
   if (!S.mesh || !downPos || e.button !== 0) return;
   const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y) > 5;
   downPos = null;
-  if (moved) return;
+  if (moved || V.isGizmoBusy()) return;
   const hit = V.pick(e.clientX, e.clientY);
-  if (S.tool === 'select') {
+  if (S.tool === 'select' || S.tool === 'move') {
     if (!hit) { if (!e.shiftKey) ST.select([]); return; }
-    if (S.activeFilament && (e.altKey || $('clickApply').checked)) {
+    if (S.tool === 'select' && S.activeFilament && (e.altKey || $('clickApply').checked)) {
       ST.setPartFilament([hit.partId], S.activeFilament);
       hint(`${S.activeFilament.name} → ${ST.partById(hit.partId)?.name}`);
       return;
@@ -447,7 +470,8 @@ function bind() {
         if (kind === 'png') EX.exportPNG();
         else if (kind === 'copy') { await EX.copyPNG(); toast('Imagen copiada: pégala en el chat de la videollamada'); }
         else if (kind === 'compare') EX.exportCompare();
-        else if (kind === '3mf') { const n = EX.export3MF(); toast(`3MF exportado con ${n} filamentos pintados`); }
+        else if (kind === '3mf') showSlotGuide(EX.export3MF(), '3mf');
+        else if (kind === 'obj') showSlotGuide(EX.exportOBJ(), 'obj');
         else if (kind === 'stlzip') EX.exportSTLZip();
         else if (kind === 'sheet') EX.exportSheet();
         else if (kind === 'project') EX.exportProject();
@@ -457,6 +481,33 @@ function bind() {
       }
     }),
   );
+
+  // mover / girar
+  document.querySelectorAll('[data-move-mode]').forEach((b) => b.addEventListener('click', () => setMoveMode(b.dataset.moveMode)));
+  $('moveSnap').addEventListener('change', (e) => V.setMoveSnap(e.target.checked));
+  $('btnDropBed').addEventListener('click', () => {
+    if (!S.mesh) return;
+    const ok = ST.dropToBed([...S.selected]);
+    toast(ok ? 'Apoyado en la cama' : 'Ya estaba apoyado en la cama');
+  });
+  $('btnExplode').addEventListener('click', () => {
+    if (!S.mesh) return;
+    if (S.parts.length < 2) return toast('Primero divide la pieza en partes');
+    busy('Separando partes…', () => {
+      ST.explodeParts(0.6);
+      V.fitView('iso');
+      toast('Partes separadas. Ctrl+Z para volver a juntarlas');
+    });
+  });
+
+  // guía de colores
+  const closeGuide = () => ($('slotModal').hidden = true);
+  $('slotClose').addEventListener('click', closeGuide);
+  $('slotX').addEventListener('click', closeGuide);
+  $('slotModal').addEventListener('click', (e) => { if (e.target.id === 'slotModal') closeGuide(); });
+  $('slotCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('slotList').dataset.text || ''); toast('Lista copiada'); } catch { toast('No se pudo copiar'); }
+  });
 
   // modo cliente
   $('btnPresent').addEventListener('click', togglePresent);
@@ -469,6 +520,7 @@ function bind() {
 
   // teclado
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('slotModal').hidden) { $('slotModal').hidden = true; return; }
     if (e.target.matches('input, textarea, select')) return;
     const k = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? ST.redo() : ST.undo(); return; }
@@ -478,6 +530,9 @@ function bind() {
     else if (k === 'b') setTool('brush');
     else if (k === 'f') setTool('fill');
     else if (k === 'c') setTool('cut');
+    else if (k === 'm') setTool('move');
+    else if (k === 't' && S.tool === 'move') setMoveMode('translate');
+    else if (k === 'r' && S.tool === 'move') setMoveMode('rotate');
     else if (k === 'p') togglePresent();
     else if (k === 'l') toggleLayers();
     else if (k === 'escape') ST.select([]);
@@ -510,6 +565,28 @@ function updateLayerClip(fromUser) {
   V.setClipZ(b.minZ + z + 1e-4);
   $('layerLabel').innerHTML = `Capa ${Math.round(z / lh)}<br>${z.toFixed(2)} mm`;
   if (fromUser && S.tool === 'cut') setCutZ(z);
+}
+
+// ---------------------------------------------------------------- guía: qué color va en cada filamento del laminador
+function showSlotGuide(list, kind) {
+  const text = [];
+  $('slotTitle').textContent = kind === 'obj' ? 'OBJ con colores exportado' : '3MF exportado';
+  $('slotIntro').textContent = kind === 'obj'
+    ? 'Descomprime el ZIP y, en Bambu Studio u OrcaSlicer, importa el .obj (con el .mtl al lado). El programa detectará estos colores y te propondrá convertirlos en filamentos:'
+    : 'Cada zona va pintada con el número de filamento de esta lista. En Bambu Studio pon en cada número el filamento indicado:';
+  $('slotList').innerHTML = list.map((e, i) => {
+    const f = e.fil;
+    const hex = EX.flatHex(f);
+    const label = f.blank ? 'Sin color asignado (elige el que quieras)' : `${f.brandName || ''} · ${f.line || ''} · ${f.name}`;
+    const light = parseInt(hex.slice(1, 3), 16) * 0.299 + parseInt(hex.slice(3, 5), 16) * 0.587 + parseInt(hex.slice(5, 7), 16) * 0.114 > 150;
+    text.push(`Filamento ${i + 1}: ${label} (${hex}${f.code ? `, código ${f.code}` : ''})`);
+    return `<div class="slot"><div class="num" style="background:${hex};color:${light ? '#000' : '#fff'}">${i + 1}</div><div class="sw" style="background:${swatchCss(f.blank ? null : f)}"></div><div class="grow"><div class="t1">${escapeHtml(label)}</div><div class="t2">${hex}${f.code ? ` · código ${escapeHtml(f.code)}` : ''} · ${e.parts.map((p) => escapeHtml(p.name)).slice(0, 4).join(', ')}${e.parts.length > 4 ? '…' : ''}</div></div></div>`;
+  }).join('');
+  $('slotList').dataset.text = text.join('\n');
+  $('slotSteps').innerHTML = kind === 'obj'
+    ? '<li>Bambu Studio: <b>Archivo → Importar → Importar 3MF/STL/STEP/SVG/OBJ…</b> y elige el <b>.obj</b>.</li><li>En la ventana de colores elige el número de filamentos y empareja cada color, o deja que los añada como filamentos nuevos.</li><li>Cambia el tipo de filamento (PLA Basic, Matte, Silk…) en «Filamentos del proyecto» si hace falta.</li>'
+    : '<li>Abre el 3MF en Bambu Studio. Si pregunta, acepta cargar la geometría y el color.</li><li>Si aparece una ventana para emparejar colores, empareja cada color con su filamento de esta lista.</li><li>Si no, en <b>«Filamentos del proyecto»</b> pon en el <b>1, 2, 3…</b> el filamento y color de esta lista (si tienes AMS, elige el de tu bobina).</li>';
+  $('slotModal').hidden = false;
 }
 
 // ---------------------------------------------------------------- propuestas A/B/C
@@ -614,6 +691,7 @@ const scheduleParts = () => {
 };
 ST.on('parts', scheduleParts);
 ST.on('selection', scheduleParts);
+ST.on('selection', () => syncMove());
 ST.on('parts', () => { renderVariants(); scheduleAutosave(); });
 ST.on('mesh', () => { renderVariants(); scheduleAutosave(); });
 ST.on('variants', () => { renderVariants(); scheduleAutosave(); });

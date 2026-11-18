@@ -17,22 +17,44 @@ const baseName = () => (S.modelName || 'modelo').replace(/\.[^.]+$/, '').replace
 const filLabel = (f) => (f.blank ? 'Sin asignar (blanco)' : `${f.brandName ? f.brandName + ' · ' : ''}${f.line ? f.line + ' · ' : ''}${f.name}`);
 
 // Lista de filamentos distintos usados en el proyecto, en orden de partes.
+// Las partes sin color van siempre en el último hueco (filamento N).
 export function usedFilaments() {
   const list = [];
   const keyOf = new Map();
   const counts = new Map();
   const t = topo();
   for (let f = 0; f < S.mesh.faceParts.length; f++) counts.set(S.mesh.faceParts[f], (counts.get(S.mesh.faceParts[f]) || 0) + t.area[f]);
-  for (const p of S.parts) {
-    if (!counts.get(p.id)) continue;
-    const fil = p.filament || BLANK;
-    const k = fil.blank ? 'blank' : filamentKey(fil);
-    if (!keyOf.has(k)) { keyOf.set(k, list.length); list.push({ fil, parts: [], area: 0 }); }
-    const e = list[keyOf.get(k)];
-    e.parts.push(p);
-    e.area += counts.get(p.id);
+  const keyFor = (p) => ((p.filament || BLANK).blank ? 'blank' : filamentKey(p.filament));
+  for (const pass of ['color', 'blank']) {
+    for (const p of S.parts) {
+      if (!counts.get(p.id)) continue;
+      const k = keyFor(p);
+      if ((k === 'blank') !== (pass === 'blank')) continue;
+      if (!keyOf.has(k)) { keyOf.set(k, list.length); list.push({ fil: p.filament || BLANK, parts: [], area: 0 }); }
+      const e = list[keyOf.get(k)];
+      e.parts.push(p);
+      e.area += counts.get(p.id);
+    }
   }
-  return { list, indexOfPart: (p) => keyOf.get((p.filament || BLANK).blank ? 'blank' : filamentKey(p.filament)) };
+  return { list, indexOfPart: (p) => keyOf.get(keyFor(p)) };
+}
+
+// Color "plano" de un filamento para formatos que solo admiten un color por zona.
+export function flatHex(fil) {
+  return ((fil.hexes && fil.hexes[0]) || fil.hex || '#ECECEC').slice(0, 7).toUpperCase();
+}
+
+// Vértices soldados (sin repetir) para formatos indexados (3MF, OBJ).
+function weldedVertices(t, P) {
+  const vpos = new Float64Array(t.nV * 3);
+  const seen = new Uint8Array(t.nV);
+  for (let c = 0; c < t.nF * 3; c++) {
+    const v = t.vid[c];
+    if (seen[v]) continue;
+    seen[v] = 1;
+    vpos[v * 3] = P[c * 3]; vpos[v * 3 + 1] = P[c * 3 + 1]; vpos[v * 3 + 2] = P[c * 3 + 2];
+  }
+  return vpos;
 }
 
 // Cambios de filamento por capa (si las partes son bandas horizontales apiladas).
@@ -69,44 +91,86 @@ export function export3MF() {
   const t = topo();
   const P = S.mesh.pos;
   const { list, indexOfPart } = usedFilaments();
-  const partSlot = new Map(S.parts.map((p) => [p.id, indexOfPart(p) + 1]));
-  const vpos = new Float64Array(t.nV * 3);
-  const seen = new Uint8Array(t.nV);
-  for (let c = 0; c < t.nF * 3; c++) {
-    const v = t.vid[c];
-    if (seen[v]) continue;
-    seen[v] = 1;
-    vpos[v * 3] = P[c * 3]; vpos[v * 3 + 1] = P[c * 3 + 1]; vpos[v * 3 + 2] = P[c * 3 + 2];
-  }
-  // colocar dentro de la cama (vale para A1 mini, A1, P1, X1)
-  const off = [90, 90, 0];
-  const parts = [];
-  parts.push('<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="es-ES" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">\n');
-  parts.push(`<metadata name="Title">${escXml(baseName())}</metadata>\n<metadata name="Application">Filament Studio</metadata>\n<resources>\n<object id="1" type="model" name="${escXml(baseName())}">\n<mesh>\n<vertices>\n`);
+  const partSlot = new Map(S.parts.map((p) => [p.id, indexOfPart(p)]));
+  const vpos = weldedVertices(t, P);
+  // colocar dentro de la cama (vale para A1 mini, A1, P1, X1) y con la base en Z = 0
+  const off = [90, 90, -t.bbox.minZ];
+  const out = [];
+  out.push('<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="es-ES" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">\n');
+  out.push(`<metadata name="Title">${escXml(baseName())}</metadata>\n<metadata name="Application">Filament Studio</metadata>\n<resources>\n`);
+  // grupo de colores: un color por filamento (en el mismo orden que la pintura: filamento 1, 2, 3...)
+  out.push('<m:colorgroup id="1">\n');
+  for (const e of list) out.push(`<m:color color="${flatHex(e.fil)}FF"/>\n`);
+  out.push('</m:colorgroup>\n');
+  out.push(`<object id="2" type="model" name="${escXml(baseName())}" pid="1" pindex="0">\n<mesh>\n<vertices>\n`);
   const vs = [];
   for (let v = 0; v < t.nV; v++) vs.push(`<vertex x="${(vpos[v * 3] + off[0]).toFixed(5)}" y="${(vpos[v * 3 + 1] + off[1]).toFixed(5)}" z="${(vpos[v * 3 + 2] + off[2]).toFixed(5)}"/>`);
-  parts.push(vs.join('\n'));
-  parts.push('\n</vertices>\n<triangles>\n');
+  out.push(vs.join('\n'));
+  out.push('\n</vertices>\n<triangles>\n');
   const ts = [];
   for (let f = 0; f < t.nF; f++) {
     const a = t.vid[f * 3], b = t.vid[f * 3 + 1], c = t.vid[f * 3 + 2];
     if (a === b || b === c || a === c) continue;
-    const code = paintCode(partSlot.get(S.mesh.faceParts[f]) || 1);
-    ts.push(`<triangle v1="${a}" v2="${b}" v3="${c}"${code ? ` paint_color="${code}" slic3rpe:mmu_segmentation="${code}"` : ''}/>`);
+    const slot = partSlot.get(S.mesh.faceParts[f]) ?? 0;
+    const code = paintCode(slot + 1);
+    ts.push(`<triangle v1="${a}" v2="${b}" v3="${c}" pid="1" p1="${slot}" paint_color="${code}" slic3rpe:mmu_segmentation="${code}"/>`);
   }
-  parts.push(ts.join('\n'));
-  parts.push('\n</triangles>\n</mesh>\n</object>\n</resources>\n<build>\n<item objectid="1" printable="1"/>\n</build>\n</model>\n');
+  out.push(ts.join('\n'));
+  out.push('\n</triangles>\n</mesh>\n</object>\n</resources>\n<build>\n<item objectid="2" printable="1"/>\n</build>\n</model>\n');
   const enc = new TextEncoder();
   const files = {
     '[Content_Types].xml': enc.encode('<?xml version="1.0" encoding="UTF-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="txt" ContentType="text/plain"/></Types>'),
     '_rels/.rels': enc.encode('<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>'),
-    '3D/3dmodel.model': enc.encode(parts.join('')),
+    '3D/3dmodel.model': enc.encode(out.join('')),
     'Metadata/filamentos.txt': enc.encode(sheetText()),
   };
   const zip = fflate.zipSync(files, { level: 6 });
   download(new Blob([zip], { type: 'model/3mf' }), `${baseName()}_color.3mf`);
-  return list.length;
+  return list;
 }
+
+// ---------------------------------------------------------------- OBJ con colores (OBJ + MTL)
+// Bambu Studio y OrcaSlicer importan los colores de un OBJ y los convierten en filamentos.
+export function exportOBJ() {
+  const t = topo();
+  const P = S.mesh.pos;
+  const { list, indexOfPart } = usedFilaments();
+  const partSlot = new Map(S.parts.map((p) => [p.id, indexOfPart(p)]));
+  const vpos = weldedVertices(t, P);
+  const name = baseName();
+  const ascii = (str) => String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
+  const matName = (i) => `F${i + 1}_${ascii(list[i].fil.blank ? 'sin_color' : list[i].fil.name) || 'color'}`;
+  const obj = [`# Filament Studio - ${name}`, `# Filamentos: ${list.map((e, i) => `${i + 1}=${filLabel(e.fil)}`).join(' | ')}`, `mtllib ${name}.mtl`, `o ${name}`];
+  const minZ = t.bbox.minZ;
+  for (let v = 0; v < t.nV; v++) obj.push(`v ${vpos[v * 3].toFixed(5)} ${vpos[v * 3 + 1].toFixed(5)} ${(vpos[v * 3 + 2] - minZ).toFixed(5)}`);
+  const bySlot = list.map(() => []);
+  for (let f = 0; f < t.nF; f++) {
+    const a = t.vid[f * 3], b = t.vid[f * 3 + 1], c = t.vid[f * 3 + 2];
+    if (a === b || b === c || a === c) continue;
+    bySlot[partSlot.get(S.mesh.faceParts[f]) ?? 0].push(`f ${a + 1} ${b + 1} ${c + 1}`);
+  }
+  bySlot.forEach((faces, i) => {
+    if (!faces.length) return;
+    obj.push(`usemtl ${matName(i)}`);
+    obj.push(...faces);
+  });
+  const mtl = [`# Filament Studio - colores de ${name}`];
+  list.forEach((e, i) => {
+    const h = flatHex(e.fil);
+    const rgb = [1, 3, 5].map((k) => (parseInt(h.slice(k, k + 2), 16) / 255).toFixed(4)).join(' ');
+    mtl.push('', `# Filamento ${i + 1}: ${filLabel(e.fil)} ${h}`, `newmtl ${matName(i)}`, `Kd ${rgb}`, 'Ka 0 0 0', 'Ks 0 0 0', 'd 1', 'illum 1');
+  });
+  const readme = `OBJ CON COLORES - ${name}\r\n\r\n1. Descomprime este ZIP (deja el .obj y el .mtl juntos en la misma carpeta).\r\n2. En Bambu Studio / OrcaSlicer: Archivo > Importar > selecciona ${name}.obj\r\n3. El programa detecta los colores y te pregunta cómo convertirlos en filamentos.\r\n\r\n${sheetText().replace(/\n/g, '\r\n')}\r\n`;
+  const enc = new TextEncoder();
+  const zip = fflate.zipSync({
+    [`${name}.obj`]: enc.encode(obj.join('\n') + '\n'),
+    [`${name}.mtl`]: enc.encode(mtl.join('\n') + '\n'),
+    'LEEME.txt': enc.encode('\ufeff' + readme),
+  }, { level: 6 });
+  download(new Blob([zip], { type: 'application/zip' }), `${name}_obj_color.zip`);
+  return list;
+}
+
 function escXml(s) {
   return String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
 }

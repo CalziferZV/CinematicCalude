@@ -1,9 +1,10 @@
 // Visor 3D (three.js): render, selección por clic, pincel, plano de corte, vistas y capturas.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
-import { S, on, topo, normals, filamentOf, BLANK } from './state.js';
+import { S, on, topo, normals, BLANK, transformParts } from './state.js';
 import { filamentMaterial, flatMaterial, falseColor } from './materials.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -110,6 +111,8 @@ export const requestRender = () => (needsRender = true);
 
 // ---------------------------------------------------------------- construcción de la malla
 function rebuild() {
+  const restartMove = moving && S.tool === 'move' ? moving.ids : null;
+  stopMove();
   if (model) { scene.remove(model); model.geometry.dispose(); }
   if (pickMesh) { pickMesh.geometry.dispose(); pickMesh = null; }
   if (!S.mesh) return;
@@ -155,6 +158,10 @@ function rebuild() {
   if (!rebuild.keepCamera) fitView('iso', false);
   rebuild.keepCamera = true;
   refreshParts();
+  if (restartMove) {
+    const alive = restartMove.filter((id) => S.parts.some((p) => p.id === id));
+    if (alive.length) startMove(alive);
+  }
 }
 export function resetCameraOnNextLoad() { rebuild.keepCamera = false; }
 
@@ -202,7 +209,7 @@ function refreshParts() {
   }
   S.parts.forEach((p, i) => {
     const zRange = (zr.get(p.id) || [t.bbox.minZ, t.bbox.maxZ]).map((v) => Math.round(v * 10) / 10);
-    if (!p.visible || !counts[i]) return;
+    if (!p.visible || !counts[i] || (moving && moving.set.has(p.id))) return;
     g.addGroup(offs[i] * 3, counts[i] * 3, mats.length);
     let m;
     if (partsOverride) m = flatMaterial(falseColor(i));
@@ -227,7 +234,7 @@ function refreshParts() {
 
 function buildBoundaries() {
   if (boundary) { scene.remove(boundary); boundary.geometry.dispose(); boundary = null; }
-  if (!showBoundaries || S.parts.length < 2 || partsOverride || painting) return;
+  if (!showBoundaries || S.parts.length < 2 || partsOverride || painting || moving) return;
   const t = topo();
   const fp = S.mesh.faceParts;
   const P = S.mesh.pos;
@@ -386,6 +393,8 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   const prevHover = hoverPart;
   const prevSel = new Set(S.selected);
   hoverPart = null;
+  const restartMove = moving ? moving.ids : null;
+  if (restartMove) stopMove();
   if (mode === 'parts') partsOverride = true;
   S.selected.clear();
   refreshParts();
@@ -416,6 +425,7 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   hoverPart = prevHover;
   S.selected = prevSel;
   refreshParts();
+  if (restartMove) startMove(restartMove);
   return canvas;
 }
 
@@ -462,6 +472,126 @@ export function setClipZ(z) {
   else { clipPlane.constant = z; renderer.clippingPlanes = [clipPlane]; }
   needsRender = true;
 }
+
+// ---------------------------------------------------------------- mover / girar partes (como en Bambu Studio)
+let moving = null; // { ids, set, proxy, tc, helper, center }
+let moveMode = 'translate';
+let moveSnap = false;
+let gizmoBusy = false;
+
+export function startMove(ids) {
+  stopMove();
+  if (!S.mesh) return false;
+  const set = new Set(ids.filter((id) => S.parts.some((p) => p.id === id && p.visible)));
+  if (!set.size) return false;
+  const fp = S.mesh.faceParts, P = S.mesh.pos, N = normals();
+  const order = S.parts.filter((p) => set.has(p.id));
+  const counts = new Map(order.map((p) => [p.id, 0]));
+  const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  let n = 0;
+  for (let f = 0; f < fp.length; f++) {
+    if (!counts.has(fp[f])) continue;
+    counts.set(fp[f], counts.get(fp[f]) + 1);
+    n++;
+    for (let k = 0; k < 9; k += 3) {
+      for (let a = 0; a < 3; a++) {
+        const v = P[f * 9 + k + a];
+        if (v < b[a]) b[a] = v;
+        if (v > b[a + 3]) b[a + 3] = v;
+      }
+    }
+  }
+  if (!n) return false;
+  const center = new THREE.Vector3((b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2);
+  // geometría de las partes seleccionadas, relativa a su centro
+  const offs = new Map();
+  let acc = 0;
+  for (const p of order) { offs.set(p.id, acc); acc += counts.get(p.id); }
+  const w = new Map(offs);
+  const pos = new Float32Array(n * 9), nor = new Float32Array(n * 9);
+  for (let f = 0; f < fp.length; f++) {
+    if (!offs.has(fp[f])) continue;
+    const i = w.get(fp[f]);
+    w.set(fp[f], i + 1);
+    for (let k = 0; k < 9; k += 3) {
+      pos[i * 9 + k] = P[f * 9 + k] - center.x;
+      pos[i * 9 + k + 1] = P[f * 9 + k + 1] - center.y;
+      pos[i * 9 + k + 2] = P[f * 9 + k + 2] - center.z;
+    }
+    nor.set(N.subarray(f * 9, f * 9 + 9), i * 9);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  const mats = [];
+  order.forEach((p) => {
+    g.addGroup(offs.get(p.id) * 3, counts.get(p.id) * 3, mats.length);
+    mats.push(filamentMaterial(p.filament || BLANK, { zRange: [b[2], b[5]].map((v) => Math.round(v * 10) / 10) }));
+  });
+  const proxy = new THREE.Mesh(g, mats);
+  proxy.position.copy(center);
+  proxy.castShadow = true;
+  proxy.receiveShadow = true;
+  scene.add(proxy);
+  const tc = new TransformControls(camera, renderer.domElement);
+  tc.setMode(moveMode);
+  tc.setSpace('world');
+  tc.setSize(0.9);
+  tc.setTranslationSnap(moveSnap ? 1 : null);
+  tc.setRotationSnap(moveSnap ? THREE.MathUtils.degToRad(15) : null);
+  tc.attach(proxy);
+  const helper = tc.getHelper();
+  scene.add(helper);
+  tc.addEventListener('change', () => (needsRender = true));
+  tc.addEventListener('mouseDown', () => (gizmoBusy = true));
+  tc.addEventListener('mouseUp', () => setTimeout(() => (gizmoBusy = false), 0));
+  tc.addEventListener('dragging-changed', (e) => {
+    controls.enabled = !e.value;
+    if (!e.value) commitMove();
+  });
+  moving = { ids: [...set], set, proxy, tc, helper, center };
+  refreshParts();
+  return true;
+}
+
+function commitMove() {
+  if (!moving) return;
+  const { proxy, center, ids } = moving;
+  proxy.updateMatrix();
+  const moved = proxy.position.distanceTo(center) > 1e-6 || Math.abs(proxy.quaternion.w) < 1 - 1e-9;
+  if (!moved) return;
+  const M = proxy.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z));
+  transformParts(ids, M.elements); // reconstruye la malla y vuelve a abrir la sesión de mover
+}
+
+export function stopMove() {
+  if (!moving) return;
+  const m = moving;
+  moving = null;
+  m.tc.detach();
+  m.tc.dispose();
+  scene.remove(m.helper);
+  scene.remove(m.proxy);
+  m.proxy.geometry.dispose();
+  controls.enabled = true;
+  gizmoBusy = false;
+  refreshParts();
+}
+
+export function setMoveMode(mode) {
+  moveMode = mode;
+  if (moving) moving.tc.setMode(mode);
+  needsRender = true;
+}
+export function setMoveSnap(on) {
+  moveSnap = on;
+  if (moving) {
+    moving.tc.setTranslationSnap(on ? 1 : null);
+    moving.tc.setRotationSnap(on ? THREE.MathUtils.degToRad(15) : null);
+  }
+}
+export const isGizmoBusy = () => gizmoBusy;
+export const isMoving = () => !!moving;
 
 export function domElement() { return renderer.domElement; }
 export function getControls() { return controls; }

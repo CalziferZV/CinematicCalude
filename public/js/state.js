@@ -97,6 +97,8 @@ export function loadMesh(pos, name) {
   undoStack.length = 0;
   redoStack.length = 0;
   pos = MC.removeDegenerate(pos);
+  const clean = MC.removeStrayFragments(pos);
+  pos = clean.pos;
   S.mesh = { pos: placeOnBed(pos), faceParts: new Uint16Array(pos.length / 9), topo: null, normals: null };
   S.modelName = name;
   S.nextId = 1;
@@ -106,6 +108,7 @@ export function loadMesh(pos, name) {
   S.variants = [];
   S.activeVariant = null;
   S.variantSeq = 0;
+  S.cleanup = clean.removed;
   emit('mesh');
   emit('variants');
   emit('selection');
@@ -516,4 +519,109 @@ export function variantIsDirty() {
     const a = v.colors[p.id] || null, b = p.filament || null;
     return (a && a.hex) !== (b && b.hex) || (a && a.name) !== (b && b.name);
   });
+}
+
+// ---------------------------------------------------------------- mover / girar partes
+// m = matriz 4x4 en orden de columnas (como three.js) que se aplica a los vértices de esas partes.
+function applyMatrix(P, set, m) {
+  const fp = S.mesh.faceParts;
+  for (let f = 0; f < fp.length; f++) {
+    if (!set.has(fp[f])) continue;
+    for (let k = 0; k < 9; k += 3) {
+      const o = f * 9 + k;
+      const x = P[o], y = P[o + 1], z = P[o + 2];
+      P[o] = m[0] * x + m[4] * y + m[8] * z + m[12];
+      P[o + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+      P[o + 2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+    }
+  }
+}
+function geometryChanged() {
+  S.mesh.topo = null;
+  S.mesh.normals = null;
+  emit('mesh');
+}
+export function transformParts(ids, m) {
+  if (!S.mesh || !ids.length) return;
+  checkpoint();
+  const P = S.mesh.pos.slice();
+  applyMatrix(P, new Set(ids), m);
+  S.mesh.pos = P;
+  geometryChanged();
+}
+const translation = (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
+
+// Caja envolvente de unas partes (o de todo el modelo)
+export function partsBBox(ids) {
+  const set = ids && ids.length ? new Set(ids) : null;
+  const b = { minX: Infinity, minY: Infinity, minZ: Infinity, maxX: -Infinity, maxY: -Infinity, maxZ: -Infinity };
+  const P = S.mesh.pos, fp = S.mesh.faceParts;
+  for (let f = 0; f < fp.length; f++) {
+    if (set && !set.has(fp[f])) continue;
+    for (let k = 0; k < 9; k += 3) {
+      const o = f * 9 + k;
+      if (P[o] < b.minX) b.minX = P[o]; if (P[o] > b.maxX) b.maxX = P[o];
+      if (P[o + 1] < b.minY) b.minY = P[o + 1]; if (P[o + 1] > b.maxY) b.maxY = P[o + 1];
+      if (P[o + 2] < b.minZ) b.minZ = P[o + 2]; if (P[o + 2] > b.maxZ) b.maxZ = P[o + 2];
+    }
+  }
+  return b;
+}
+
+// Baja las partes hasta apoyarlas en la cama (Z = 0)
+export function dropToBed(ids) {
+  if (!S.mesh) return;
+  const list = ids && ids.length ? ids : S.parts.map((p) => p.id);
+  const b = partsBBox(list);
+  if (!Number.isFinite(b.minZ) || Math.abs(b.minZ) < 1e-6) return false;
+  transformParts(list, translation(0, 0, -b.minZ));
+  return true;
+}
+
+// ¿Alguna de estas partes comparte aristas con otra parte? (al moverla se separará)
+export function partsConnected(ids) {
+  const set = new Set(ids);
+  const t = topo();
+  const fp = S.mesh.faceParts;
+  for (let f = 0; f < fp.length; f++) {
+    if (!set.has(fp[f])) continue;
+    for (let k = 0; k < 3; k++) {
+      const g = t.nbr[f * 3 + k];
+      if (g >= 0 && !set.has(fp[g])) return true;
+    }
+  }
+  return false;
+}
+
+// Vista "separada": aparta cada parte del centro (en horizontal) para verlas sueltas
+export function explodeParts(factor = 0.6) {
+  if (!S.mesh || S.parts.length < 2) return false;
+  const t = topo();
+  const fp = S.mesh.faceParts;
+  const acc = new Map();
+  for (let f = 0; f < fp.length; f++) {
+    const a = acc.get(fp[f]) || [0, 0, 0];
+    a[0] += t.cen[f * 3] * t.area[f]; a[1] += t.cen[f * 3 + 1] * t.area[f]; a[2] += t.area[f];
+    acc.set(fp[f], a);
+  }
+  const cx = (t.bbox.minX + t.bbox.maxX) / 2, cy = (t.bbox.minY + t.bbox.maxY) / 2;
+  const size = Math.max(t.bbox.maxX - t.bbox.minX, t.bbox.maxY - t.bbox.minY);
+  checkpoint();
+  const P = S.mesh.pos.slice();
+  let i = 0;
+  for (const p of S.parts) {
+    const a = acc.get(p.id);
+    if (!a || !a[2]) continue;
+    let dx = a[0] / a[2] - cx, dy = a[1] / a[2] - cy;
+    const len = Math.hypot(dx, dy);
+    if (len < size * 0.02) {
+      // parte centrada: repartir en círculo para que no se queden encima unas de otras
+      const ang = (i++ / S.parts.length) * Math.PI * 2;
+      dx = Math.cos(ang) * size * 0.3; dy = Math.sin(ang) * size * 0.3;
+    }
+    applyMatrix(P, new Set([p.id]), translation(dx * factor, dy * factor, 0));
+  }
+  S.mesh.pos = P;
+  geometryChanged();
+  return true;
 }

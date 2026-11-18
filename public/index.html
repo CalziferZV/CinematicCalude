@@ -44,6 +44,7 @@
           <button data-export="copy">Copiar imagen al portapapeles</button>
           <button data-export="compare">Comparar propuestas A/B/C (PNG)</button>
           <button data-export="3mf">3MF pintado (Bambu Studio / Orca / Prusa)</button>
+          <button data-export="obj">OBJ con colores (Bambu / Orca, ZIP)</button>
           <button data-export="stlzip">STL por color (ZIP)</button>
           <button data-export="sheet">Ficha de filamentos (TXT)</button>
           <button data-export="project">Guardar proyecto (.fsproj)</button>
@@ -84,6 +85,7 @@
           <button class="tool" data-tool="brush" title="Pincel (B)"><span>✎</span>Pincel</button>
           <button class="tool" data-tool="fill" title="Relleno inteligente (F)"><span>◧</span>Relleno</button>
           <button class="tool" data-tool="cut" title="Cortar por altura (C)"><span>⫶</span>Cortar</button>
+          <button class="tool" data-tool="move" title="Mover y girar partes (M)"><span>✥</span>Mover</button>
         </div>
         <div class="tool-opts" id="toolOpts">
           <div data-opts="select">
@@ -113,6 +115,18 @@
               <button class="btn small" id="btnAutoLevels" title="Detecta escalones y corta por ellos">Auto escalones</button>
             </div>
             <div class="hint-text">Corta la parte seleccionada (o todo) en dos por esta altura. Ideal para cambiar de filamento por capa.</div>
+          </div>
+          <div data-opts="move" hidden>
+            <div class="seg2">
+              <button class="btn small active" data-move-mode="translate" title="Mover (T)">✥ Mover</button>
+              <button class="btn small" data-move-mode="rotate" title="Girar (R)">⟳ Girar</button>
+            </div>
+            <label class="check"><input type="checkbox" id="moveSnap" /> Ajustar a 1 mm / 15°</label>
+            <div class="row gap wrap">
+              <button class="btn small" id="btnDropBed" title="Baja la parte seleccionada (o todo) hasta apoyarla en la cama">⤓ Apoyar en la cama</button>
+              <button class="btn small" id="btnExplode" title="Separa todas las partes para verlas sueltas (se puede deshacer)">✣ Separar partes</button>
+            </div>
+            <div class="hint-text">Haz clic en una parte (Mayús+clic para varias) y arrastra las flechas para moverla o los aros para girarla. Teclas T / R.</div>
           </div>
         </div>
       </section>
@@ -242,6 +256,19 @@
       <textarea id="aiInput" rows="2" placeholder="Pídele lo que quieras: «la base en negro mate y el texto dorado silk»"></textarea>
       <button class="btn primary" id="aiSend">Enviar</button>
     </form>
+  </div>
+
+  <div class="modal" id="slotModal" hidden>
+    <div class="modal-card">
+      <div class="row between"><h2 id="slotTitle">Colores para el laminador</h2><button class="btn icon tiny" id="slotX" title="Cerrar">✕</button></div>
+      <p class="muted" id="slotIntro"></p>
+      <div id="slotList" class="slot-list"></div>
+      <ol class="steps" id="slotSteps"></ol>
+      <div class="row gap end">
+        <button class="btn" id="slotCopy">Copiar lista</button>
+        <button class="btn primary" id="slotClose">Entendido</button>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
