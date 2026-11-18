@@ -44,6 +44,28 @@ export function flatHex(fil) {
   return ((fil.hexes && fil.hexes[0]) || fil.hex || '#ECECEC').slice(0, 7).toUpperCase();
 }
 
+// Un color distinto por filamento. Los laminadores agrupan las zonas por color: si dos
+// filamentos tienen el mismo HEX (p. ej. blanco PLA y blanco PETG) se movería uno un
+// punto para que sigan siendo dos filamentos. La diferencia no se ve.
+export function slotHexes(list) {
+  const used = new Set();
+  return list.map((e) => {
+    const base = flatHex(e.fil);
+    let rgb = [1, 3, 5].map((k) => parseInt(base.slice(k, k + 2), 16));
+    let hex = base;
+    for (let step = 1; used.has(hex) && step < 64; step++) {
+      const c = step % 3;
+      const d = Math.ceil(step / 3);
+      const v = rgb[c] + (rgb[c] + d <= 255 ? d : -d);
+      const n = rgb.slice();
+      n[c] = Math.max(0, Math.min(255, v));
+      hex = '#' + n.map((x) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+    used.add(hex);
+    return hex;
+  });
+}
+
 // Vértices soldados (sin repetir) para formatos indexados (3MF, OBJ).
 function weldedVertices(t, P) {
   const vpos = new Float64Array(t.nV * 3);
@@ -87,10 +109,19 @@ function paintCode(state) {
   return (state - 3).toString(16).toUpperCase() + 'C';
 }
 
-export function export3MF() {
+// mode 'bambu': cada triángulo lleva su COLOR (grupo de colores del estándar 3MF) y no
+//   lleva pintura. Bambu Studio 2.5+ lee esos colores y, al abrir el archivo, propone
+//   crear los filamentos con los colores exactos. Si el archivo trae pintura, Bambu
+//   Studio ignora los colores y usa los filamentos que tengas puestos: por eso aquí no va.
+//   También lleva la pintura de PrusaSlicer (slic3rpe:mmu_segmentation), que Bambu Studio no lee.
+// mode 'paint': cada triángulo lleva el NÚMERO de filamento (paint_color), además de los
+//   colores. Para OrcaSlicer y Bambu Studio anterior a 2.5, que no leen los colores del 3MF.
+export function export3MF(mode = 'bambu') {
+  const paint = mode === 'paint';
   const t = topo();
   const P = S.mesh.pos;
   const { list, indexOfPart } = usedFilaments();
+  const hexes = slotHexes(list);
   const partSlot = new Map(S.parts.map((p) => [p.id, indexOfPart(p)]));
   const vpos = weldedVertices(t, P);
   // colocar dentro de la cama (vale para A1 mini, A1, P1, X1) y con la base en Z = 0
@@ -98,9 +129,9 @@ export function export3MF() {
   const out = [];
   out.push('<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="es-ES" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">\n');
   out.push(`<metadata name="Title">${escXml(baseName())}</metadata>\n<metadata name="Application">Filament Studio</metadata>\n<resources>\n`);
-  // grupo de colores: un color por filamento (en el mismo orden que la pintura: filamento 1, 2, 3...)
+  // grupo de colores: un color por filamento (en el mismo orden que la lista: filamento 1, 2, 3...)
   out.push('<m:colorgroup id="1">\n');
-  for (const e of list) out.push(`<m:color color="${flatHex(e.fil)}FF"/>\n`);
+  for (const h of hexes) out.push(`<m:color color="${h}FF"/>\n`);
   out.push('</m:colorgroup>\n');
   out.push(`<object id="2" type="model" name="${escXml(baseName())}" pid="1" pindex="0">\n<mesh>\n<vertices>\n`);
   const vs = [];
@@ -113,7 +144,9 @@ export function export3MF() {
     if (a === b || b === c || a === c) continue;
     const slot = partSlot.get(S.mesh.faceParts[f]) ?? 0;
     const code = paintCode(slot + 1);
-    ts.push(`<triangle v1="${a}" v2="${b}" v3="${c}" pid="1" p1="${slot}" paint_color="${code}" slic3rpe:mmu_segmentation="${code}"/>`);
+    ts.push(paint
+      ? `<triangle v1="${a}" v2="${b}" v3="${c}" pid="1" p1="${slot}" paint_color="${code}" slic3rpe:mmu_segmentation="${code}"/>`
+      : `<triangle v1="${a}" v2="${b}" v3="${c}" pid="1" p1="${slot}" slic3rpe:mmu_segmentation="${code}"/>`);
   }
   out.push(ts.join('\n'));
   out.push('\n</triangles>\n</mesh>\n</object>\n</resources>\n<build>\n<item objectid="2" printable="1"/>\n</build>\n</model>\n');
@@ -125,7 +158,7 @@ export function export3MF() {
     'Metadata/filamentos.txt': enc.encode(sheetText()),
   };
   const zip = fflate.zipSync(files, { level: 6 });
-  download(new Blob([zip], { type: 'model/3mf' }), `${baseName()}_color.3mf`);
+  download(new Blob([zip], { type: 'model/3mf' }), `${baseName()}_${paint ? 'pintado' : 'bambu'}.3mf`);
   return list;
 }
 
@@ -155,12 +188,13 @@ export function exportOBJ() {
     obj.push(...faces);
   });
   const mtl = [`# Filament Studio - colores de ${name}`];
+  const hexes = slotHexes(list);
   list.forEach((e, i) => {
-    const h = flatHex(e.fil);
+    const h = hexes[i];
     const rgb = [1, 3, 5].map((k) => (parseInt(h.slice(k, k + 2), 16) / 255).toFixed(4)).join(' ');
     mtl.push('', `# Filamento ${i + 1}: ${filLabel(e.fil)} ${h}`, `newmtl ${matName(i)}`, `Kd ${rgb}`, 'Ka 0 0 0', 'Ks 0 0 0', 'd 1', 'illum 1');
   });
-  const readme = `OBJ CON COLORES - ${name}\r\n\r\n1. Descomprime este ZIP (deja el .obj y el .mtl juntos en la misma carpeta).\r\n2. En Bambu Studio / OrcaSlicer: Archivo > Importar > selecciona ${name}.obj\r\n3. El programa detecta los colores y te pregunta cómo convertirlos en filamentos.\r\n\r\n${sheetText().replace(/\n/g, '\r\n')}\r\n`;
+  const readme = `OBJ CON COLORES - ${name}\r\n\r\n1. Descomprime este ZIP (deja el .obj y el .mtl juntos en la misma carpeta).\r\n2. En Bambu Studio / OrcaSlicer: Archivo > Importar > selecciona ${name}.obj\r\n3. El programa detecta los colores y abre una ventana para convertirlos en filamentos\r\n   (Bambu Studio 2.9: «Importar modelo: Simplificar colores» > Siguiente > «Completar todos los filamentos» > Confirmar).\r\n\r\n${sheetText().replace(/\n/g, '\r\n')}\r\n`;
   const enc = new TextEncoder();
   const zip = fflate.zipSync({
     [`${name}.obj`]: enc.encode(obj.join('\n') + '\n'),

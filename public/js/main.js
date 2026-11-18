@@ -470,7 +470,8 @@ function bind() {
         if (kind === 'png') EX.exportPNG();
         else if (kind === 'copy') { await EX.copyPNG(); toast('Imagen copiada: pégala en el chat de la videollamada'); }
         else if (kind === 'compare') EX.exportCompare();
-        else if (kind === '3mf') showSlotGuide(EX.export3MF(), '3mf');
+        else if (kind === '3mf') showSlotGuide(EX.export3MF('bambu'), '3mf');
+        else if (kind === '3mfpaint') showSlotGuide(EX.export3MF('paint'), '3mfpaint');
         else if (kind === 'obj') showSlotGuide(EX.exportOBJ(), 'obj');
         else if (kind === 'stlzip') EX.exportSTLZip();
         else if (kind === 'sheet') EX.exportSheet();
@@ -570,10 +571,39 @@ function updateLayerClip(fromUser) {
 // ---------------------------------------------------------------- guía: qué color va en cada filamento del laminador
 function showSlotGuide(list, kind) {
   const text = [];
-  $('slotTitle').textContent = kind === 'obj' ? 'OBJ con colores exportado' : '3MF exportado';
-  $('slotIntro').textContent = kind === 'obj'
-    ? 'Descomprime el ZIP y, en Bambu Studio u OrcaSlicer, importa el .obj (con el .mtl al lado). El programa detectará estos colores y te propondrá convertirlos en filamentos:'
-    : 'Cada zona va pintada con el número de filamento de esta lista. En Bambu Studio pon en cada número el filamento indicado:';
+  const n = list.length;
+  const G = {
+    '3mf': {
+      title: '3MF para Bambu Studio exportado',
+      intro: `El archivo lleva los ${n} colores de cada zona. Al abrirlo, Bambu Studio (versión 2.5 o posterior) te propone crear los filamentos con estos colores:`,
+      steps: [
+        'Abre el 3MF en Bambu Studio (arrástralo o <b>Archivo → Abrir proyecto</b>). El aviso «El 3mf no es de Bambu Lab, solo se cargan los datos de geometría y color» es normal.',
+        `En <b>«Importar modelo: Simplificar colores»</b> comprueba que el <b>recuento de colores</b> sea <b>${n}</b> y pulsa <b>Siguiente</b>.`,
+        'En <b>«Coincidencia de filamentos»</b> pulsa <b>«Completar todos los filamentos»</b> para crear filamentos con estos colores exactos (o empareja cada color con tu bobina del AMS) y pulsa <b>Confirmar</b>.',
+        'Si no aparece ninguna ventana y la pieza sale de un solo color, tu Bambu Studio es anterior a la 2.5: actualízalo o exporta <b>«3MF pintado»</b> u <b>«OBJ con colores»</b>.',
+      ],
+    },
+    '3mfpaint': {
+      title: '3MF pintado exportado',
+      intro: 'Cada zona va pintada con el número de filamento de esta lista (OrcaSlicer, Bambu Studio y PrusaSlicer):',
+      steps: [
+        'Abre el 3MF en OrcaSlicer o Bambu Studio. Si pregunta, acepta cargar la geometría y el color.',
+        'En <b>«Filamentos del proyecto»</b> pon en el <b>1, 2, 3…</b> el filamento y color de esta lista (si tienes AMS, elige la bobina correspondiente).',
+        'En Bambu Studio 2.5 o posterior es más cómodo <b>«3MF para Bambu Studio»</b>: crea los filamentos con los colores él solo.',
+      ],
+    },
+    obj: {
+      title: 'OBJ con colores exportado',
+      intro: 'Descomprime el ZIP y deja el .obj y el .mtl juntos. Bambu Studio y OrcaSlicer leen estos colores y te proponen convertirlos en filamentos:',
+      steps: [
+        'Bambu Studio / OrcaSlicer: <b>Archivo → Importar → Importar 3MF/STL/STEP/SVG/OBJ/AMF</b> y elige el <b>.obj</b>.',
+        `En la ventana de colores deja <b>${n}</b> colores y pulsa <b>Siguiente</b>; después <b>«Completar todos los filamentos»</b> (o empareja cada color con tu bobina) y <b>Confirmar</b>.`,
+        'Cambia el tipo de filamento (PLA Basic, Matte, Silk…) en «Filamentos del proyecto» si hace falta.',
+      ],
+    },
+  }[kind] || {};
+  $('slotTitle').textContent = G.title || 'Exportado';
+  $('slotIntro').textContent = G.intro || '';
   $('slotList').innerHTML = list.map((e, i) => {
     const f = e.fil;
     const hex = EX.flatHex(f);
@@ -583,9 +613,7 @@ function showSlotGuide(list, kind) {
     return `<div class="slot"><div class="num" style="background:${hex};color:${light ? '#000' : '#fff'}">${i + 1}</div><div class="sw" style="background:${swatchCss(f.blank ? null : f)}"></div><div class="grow"><div class="t1">${escapeHtml(label)}</div><div class="t2">${hex}${f.code ? ` · código ${escapeHtml(f.code)}` : ''} · ${e.parts.map((p) => escapeHtml(p.name)).slice(0, 4).join(', ')}${e.parts.length > 4 ? '…' : ''}</div></div></div>`;
   }).join('');
   $('slotList').dataset.text = text.join('\n');
-  $('slotSteps').innerHTML = kind === 'obj'
-    ? '<li>Bambu Studio: <b>Archivo → Importar → Importar 3MF/STL/STEP/SVG/OBJ…</b> y elige el <b>.obj</b>.</li><li>En la ventana de colores elige el número de filamentos y empareja cada color, o deja que los añada como filamentos nuevos.</li><li>Cambia el tipo de filamento (PLA Basic, Matte, Silk…) en «Filamentos del proyecto» si hace falta.</li>'
-    : '<li>Abre el 3MF en Bambu Studio. Si pregunta, acepta cargar la geometría y el color.</li><li>Si aparece una ventana para emparejar colores, empareja cada color con su filamento de esta lista.</li><li>Si no, en <b>«Filamentos del proyecto»</b> pon en el <b>1, 2, 3…</b> el filamento y color de esta lista (si tienes AMS, elige el de tu bobina).</li>';
+  $('slotSteps').innerHTML = (G.steps || []).map((x) => `<li>${x}</li>`).join('');
   $('slotModal').hidden = false;
 }
 

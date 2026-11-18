@@ -20,7 +20,7 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Vista por capas** | Deslizador que recorta la pieza a cualquier altura, como la vista previa del laminador (tecla **L**). Con la herramienta *Cortar* activa, mueve también el plano de corte. |
 | **Modo cliente** | Oculta los paneles y deja la pieza, la leyenda de colores y las propuestas, ideal para compartir pantalla (tecla **P**). |
 | **Autoguardado** | Si se cierra o recarga la página durante la llamada, al volver aparece «Recuperar» con todo tal cual estaba. |
-| **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF pintado** (cada zona con su número de filamento y los colores incluidos) para Bambu Studio / OrcaSlicer / PrusaSlicer · **OBJ con colores** (Bambu Studio y Orca convierten sus colores en filamentos) · **STL por color** (ZIP) · Ficha de filamentos · Proyecto `.fsproj`. Al exportar, la app muestra **qué color va en cada número de filamento**. |
+| **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF para Bambu Studio** (al abrirlo, Bambu Studio 2.5+ crea los filamentos con los colores exactos) · **3MF pintado** (cada zona con su número de filamento, para OrcaSlicer, PrusaSlicer y Bambu Studio antiguo) · **OBJ con colores** (Bambu Studio y OrcaSlicer convierten sus colores en filamentos) · **STL por color** (ZIP) · Ficha de filamentos · Proyecto `.fsproj`. Al exportar, la app muestra **qué color va en cada número de filamento** y los pasos a seguir en el laminador. |
 | **Limpieza automática** | Al abrir un archivo se quitan los trocitos sueltos minúsculos que estén fuera de la pieza (errores del archivo que hacen que el laminador diga que «supera el límite de la placa»). |
 
 ## Programa para Windows (.exe) — lo más fácil
@@ -66,11 +66,15 @@ Se abre el navegador en <http://localhost:5173>.
 4. ¿Dudas entre varias combinaciones? Pulsa **+ Guardar** (arriba a la derecha del visor) para crear la propuesta A, cambia colores, guarda la B… y alterna entre ellas con un clic.
 5. Pulsa **Modo cliente** (tecla P) para enseñar solo la pieza y la leyenda de colores. Gira con el ratón o con ⟳.
 6. **Exportar → Copiar imagen** y pégala en el chat de la llamada, descarga el PNG, o **Comparar propuestas** para mandar todas juntas.
-7. Cuando esté aprobado: **Exportar → 3MF pintado** y ábrelo en Bambu Studio / OrcaSlicer. La app te muestra qué filamento va en cada número (1, 2, 3…): ponlos así en «Filamentos del proyecto». Si prefieres que Bambu Studio cree los filamentos con los colores exactos, usa **Exportar → OBJ con colores**.
+7. Cuando esté aprobado: **Exportar → 3MF para Bambu Studio** y ábrelo en Bambu Studio. Aparece «Importar modelo: Simplificar colores» → **Siguiente** → «Completar todos los filamentos» → **Confirmar**, y los filamentos quedan creados con los colores exactos, cada uno en su zona.
+   - **OrcaSlicer, PrusaSlicer o Bambu Studio anterior a 2.5**: usa **Exportar → 3MF pintado**. La app te muestra qué filamento va en cada número (1, 2, 3…): ponlos así en «Filamentos del proyecto».
+   - **OBJ con colores** es otra opción para Bambu Studio y OrcaSlicer: también te pregunta los colores al importarlo.
+
+> ¿Por qué hay dos 3MF? Bambu Studio solo lee los colores de un 3MF de otro programa si el archivo **no trae zonas pintadas**; si las trae, usa los filamentos que tengas puestos y los colores no coinciden. OrcaSlicer, en cambio, solo entiende la pintura.
 
 ### Imprimir
 
-- **Con AMS / multimaterial**: el 3MF pintado ya trae cada zona asignada al filamento 1, 2, 3… Solo elige los colores en el laminador.
+- **Con AMS / multimaterial**: el 3MF ya trae cada zona asignada a su filamento (en Bambu Studio, con su color). Empareja cada filamento con la bobina del AMS.
 - **Sin AMS (cualquier impresora)**: si la pieza está dividida por alturas, la ficha te dice **en qué capa cambiar de filamento** (pausa / cambio de filamento en el laminador).
 - **Piezas sueltas** (base + texto + figura): exporta **STL por color** e imprímelas por separado o como un objeto de varias partes.
 
@@ -110,6 +114,6 @@ public/          la aplicación (three.js)
   js/viewer.js     visor 3D, selección, pincel, capturas
   js/catalog.js    panel de filamentos
   js/ai.js         asistente IA (herramientas que ejecuta sobre la pieza)
-  js/exporters.js  3MF pintado, STL por color, imagen, ficha, proyecto
+  js/exporters.js  3MF (Bambu / pintado), OBJ con colores, STL por color, imagen, ficha, proyecto
 scripts/         instantánea del catálogo, modelos de ejemplo, pruebas y build-exe.mjs (el .exe)
 ```
