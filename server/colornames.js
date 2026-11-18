@@ -15,6 +15,10 @@ const NAMES = {
   'hot pink': '#FF4FA0', sakura: '#F7C6D4', brown: '#6D4C41', marron: '#6D4C41', chocolate: '#5A3825', coffee: '#6F4E37', cafe: '#6F4E37',
   wood: '#A07850', madera: '#A07850', khaki: '#BDB07A', caqui: '#BDB07A', sand: '#D6C29A', arena: '#D6C29A', terracotta: '#C2603C',
   natural: '#EDE6D6', transparent: '#E8F0F2', clear: '#E8F0F2', transparente: '#E8F0F2', skin: '#E8B796', piel: '#E8B796',
+  'azul cielo': '#6EC1E4', 'azul celeste': '#6EC1E4', celeste: '#6EC1E4', 'azul claro': '#8CC8F0', 'azul oscuro': '#1B2A4A',
+  'verde oscuro': '#1E5631', 'verde claro': '#9CCC65', 'verde oliva': '#6B6E2E', 'gris oscuro': '#4A4A4A', 'gris claro': '#C8C8C8',
+  'rosa palo': '#F2C4CE', 'light blue': '#8CC8F0', 'dark blue': '#1B2A4A', 'dark green': '#1E5631', 'light green': '#9CCC65',
+  'rose gold': '#E0A899', 'oro rosa': '#E0A899', champagne: '#E8D3A9', champan: '#E8D3A9', titanium: '#878681', titanio: '#878681',
   rainbow: 'RAINBOW', arcoiris: 'RAINBOW',
 };
 const RAINBOW = ['#E53935', '#FB8C00', '#FDD835', '#43A047', '#1E88E5', '#8E24AA'];

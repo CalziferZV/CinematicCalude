@@ -28,8 +28,8 @@ export function init(el) {
   renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMapping = THREE.NeutralToneMapping; // fiel al color de producto
+  renderer.toneMappingExposure = 0.95;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   el.appendChild(renderer.domElement);
@@ -38,6 +38,7 @@ export function init(el) {
   setBackground('studio');
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.75;
 
   camera = new THREE.PerspectiveCamera(35, 1, 0.1, 5000);
   camera.up.set(0, 0, 1);
@@ -47,9 +48,9 @@ export function init(el) {
   controls.dampingFactor = 0.12;
   controls.addEventListener('change', () => (needsRender = true));
 
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.6);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.35);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xffffff, 1.6);
+  const key = new THREE.DirectionalLight(0xffffff, 1.25);
   key.position.set(120, -160, 260);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -57,7 +58,7 @@ export function init(el) {
   key.shadow.normalBias = 0.6;
   scene.add(key);
   scene.userData.key = key;
-  const rim = new THREE.DirectionalLight(0xdfe8ff, 0.6);
+  const rim = new THREE.DirectionalLight(0xdfe8ff, 0.45);
   rim.position.set(-200, 180, 120);
   scene.add(rim);
 
@@ -180,16 +181,23 @@ function refreshParts() {
   g.clearGroups();
   const mats = [];
   const t = topo();
+  const zr = new Map();
+  for (let f = 0; f < nF; f++) {
+    const z = t.cen[f * 3 + 2];
+    const r = zr.get(fp[f]);
+    if (!r) zr.set(fp[f], [z, z]); else { if (z < r[0]) r[0] = z; if (z > r[1]) r[1] = z; }
+  }
   S.parts.forEach((p, i) => {
+    const zRange = (zr.get(p.id) || [t.bbox.minZ, t.bbox.maxZ]).map((v) => Math.round(v * 10) / 10);
     if (!p.visible || !counts[i]) return;
     g.addGroup(offs[i] * 3, counts[i] * 3, mats.length);
     let m;
     if (partsOverride) m = flatMaterial(falseColor(i));
-    else m = filamentMaterial(p.filament || BLANK, { zRange: [t.bbox.minZ, t.bbox.maxZ] });
+    else m = filamentMaterial(p.filament || BLANK, { zRange });
     const sel = S.selected.has(p.id) || hoverPart === p.id;
     if (sel && !partsOverride) {
       m = m.clone();
-      const orig = filamentMaterial(p.filament || BLANK, { zRange: [t.bbox.minZ, t.bbox.maxZ] });
+      const orig = filamentMaterial(p.filament || BLANK, { zRange });
       if (orig.userData.uniforms) { m.onBeforeCompile = orig.onBeforeCompile; m.customProgramCacheKey = orig.customProgramCacheKey; }
       m.emissive = new THREE.Color(S.selected.has(p.id) ? 0x3d6bff : 0x6f8cff);
       m.emissiveIntensity = S.selected.has(p.id) ? 0.12 : 0.08;

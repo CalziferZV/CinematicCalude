@@ -1,4 +1,5 @@
 // Servidor local de Filament Studio.
+import './env.js';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,6 +52,11 @@ app.post('/api/ai', async (req, res) => {
 
 const PORT = Number(process.env.PORT) || 5173;
 app.listen(PORT, () => {
+  if (process.argv.includes('--open')) {
+    const url = `http://localhost:${PORT}`;
+    const cmd = process.platform === 'win32' ? `start "" "${url}"` : process.platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`;
+    import('node:child_process').then(({ exec }) => exec(cmd));
+  }
   const ai = aiStatus();
   console.log(`\n  Filament Studio listo →  http://localhost:${PORT}\n`);
   console.log(ai.enabled ? `  IA activada (${ai.model})` : '  IA desactivada: añade ANTHROPIC_API_KEY en el archivo .env para activarla');

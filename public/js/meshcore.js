@@ -370,20 +370,38 @@ export function detectStepLevels(topo, faceMask = null, minFrac = 0.025) {
   }
   const H = maxZ - minZ;
   if (!(H > 0)) return [];
-  const bin = Math.max(H / 2000, 1e-4);
-  const hist = new Map();
+  // caras casi horizontales ordenadas por altura, agrupadas en "racimos" continuos
+  const items = [];
   for (let f = 0; f < nF; f++) {
     if (faceMask && !faceMask(f)) continue;
-    const nz = fn[f * 3 + 2];
-    if (Math.abs(nz) < 0.97) continue;
-    const b = Math.round(cen[f * 3 + 2] / bin);
-    hist.set(b, (hist.get(b) || 0) + area[f]);
+    if (Math.abs(fn[f * 3 + 2]) < 0.97) continue;
+    items.push(f);
+  }
+  items.sort((p, q) => cen[p * 3 + 2] - cen[q * 3 + 2]);
+  const clusters = [];
+  let cur = null;
+  for (const f of items) {
+    const z = cen[f * 3 + 2];
+    if (!cur || z - cur.zMax > H * 0.006) {
+      cur = { zMin: z, zMax: z, a: 0, wz: 0, best: z, bestA: 0, bins: new Map() };
+      clusters.push(cur);
+    }
+    cur.zMax = z;
+    cur.a += area[f];
+    cur.wz += z * area[f];
+    const k = Math.round(z / (H * 1e-4 + 1e-9));
+    const ba = (cur.bins.get(k) || 0) + area[f];
+    cur.bins.set(k, ba);
+    if (ba > cur.bestA) { cur.bestA = ba; cur.best = z; }
   }
   const lv = [];
-  for (const [b, a] of hist) {
-    const z = b * bin;
+  for (const c of clusters) {
+    if (c.a < total * minFrac) continue;
+    if (c.zMax - c.zMin > H * 0.05) continue;
+    // superficie plana: usar su altura exacta; si es inclinada (cono suave), la media
+    const z = c.bestA > c.a * 0.6 ? c.best : c.wz / c.a;
     if (z <= minZ + H * 0.02 || z >= maxZ - H * 0.02) continue;
-    if (a >= total * minFrac) lv.push({ z, a });
+    lv.push({ z, a: c.a });
   }
   lv.sort((p, q) => p.z - q.z);
   const merged = [];

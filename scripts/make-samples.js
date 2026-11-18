@@ -73,3 +73,38 @@ const text = (str, size, depth) => {
   const knob = new THREE.SphereGeometry(5, 24, 12); knob.translate(0, 0, 28);
   save('caja.stl', [box, lid, knob]);
 }
+
+// 4) Placa de UNA sola malla con texto en relieve fundido (como muchos modelos de Thingiverse)
+{
+  const FONT = {
+    H: ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
+    O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+    L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+    A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
+  };
+  const word = 'HOLA';
+  const cell = 1.5, margin = 4, base = 3, relief = 1.2;
+  const cols = margin * 2 + word.length * 6 - 1, rows = margin * 2 + 7;
+  const H = Array.from({ length: cols }, () => new Array(rows).fill(base));
+  [...word].forEach((ch, k) => {
+    FONT[ch].forEach((row, r) => [...row].forEach((v, c) => { if (v === '1') H[margin + k * 6 + c][margin + (6 - r)] = base + relief; }));
+  });
+  const P = [];
+  const quad = (a, b, c, d) => P.push(...a, ...b, ...c, ...a, ...c, ...d);
+  const X = (i) => (i - cols / 2) * cell, Y = (j) => (j - rows / 2) * cell;
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const h = H[i][j];
+    quad([X(i), Y(j), h], [X(i + 1), Y(j), h], [X(i + 1), Y(j + 1), h], [X(i), Y(j + 1), h]); // arriba
+    quad([X(i), Y(j), 0], [X(i), Y(j + 1), 0], [X(i + 1), Y(j + 1), 0], [X(i + 1), Y(j), 0]); // abajo
+    // paredes hacia vecinos más bajos (o borde)
+    const nb = (ii, jj) => (ii < 0 || jj < 0 || ii >= cols || jj >= rows ? 0 : H[ii][jj]);
+    const e = nb(i + 1, j), w = nb(i - 1, j), n = nb(i, j + 1), so = nb(i, j - 1);
+    if (e < h) quad([X(i + 1), Y(j), e], [X(i + 1), Y(j + 1), e], [X(i + 1), Y(j + 1), h], [X(i + 1), Y(j), h]);
+    if (w < h) quad([X(i), Y(j + 1), w], [X(i), Y(j), w], [X(i), Y(j), h], [X(i), Y(j + 1), h]);
+    if (n < h) quad([X(i + 1), Y(j + 1), n], [X(i), Y(j + 1), n], [X(i), Y(j + 1), h], [X(i + 1), Y(j + 1), h]);
+    if (so < h) quad([X(i), Y(j), so], [X(i + 1), Y(j), so], [X(i + 1), Y(j), h], [X(i), Y(j), h]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  save('placa-relieve.stl', [g]);
+}

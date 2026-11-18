@@ -379,7 +379,8 @@ export async function getShopifyStore(storeUrl, { force = false } = {}) {
         const colors = [];
         const seen = new Set();
         for (const v of p.variants || []) {
-          const cname = colorIdx >= 0 ? v[`option${colorIdx + 1}`] : v.title;
+          let cname = colorIdx >= 0 ? v[`option${colorIdx + 1}`] : v.title;
+          if (!cname || /^default title$/i.test(cname)) cname = title;
           if (!cname || seen.has(cname)) continue;
           seen.add(cname);
           const hexes = colorNameToHex(cname);

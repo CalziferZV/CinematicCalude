@@ -4,9 +4,12 @@
   "description": "Personalizador de color en tiempo real para piezas de impresión 3D, con catálogo de filamentos en vivo e IA",
   "main": "server/server.js",
   "scripts": {
-    "start": "node --env-file-if-exists=.env server/server.js",
-    "dev": "node --watch --env-file-if-exists=.env server/server.js",
-    "snapshot": "node scripts/snapshot.js"
+    "start": "node server/server.js --open",
+    "serve": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "snapshot": "node scripts/snapshot.js",
+    "samples": "node scripts/make-samples.js",
+    "test": "node scripts/tests/t1.mjs && node scripts/tests/t4.mjs"
   },
   "repository": {
     "type": "git",
@@ -26,7 +29,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20.12"
+    "node": ">=18.17"
   },
   "private": true
 }

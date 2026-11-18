@@ -225,12 +225,12 @@ details[open] summary { margin-bottom: 6px; }
 
 /* ----------------------------------------------------------- modo cliente */
 .present-bar { display: none; }
-body.present .layout { grid-template-columns: 0 1fr 0; }
+body.present .layout { grid-template-columns: 1fr; }
 body.present .panel { display: none; }
 body.present .topbar .top-actions > :not(#btnPresent):not(#btnAI) { display: none; }
 body.present .present-bar {
   display: flex; position: absolute; left: 16px; top: 16px; flex-direction: column; gap: 8px; background: rgba(255,255,255,.9);
-  backdrop-filter: blur(8px); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); max-width: 320px; max-height: calc(100% - 90px); overflow-y: auto;
+  backdrop-filter: blur(8px); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); width: 300px; max-height: calc(100% - 90px); overflow-y: auto;
 }
 .present-bar .pi { display: flex; align-items: center; gap: 10px; }
 .present-bar .pi i { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(0,0,0,.15); flex: none; }
