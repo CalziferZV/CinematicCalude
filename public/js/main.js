@@ -221,6 +221,7 @@ function paintTarget() {
   const fil = S.activeFilament;
   const p = ST.newPart(fil ? `${fil.name}` : `Parte ${S.nextId}`, fil);
   ST.select([p.id]);
+  if (fil) V.settleSelection(); // ya pinta con su color: que se vea el color real
   return p.id;
 }
 
@@ -296,6 +297,7 @@ function onPointerUp(e) {
       const np = ST.newPart(fil ? fil.name : `Zona ${S.nextId}`, fil);
       ST.assignFaces(faces, np.id);
       ST.select([np.id]);
+      if (fil) V.settleSelection();
     } else ST.assignFaces(faces, target);
     hint(`Relleno: ${faces.length} caras`);
   }
@@ -372,6 +374,7 @@ function bind() {
     const fil = S.activeFilament;
     const p = ST.newPart(fil ? fil.name : `Parte ${S.nextId}`, fil);
     ST.select([p.id]);
+    if (fil) V.settleSelection();
     setTool('brush');
     toast('Parte nueva creada: píntala con el pincel o el relleno');
     renderParts();
@@ -701,7 +704,9 @@ function closeMenus() {
 }
 function togglePresent() {
   document.body.classList.toggle('present');
-  $('btnPresent').classList.toggle('active', document.body.classList.contains('present'));
+  const on = document.body.classList.contains('present');
+  $('btnPresent').classList.toggle('active', on);
+  V.setPresentMode(on); // el cliente ve los colores reales, sin contornos ni brillos
   V.showBrush(null);
   V.showCutPlane(S.cutZ, false);
   setTimeout(() => V.requestRender(), 50);

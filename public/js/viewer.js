@@ -3,6 +3,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import { S, on, topo, normals, BLANK, transformParts } from './state.js';
 import { filamentMaterial, flatMaterial, falseColor } from './materials.js';
@@ -11,8 +15,11 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
-let renderer, scene, camera, controls, container;
-let model = null; // malla visible
+let renderer, scene, camera, controls, container, composer;
+let model = null; // malla visible: partes sin seleccionar
+let selModel = null; // partes seleccionadas (malla aparte para dibujar su contorno)
+let hoverModel = null; // parte bajo el ratón
+let selOutline = null, hoverOutline = null; // contornos (como en Bambu Studio)
 let pickMesh = null; // malla invisible para raycast (con BVH)
 let boundary = null; // líneas entre partes
 let cutPlane = null;
@@ -23,6 +30,12 @@ let needsRender = true;
 let hoverPart = null;
 let showBoundaries = true;
 let partsOverride = null; // vista de colores falsos
+let present = false; // modo cliente: sin resaltados
+let clipActive = false; // vista por capas activa
+// Al seleccionar, la parte "late" en azul hasta que se le pone un color. Después queda
+// seleccionada solo con el contorno, para ver el color real.
+let settled = false;
+let pulseMats = [];
 
 export function init(el) {
   container = el;
@@ -67,13 +80,119 @@ export function init(el) {
   ground.receiveShadow = true;
   scene.add(ground);
 
+  initComposer();
   const ro = new ResizeObserver(resize);
   ro.observe(el);
   resize();
   on('mesh', rebuild);
   on('parts', scheduleRefresh);
-  on('selection', scheduleRefresh);
+  on('selection', (info) => {
+    // una selección nueva vuelve a latir; deshacer/rehacer conserva el estado
+    if (!(info && info.restore)) settled = false;
+    scheduleRefresh();
+  });
+  on('filament', (ids) => {
+    if (ids && ids.some((id) => S.selected.has(id))) { settled = true; scheduleRefresh(); }
+  });
   animate();
+}
+
+// Render con posproceso: escena -> contornos de selección / ratón -> tono y color de salida.
+function initComposer() {
+  composer = new EffectComposer(renderer);
+  const float = renderer.capabilities.isWebGL2 && renderer.extensions.has('EXT_color_buffer_float');
+  for (const rt of [composer.renderTarget1, composer.renderTarget2]) {
+    rt.samples = 4; // antialias también con posproceso
+    if (!float) rt.texture.type = THREE.UnsignedByteType;
+  }
+  composer.addPass(new RenderPass(scene, camera));
+  selOutline = makeOutline('#2f5bff', '#8fa6ff', 2);
+  hoverOutline = makeOutline('#7d9bff', '#b8c7ff', 1.2);
+  composer.addPass(selOutline);
+  composer.addPass(hoverOutline);
+  composer.addPass(new OutputPass());
+}
+
+// Contorno nítido, opaco y de grosor fijo alrededor de lo seleccionado. El OutlinePass original
+// dibuja un halo que se suma al color (se pierde sobre fondos claros y piezas blancas): aquí se
+// "engorda" la silueta unos píxeles y se pinta con mezcla normal, igual sobre cualquier color.
+function makeOutline(visible, hidden, widthPx) {
+  const pass = new OutlinePass(new THREE.Vector2(256, 256), scene, camera);
+  pass.downSampleRatio = 1;
+  pass.edgeStrength = 1;
+  pass.edgeGlow = 0;
+  pass.edgeThickness = 1; // suavizado mínimo del borde
+  pass.visibleEdgeColor.set(visible);
+  pass.hiddenEdgeColor.set(hidden);
+  pass.userData = { widthPx };
+  const ed = pass.edgeDetectionMaterial;
+  ed.uniforms.radius = { value: widthPx };
+  ed.fragmentShader = `varying vec2 vUv;
+    uniform sampler2D maskTexture;
+    uniform vec2 texSize;
+    uniform vec3 visibleEdgeColor;
+    uniform vec3 hiddenEdgeColor;
+    uniform float radius;
+    void main() {
+      vec2 inv = 1.0 / texSize;
+      if (texture2D(maskTexture, vUv).r < 0.5) { gl_FragColor = vec4(0.0); return; }
+      float cover = 0.0;
+      float hid = 1.0;
+      for (int i = -4; i <= 4; i++) {
+        for (int j = -4; j <= 4; j++) {
+          vec2 o = vec2(float(i), float(j));
+          float d = length(o);
+          if (d > radius + 0.5) continue;
+          vec4 s = texture2D(maskTexture, vUv + o * inv);
+          if (s.r < 0.5) {
+            cover = max(cover, clamp(radius + 0.5 - d, 0.0, 1.0));
+            hid = min(hid, s.g);
+          }
+        }
+      }
+      vec3 col = hid > 0.5 ? hiddenEdgeColor : visibleEdgeColor;
+      gl_FragColor = vec4(col, 1.0) * cover;
+    }`;
+  ed.needsUpdate = true;
+  const m = pass.overlayMaterial;
+  m.blending = THREE.NormalBlending;
+  m.fragmentShader = `varying vec2 vUv;
+    uniform sampler2D maskTexture;
+    uniform sampler2D edgeTexture1;
+    uniform sampler2D edgeTexture2;
+    uniform float edgeStrength;
+    uniform float edgeGlow;
+    void main() {
+      vec4 e = texture2D(edgeTexture1, vUv) + texture2D(edgeTexture2, vUv) * edgeGlow;
+      float outside = texture2D(maskTexture, vUv).r;
+      float a = clamp(edgeStrength * outside * e.a, 0.0, 1.0);
+      vec3 c = e.a > 0.0001 ? e.rgb / e.a : vec3(0.0);
+      gl_FragColor = vec4(c, a);
+    }`;
+  m.needsUpdate = true;
+  return pass;
+}
+
+function updateOutlines() {
+  if (!selOutline) return;
+  const on = !present && !clipActive && !partsOverride;
+  const selObj = moving ? moving.proxy : selModel && selModel.geometry.groups.length ? selModel : null;
+  selOutline.selectedObjects = on && selObj ? [selObj] : [];
+  selOutline.enabled = !!selOutline.selectedObjects.length;
+  const hovObj = hoverModel && hoverModel.geometry.groups.length ? hoverModel : null;
+  hoverOutline.selectedObjects = on && hovObj ? [hovObj] : [];
+  hoverOutline.enabled = !!hoverOutline.selectedObjects.length;
+}
+
+// Modo cliente: la pieza se ve tal cual, sin contornos ni brillos de selección.
+export function setPresentMode(on) {
+  present = !!on;
+  refreshParts();
+}
+// La selección actual ya tiene su color (p. ej. una parte nueva creada con el pincel): sin latido.
+export function settleSelection() {
+  settled = true;
+  scheduleRefresh();
 }
 
 export function setBackground(kind) {
@@ -89,6 +208,12 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
+  if (composer) {
+    const pr = renderer.getPixelRatio();
+    composer.setPixelRatio(pr);
+    composer.setSize(Math.max(w, 1), Math.max(h, 1));
+    for (const o of [selOutline, hoverOutline]) o.edgeDetectionMaterial.uniforms.radius.value = Math.min(4, o.userData.widthPx * pr);
+  }
   needsRender = true;
 }
 
@@ -96,14 +221,14 @@ let pulse = 0;
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
-  if (S.selected.size && model) {
+  if (pulseMats.length) {
     pulse += 0.06;
     const k = 0.1 + 0.07 * Math.sin(pulse);
-    for (const m of model.material) if (m.userData.selected) m.emissiveIntensity = k;
+    for (const m of pulseMats) m.emissiveIntensity = k;
     needsRender = true;
   }
   if (needsRender) {
-    renderer.render(scene, camera);
+    composer.render();
     needsRender = false;
   }
 }
@@ -113,17 +238,28 @@ export const requestRender = () => (needsRender = true);
 function rebuild() {
   const restartMove = moving && S.tool === 'move' ? moving.ids : null;
   stopMove();
-  if (model) { scene.remove(model); model.geometry.dispose(); }
+  for (const m of [model, selModel, hoverModel]) if (m) { scene.remove(m); m.geometry.dispose(); }
+  model = selModel = hoverModel = null;
+  pulseMats = [];
   if (pickMesh) { pickMesh.geometry.dispose(); pickMesh = null; }
-  if (!S.mesh) return;
+  if (!S.mesh) { updateOutlines(); return; }
   const t = topo();
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(S.mesh.pos, 3));
-  g.setAttribute('normal', new THREE.BufferAttribute(normals(), 3));
-  model = new THREE.Mesh(g, []);
-  model.castShadow = true;
-  model.receiveShadow = true;
-  scene.add(model);
+  // tres mallas que comparten los mismos vértices: resto, seleccionadas y bajo el ratón
+  const posAttr = new THREE.BufferAttribute(S.mesh.pos, 3);
+  const norAttr = new THREE.BufferAttribute(normals(), 3);
+  const makeMesh = () => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', posAttr);
+    g.setAttribute('normal', norAttr);
+    const m = new THREE.Mesh(g, []);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  };
+  model = makeMesh();
+  selModel = makeMesh();
+  hoverModel = makeMesh();
 
   const pg = new THREE.BufferGeometry();
   pg.setAttribute('position', new THREE.BufferAttribute(S.mesh.pos, 3));
@@ -178,28 +314,38 @@ export function setPainting(v) {
   if (!v) scheduleRefresh();
 }
 
-// Reordena el índice por parte y asigna un material a cada grupo.
+// Reparte las caras por parte entre las tres mallas (resto / seleccionadas / bajo el ratón)
+// y asigna un material a cada grupo.
 function refreshParts() {
   if (!model || !S.mesh) return;
   const fp = S.mesh.faceParts;
   const nF = fp.length;
-  const order = S.parts.map((p) => p.id);
-  const slot = new Map(order.map((id, i) => [id, i]));
-  const counts = new Uint32Array(order.length);
+  const highlight = !present && !partsOverride;
+  const slot = new Map(S.parts.map((p, i) => [p.id, i]));
+  const counts = new Uint32Array(S.parts.length);
   for (let f = 0; f < nF; f++) counts[slot.get(fp[f]) ?? 0]++;
-  const offs = new Uint32Array(order.length);
-  for (let i = 1; i < order.length; i++) offs[i] = offs[i - 1] + counts[i - 1];
-  const index = new Uint32Array(nF * 3);
+  // malla de cada parte: 0 resto, 1 seleccionada, 2 bajo el ratón, -1 no se dibuja
+  const bucket = new Int8Array(S.parts.length);
+  S.parts.forEach((p, i) => {
+    if (!p.visible || !counts[i] || (moving && moving.set.has(p.id))) bucket[i] = -1;
+    else if (highlight && S.selected.has(p.id)) bucket[i] = 1;
+    else if (highlight && hoverPart === p.id) bucket[i] = 2;
+    else bucket[i] = 0;
+  });
+  const meshes = [model, selModel, hoverModel];
+  const totals = [0, 0, 0];
+  const offs = new Uint32Array(S.parts.length);
+  S.parts.forEach((p, i) => { if (bucket[i] >= 0) { offs[i] = totals[bucket[i]]; totals[bucket[i]] += counts[i]; } });
+  const index = totals.map((n) => new Uint32Array(n * 3));
   const w = offs.slice();
   for (let f = 0; f < nF; f++) {
     const s = slot.get(fp[f]) ?? 0;
+    const b = bucket[s];
+    if (b < 0) continue;
     const o = w[s]++ * 3;
-    index[o] = f * 3; index[o + 1] = f * 3 + 1; index[o + 2] = f * 3 + 2;
+    const ix = index[b];
+    ix[o] = f * 3; ix[o + 1] = f * 3 + 1; ix[o + 2] = f * 3 + 2;
   }
-  const g = model.geometry;
-  g.setIndex(new THREE.BufferAttribute(index, 1));
-  g.clearGroups();
-  const mats = [];
   const t = topo();
   const zr = new Map();
   for (let f = 0; f < nF; f++) {
@@ -207,27 +353,38 @@ function refreshParts() {
     const r = zr.get(fp[f]);
     if (!r) zr.set(fp[f], [z, z]); else { if (z < r[0]) r[0] = z; if (z > r[1]) r[1] = z; }
   }
+  const mats = [[], [], []];
+  for (const m of meshes) {
+    for (const old of m.material) if (old.userData.tmp) old.dispose();
+    m.geometry.clearGroups();
+  }
+  pulseMats = [];
   S.parts.forEach((p, i) => {
+    const b = bucket[i];
+    if (b < 0) return;
     const zRange = (zr.get(p.id) || [t.bbox.minZ, t.bbox.maxZ]).map((v) => Math.round(v * 10) / 10);
-    if (!p.visible || !counts[i] || (moving && moving.set.has(p.id))) return;
-    g.addGroup(offs[i] * 3, counts[i] * 3, mats.length);
+    meshes[b].geometry.addGroup(offs[i] * 3, counts[i] * 3, mats[b].length);
     let m;
     if (partsOverride) m = flatMaterial(falseColor(i));
     else m = filamentMaterial(p.filament || BLANK, { zRange });
-    const sel = S.selected.has(p.id) || hoverPart === p.id;
-    if (sel && !partsOverride) {
+    if (b === 1 && !settled) {
+      // latido azul mientras se elige el color
+      const orig = m;
       m = m.clone();
-      const orig = filamentMaterial(p.filament || BLANK, { zRange });
       if (orig.userData.uniforms) { m.onBeforeCompile = orig.onBeforeCompile; m.customProgramCacheKey = orig.customProgramCacheKey; }
-      m.emissive = new THREE.Color(S.selected.has(p.id) ? 0x3d6bff : 0x6f8cff);
-      m.emissiveIntensity = S.selected.has(p.id) ? 0.12 : 0.08;
-      m.userData.selected = S.selected.has(p.id);
+      m.emissive = new THREE.Color(0x3d6bff);
+      m.emissiveIntensity = 0.12;
       m.userData.tmp = true;
+      pulseMats.push(m);
     }
-    mats.push(m);
+    mats[b].push(m);
   });
-  for (const old of model.material) if (old.userData.tmp) old.dispose();
-  model.material = mats;
+  meshes.forEach((m, b) => {
+    m.geometry.setIndex(new THREE.BufferAttribute(index[b], 1));
+    m.material = mats[b];
+    m.visible = mats[b].length > 0;
+  });
+  updateOutlines();
   buildBoundaries();
   needsRender = true;
 }
@@ -381,6 +538,7 @@ export function toggleAutoRotate() {
 }
 
 // ---------------------------------------------------------------- capturas
+let captureOutput = null;
 // Renderiza la escena con la vista pedida y devuelve un canvas (opcionalmente con etiquetas de partes).
 export function capture({ view = 'current', mode = 'real', width = 1280, height = 960, labels = false, transparent = false } = {}) {
   const cam = camera.clone();
@@ -403,13 +561,25 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   if (cutPlane) cutPlane.visible = false;
   const prevBg = scene.background;
   if (transparent) scene.background = null;
-  const rt = new THREE.WebGLRenderTarget(width, height, { samples: 4, colorSpace: THREE.SRGBColorSpace });
+  // Mismo proceso que la pantalla (escena en lineal -> tono y sRGB con OutputPass), para que la
+  // imagen del cliente tenga exactamente los colores que se ven en el visor.
+  const float = renderer.capabilities.isWebGL2 && renderer.extensions.has('EXT_color_buffer_float');
+  const rt = new THREE.WebGLRenderTarget(width, height, { samples: 4, type: float ? THREE.HalfFloatType : THREE.UnsignedByteType });
+  const out = new THREE.WebGLRenderTarget(width, height);
+  const prevAlpha = renderer.getClearAlpha();
+  if (transparent) renderer.setClearAlpha(0);
   renderer.setRenderTarget(rt);
+  renderer.clear();
   renderer.render(scene, cam);
+  captureOutput ||= new OutputPass();
+  captureOutput.renderToScreen = false;
+  captureOutput.render(renderer, out, rt);
   const buf = new Uint8Array(width * height * 4);
-  renderer.readRenderTargetPixels(rt, 0, 0, width, height, buf);
+  renderer.readRenderTargetPixels(out, 0, 0, width, height, buf);
   renderer.setRenderTarget(null);
+  renderer.setClearAlpha(prevAlpha);
   rt.dispose();
+  out.dispose();
   scene.background = prevBg;
   if (brushRing) brushRing.visible = brushVis;
   if (cutPlane) cutPlane.visible = cutVis;
@@ -470,6 +640,9 @@ const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
 export function setClipZ(z) {
   if (z == null) renderer.clippingPlanes = [];
   else { clipPlane.constant = z; renderer.clippingPlanes = [clipPlane]; }
+  // el contorno no se recorta con el plano: en la vista por capas se oculta
+  clipActive = z != null;
+  updateOutlines();
   needsRender = true;
 }
 

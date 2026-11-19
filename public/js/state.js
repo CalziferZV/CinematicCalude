@@ -45,7 +45,7 @@ function restore(s) {
   if (geomChanged) { S.mesh.topo = null; S.mesh.normals = null; }
   for (const id of [...S.selected]) if (!partById(id)) S.selected.delete(id);
   emit(geomChanged ? 'mesh' : 'parts');
-  emit('selection');
+  emit('selection', { restore: true });
 }
 export function checkpoint() {
   if (!S.mesh) return;
@@ -197,6 +197,7 @@ export function setPartFilament(ids, filament) {
   checkpoint();
   for (const id of ids) { const p = partById(id); if (p) p.filament = filament ? { ...filament } : null; }
   emit('parts');
+  emit('filament', ids); // el visor deja de "latir" en las partes que ya tienen color
 }
 
 export function renamePart(id, name, role) {
@@ -504,6 +505,7 @@ export function applyVariant(name) {
   for (const p of S.parts) if (p.id in v.colors) p.filament = v.colors[p.id] ? { ...v.colors[p.id] } : null;
   S.activeVariant = name;
   emit('parts');
+  emit('filament', S.parts.map((p) => p.id));
   emit('variants');
 }
 export function deleteVariant(name) {
