@@ -2,6 +2,7 @@
 import * as ST from './state.js';
 import * as V from './viewer.js';
 import * as MC from './meshcore.js';
+import * as CUT from './cut.js';
 import { initCatalog, filamentKey, setActiveKey, escapeHtml, isFavorite, isOwned, toggleFavorite, toggleOwned, pushRecent, equivalents, ownedSpools } from './catalog.js';
 import { loadFile, parseBuffer } from './loaders.js';
 import * as EX from './exporters.js';
@@ -256,8 +257,10 @@ function setTool(tool) {
   V.setHover(null);
   if (tool === 'move') syncMove(true);
   else V.stopMove();
-  const msg = { select: 'Clic para seleccionar una parte', brush: 'Arrastra sobre la pieza para pintar · botón derecho para girar', fill: 'Clic en una zona para rellenarla', cut: 'Mueve el plano y pulsa «Cortar aquí»', move: S.selected.size ? 'Arrastra las flechas para mover o los aros para girar' : 'Haz clic en la parte que quieras mover' };
-  hint(msg[tool]);
+  if (tool === 'split') enterSplit();
+  else leaveSplit();
+  const msg = { select: 'Clic para seleccionar una parte', brush: 'Arrastra sobre la pieza para pintar · botón derecho para girar', fill: 'Clic en una zona para rellenarla', cut: 'Capas: mueve el plano y pulsa «Cortar aquí» para dividir el color por altura', move: S.selected.size ? 'Arrastra las flechas para mover o los aros para girar' : 'Haz clic en la parte que quieras mover', split: 'Coloca el plano (flecha, aros o botones) y pulsa «✂ Cortar aquí»' };
+  hint(msg[tool], 3500);
 }
 
 // Abre/cierra las flechas de mover según la selección
@@ -375,7 +378,7 @@ function onPointerMove(e) {
       const hit = V.pick(e.clientX, e.clientY);
       V.showBrush(hit?.point, hit?.normal, S.brushRadius);
       if (painting && hit) paintAt(hit);
-    } else if (eyedrop || S.tool === 'select' || S.tool === 'fill' || S.tool === 'move') {
+    } else if (eyedrop || S.tool === 'select' || S.tool === 'fill' || S.tool === 'move' || S.tool === 'split') {
       if (e.buttons) return;
       const hit = V.pick(e.clientX, e.clientY);
       V.setHover(hit ? hit.partId : null);
@@ -393,9 +396,10 @@ function onPointerUp(e) {
   const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y) > 5;
   downPos = null;
   if (moved || V.isGizmoBusy()) return;
+  if (S.tool === 'split' && !eyedrop && splitClick(e)) return;
   const hit = V.pick(e.clientX, e.clientY);
   if (eyedrop) { eyedropAt(hit); return; }
-  if (S.tool === 'select' || S.tool === 'move') {
+  if (S.tool === 'select' || S.tool === 'move' || S.tool === 'split') {
     if (!hit) { if (!e.shiftKey) ST.select([]); return; }
     if (S.tool === 'select' && S.activeFilament && (e.altKey || $('clickApply').checked)) {
       ST.setPartFilament([hit.partId], S.activeFilament);
@@ -434,6 +438,310 @@ function setCutZ(z, from) {
   if (from !== 'range') $('cutZ').value = z;
   if (from !== 'num') $('cutZNum').value = z.toFixed(2);
   V.showCutPlane(b.minZ + z, S.tool === 'cut');
+}
+
+// ---------------------------------------------------------------- cortar en piezas (plano libre + anclajes automáticos)
+const SPL = { plane: null, ref: null, an: null, conns: [], warnings: [], note: '', targets: null, timer: 0, raf: 0, mesh: null };
+const DOWEL_SIZES = [3, 4, 5, 6, 8, 10, 12];
+const vdot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const fmtMM = (v) => (Math.round(v * 10) / 10).toLocaleString('es-ES');
+
+function splitOpts() {
+  const type = $('connType').value;
+  const sz = $('connSize').value;
+  const opts = { type, clearance: parseFloat($('connFit').value) || 0.15 };
+  if (type === 'magnet') opts.magnet = sz ? sz.split('x').map(Number) : null;
+  else opts.size = sz ? +sz : null;
+  return opts;
+}
+function fillConnSizes() {
+  const type = $('connType').value;
+  const sel = $('connSize');
+  const prev = sel.value;
+  const list = type === 'magnet' ? CUT.MAGNETS.map(([d, h]) => [`${d}x${h}`, `${d} × ${h} mm`]) : DOWEL_SIZES.map((d) => [String(d), `Ø${d} mm`]);
+  sel.innerHTML = '<option value="">Auto</option>' + list.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  sel.disabled = type === 'none';
+  $('connFit').disabled = type === 'none' || type === 'magnet';
+}
+// Qué se corta: las piezas de la selección (si ya hay varias piezas) o todo
+function splitTargetsNow() {
+  if (!S.mesh || ST.pieceCount() < 2 || !S.selected.size) return null;
+  return ST.piecesOfParts([...S.selected]);
+}
+function splitMask() {
+  const t = SPL.targets;
+  if (!t || !S.mesh) return null;
+  const fpc = S.mesh.facePiece;
+  return (f) => t.has(fpc[f]);
+}
+function splitBox() {
+  const mask = splitMask(), P = S.mesh.pos;
+  const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  for (let f = 0, n = P.length / 9; f < n; f++) {
+    if (mask && !mask(f)) continue;
+    for (let k = 0; k < 9; k += 3) for (let a = 0; a < 3; a++) { const v = P[f * 9 + k + a]; if (v < b[a]) b[a] = v; if (v > b[a + 3]) b[a + 3] = v; }
+  }
+  return b;
+}
+// Lados del plano en palabras (para los mensajes)
+function sideWords(n) {
+  if (Math.abs(n[2]) > 0.7) return n[2] > 0 ? ['arriba', 'abajo'] : ['abajo', 'arriba'];
+  return ['lado de la flecha', 'otro lado'];
+}
+
+// Coloca el plano: 'sel' (justo en el borde de la selección), 'z' horizontal, 'x' / 'y' verticales
+function placeSplitPlane(kind) {
+  if (!S.mesh) return;
+  SPL.targets = splitTargetsNow();
+  SPL.note = '';
+  let plane = null;
+  if (kind === 'sel') {
+    if (!S.selected.size) {
+      toast('Selecciona primero la parte que quieres separar (clic en ella) y vuelve a pulsar «A la selección»', 4500);
+      kind = 'z';
+    } else {
+      const fit = CUT.fitPlaneToParts(S.mesh.pos, ST.topo(), S.mesh.faceParts, new Set(S.selected));
+      const names = [...S.selected].map((id) => ST.partById(id)?.name).filter(Boolean).join(', ');
+      if (fit) {
+        // el mismo plano, con el centro a la altura de la selección (ahí aparece la flecha)
+        const sb = ST.partsBBox([...S.selected]);
+        const cs = [(sb.minX + sb.maxX) / 2, (sb.minY + sb.maxY) / 2, (sb.minZ + sb.maxZ) / 2];
+        const d = vdot([cs[0] - fit.o[0], cs[1] - fit.o[1], cs[2] - fit.o[2]], fit.n);
+        plane = { o: [cs[0] - d * fit.n[0], cs[1] - d * fit.n[1], cs[2] - d * fit.n[2]], n: fit.n };
+        SPL.note = fit.planar ? `Corte ajustado al borde de «${names}».` : `El borde de «${names}» no es plano: el corte es una aproximación.`;
+      } else {
+        toast(`No encuentro dónde se une «${names}» con el resto: pongo un corte horizontal`, 4500);
+        kind = 'z';
+      }
+    }
+  }
+  if (!plane) {
+    const b = splitBox();
+    plane = { o: [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2], n: kind === 'x' ? [1, 0, 0] : kind === 'y' ? [0, 1, 0] : [0, 0, 1] };
+  }
+  setSplitPlane(plane, { resetRef: true, show: true });
+}
+function setSplitPlane(plane, { resetRef = false, show = false, fromGizmo = false } = {}) {
+  SPL.plane = { o: [...plane.o], n: CUT.normalize(plane.n) };
+  if (resetRef || !SPL.ref) {
+    SPL.ref = { o: [...SPL.plane.o], n: [...SPL.plane.n] };
+    const [lo, hi] = CUT.extentAlong(S.mesh.pos, SPL.ref.o, SPL.ref.n, splitMask());
+    $('splitOff').min = lo.toFixed(2);
+    $('splitOff').max = hi.toFixed(2);
+  }
+  syncSplitSlider();
+  if (show || !V.getSplitPlane()) V.showSplit(SPL.plane, { onChange: onSplitGizmo });
+  else if (!fromGizmo) V.setSplitPlane(SPL.plane);
+  updateSplitLines();
+  scheduleSplitAnalysis();
+}
+function syncSplitSlider() {
+  const p = SPL.plane, r = SPL.ref;
+  const off = vdot([p.o[0] - r.o[0], p.o[1] - r.o[1], p.o[2] - r.o[2]], r.n);
+  $('splitOff').value = off;
+  $('splitOffNum').value = off.toFixed(1);
+  // en cortes horizontales, la altura desde la cama
+  $('splitOffOut').textContent = Math.abs(p.n[2]) > 0.999 ? `a ${fmtMM(p.o[2] - ST.topo().bbox.minZ)} mm de la cama` : '';
+}
+function moveSplitTo(off) {
+  if (!S.mesh) return;
+  if (!SPL.plane) placeSplitPlane('z');
+  const r = SPL.ref;
+  setSplitPlane({ o: [r.o[0] + r.n[0] * off, r.o[1] + r.n[1] * off, r.o[2] + r.n[2] * off], n: r.n });
+}
+function onSplitGizmo(plane, { final }) {
+  const tilted = vdot(plane.n, SPL.ref ? SPL.ref.n : plane.n) < 0.99999;
+  SPL.plane = { o: plane.o, n: plane.n };
+  if (final) { setSplitPlane(plane, { resetRef: tilted, fromGizmo: true }); return; }
+  if (!tilted) syncSplitSlider();
+  V.setSplitPreview({ connectors: [] });
+  V.setSplitFill(null);
+  updateSplitLines();
+}
+function updateSplitLines() {
+  if (SPL.raf) return;
+  SPL.raf = requestAnimationFrame(() => {
+    SPL.raf = 0;
+    if (!SPL.plane || !S.mesh) return;
+    V.setSplitPreview({ lines: CUT.sectionLines(S.mesh.pos, SPL.plane, splitMask()) });
+  });
+}
+function scheduleSplitAnalysis(delay = 140) {
+  clearTimeout(SPL.timer);
+  V.setSplitPreview({ connectors: [] });
+  V.setSplitFill(null);
+  SPL.timer = setTimeout(() => runSplitAnalysis(), delay);
+}
+function runSplitAnalysis() {
+  clearTimeout(SPL.timer);
+  if (!SPL.plane || !S.mesh || S.tool !== 'split') return;
+  SPL.an = CUT.analyzeCut(S.mesh.pos, SPL.plane, { faceMask: splitMask() });
+  const r = CUT.autoConnectors(SPL.an, splitOpts());
+  SPL.conns = r.list;
+  SPL.warnings = r.warnings;
+  renderSplitPreview();
+  renderSplitInfo();
+}
+function renderSplitPreview() {
+  const an = SPL.an;
+  V.setSplitFill(an);
+  if (!an || an.empty) { V.setSplitPreview({ connectors: [] }); return; }
+  V.setSplitPreview({
+    connectors: SPL.conns.map((c) => {
+      const f = CUT.connectorFeatures(c);
+      const segs = [];
+      for (const s of [1, -1]) {
+        const ft = f[s];
+        if (!ft) continue;
+        if (ft.kind === 'hole') segs.push({ from: 0, to: s * ft.depth, R: (ft.r + ft.ch) / Math.cos(Math.PI / ft.m), m: ft.m, phase: ft.phase });
+        else segs.push({ from: 0, to: -s * ft.height, R: ft.r * 0.92, m: ft.m, phase: ft.phase });
+      }
+      return { c: CUT.planeToWorld(an, c.u, c.v), n: an.plane.n, U: an.U, V: an.V, segs, kind: c.type, ok: CUT.connectorWall(an, c) >= 0.6 };
+    }),
+  });
+}
+function renderSplitInfo() {
+  const box = $('splitInfo');
+  const items = [];
+  const an = SPL.an;
+  if (!SPL.plane) {
+    $('splitOffOut').textContent = '';
+    box.innerHTML = '<div>Elige dónde cortar: ◎ a la selección, horizontal o vertical (o arrastra la flecha).</div>';
+    $('btnSplitApply').disabled = true;
+    return;
+  }
+  if (SPL.note) items.push(`<div>${escapeHtml(SPL.note)}</div>`);
+  if (!an || an.empty) {
+    items.push('<div class="warn">El plano no atraviesa la pieza: muévelo hasta que corte el modelo.</div>');
+    box.innerHTML = items.join('');
+    $('btnSplitApply').disabled = true;
+    return;
+  }
+  $('btnSplitApply').disabled = false;
+  const tgt = SPL.targets ? (SPL.targets.size === 1 ? 'solo la pieza de la selección' : `${SPL.targets.size} piezas`) : 'toda la pieza';
+  items.push(`<div>Sección de ${Math.round(an.areaSection).toLocaleString('es-ES')} mm² · se corta ${tgt}</div>`);
+  const [sp, sn] = sideWords(an.plane.n);
+  const groups = new Map();
+  for (const c of SPL.conns) {
+    const k = `${c.type}|${c.d}|${c.h}|${c.shape}|${c.depthPos}|${c.depthNeg}|${c.pinSide}`;
+    const g = groups.get(k) || { c, n: 0, wall: Infinity };
+    g.n++;
+    g.wall = Math.min(g.wall, CUT.connectorWall(an, c));
+    groups.set(k, g);
+  }
+  for (const { c, n, wall } of groups.values()) {
+    const sq = c.shape === 'square' ? ' cuadrado' + (n > 1 ? 's' : '') : '';
+    let txt;
+    if (c.type === 'magnet') txt = `${n} ${n > 1 ? 'imanes' : 'imán'} de ${c.d} × ${c.h} mm (huecos de ${fmtMM(c.d + 0.2)} × ${fmtMM(c.h + 0.2)} mm a cada lado)`;
+    else if (c.type === 'plug') {
+      const from = c.pinSide > 0 ? sp : sn;
+      txt = `${n} ${n > 1 ? 'espigas' : 'espiga'}${sq} Ø${c.d} de ${fmtMM(Math.max(c.depthPos, c.depthNeg) - 0.4)} mm (salen de la pieza de ${from})`;
+    } else txt = `${n} ${n > 1 ? 'pasadores' : 'pasador'}${sq} Ø${c.d} · ${fmtMM(c.depthPos)} mm ${sp} y ${fmtMM(c.depthNeg)} mm ${sn}`;
+    items.push(`<div class="${wall >= 0.6 ? 'ok' : 'warn'}">${txt} · pared ${wall >= 0.6 ? '≥ ' + fmtMM(wall) : 'fina: ' + fmtMM(Math.max(0, wall))} mm</div>`);
+  }
+  if (!SPL.conns.length && $('connType').value !== 'none' && !SPL.warnings.length) items.push('<div class="warn">No caben anclajes aquí. Prueba «🔎 Mejor sitio» o pega las piezas.</div>');
+  for (const w of SPL.warnings) items.push(`<div class="warn">${escapeHtml(w)}</div>`);
+  if (SPL.warnings.some((w) => /fina/.test(w))) items.push('<div>Consejo: «🔎 Mejor sitio» busca cerca una zona más gruesa.</div>');
+  box.innerHTML = items.join('');
+}
+
+// Clic en la cara del corte: añadir o quitar un anclaje. Devuelve true si el clic era para eso.
+function splitClick(e) {
+  if (!SPL.plane || !SPL.an || SPL.an.empty) return false;
+  const hp = V.pickSplitPlane(e.clientX, e.clientY);
+  if (!hp || hp.blocked) return false;
+  const [u, v] = CUT.worldToPlane(SPL.an, hp.point);
+  const p = CUT.uvToPixel(SPL.an, u, v);
+  if (p < 0 || !SPL.an.contact[p]) return false;
+  const near = SPL.conns.findIndex((c) => Math.hypot(c.u - u, c.v - v) < CUT.connectorRadius(c) + 1);
+  if (near >= 0) {
+    SPL.conns.splice(near, 1);
+    hint('Anclaje quitado');
+  } else {
+    const o = splitOpts();
+    if (o.type === 'none') { hint('Elige arriba un tipo de anclaje'); return true; }
+    const ref = SPL.conns.find((c) => c.type !== 'magnet');
+    const magRef = SPL.conns.find((c) => c.type === 'magnet');
+    const c = CUT.manualConnector(SPL.an, u, v, { ...o, size: o.size || (ref ? ref.d : 5), magnet: o.magnet || (magRef ? [magRef.d, magRef.h] : [6, 3]) });
+    if (!c) { hint('Haz clic dentro de la cara del corte'); return true; }
+    if (SPL.conns.some((k) => Math.hypot(k.u - c.u, k.v - c.v) < CUT.connectorRadius(k) + CUT.connectorRadius(c) + 0.5)) { hint('Demasiado cerca de otro anclaje'); return true; }
+    c.id = Date.now();
+    SPL.conns.push(c);
+    const wall = CUT.connectorWall(SPL.an, c);
+    hint(wall < 0.6 ? `Ojo: aquí la pared queda muy fina (${fmtMM(Math.max(0, wall))} mm)` : 'Anclaje añadido', 3000);
+  }
+  renderSplitPreview();
+  renderSplitInfo();
+  return true;
+}
+
+async function applySplit() {
+  if (!S.mesh) return;
+  if (!SPL.plane || !SPL.an || SPL.an.empty) return toast('Coloca el plano atravesando la pieza');
+  await busy('Cortando…', () => {
+    const r = ST.cutPieces(SPL.plane, SPL.conns, { targetPieces: SPL.targets });
+    if (!r.ok) return toast(r.reason || 'No se ha podido cortar', 4000);
+    const bodies = r.created.filter((c) => c.kind === 'body').length + 1;
+    const dowels = r.created.filter((c) => c.kind === 'dowel').length;
+    const pins = r.placed.filter((c) => c.type === 'plug').length, mags = r.placed.filter((c) => c.type === 'magnet').length;
+    SPL.plane = null;
+    SPL.an = null;
+    SPL.conns = [];
+    SPL.note = '';
+    $('splitClip').checked = false;
+    V.hideSplit();
+    renderSplitInfo();
+    renderPieces();
+    const extra = dowels ? ` + ${dowels} pasadores` : pins ? ` con ${pins} espigas` : mags ? ` con huecos para ${mags} imanes` : '';
+    toast(`Cortado en ${bodies} piezas${extra}. «✣ Separar» para ver el encaje · «⤓ Colocar para imprimir» para el laminador`, 7000);
+    if (r.warnings.length) setTimeout(() => toast(r.warnings.join(' '), 6000), 7200);
+  });
+}
+
+// Busca cerca del plano una zona donde quepan mejor los anclajes (más gruesa, sin escalones)
+async function findBetterSplit() {
+  if (!S.mesh || !SPL.plane) return toast('Primero coloca el plano');
+  const o = splitOpts();
+  if (o.type === 'none') return toast('Elige un tipo de anclaje');
+  const best = await busy('Buscando la mejor zona para los anclajes…', () => CUT.searchBetterPlane(S.mesh.pos, SPL.plane, { faceMask: splitMask(), opts: o }));
+  if (!best) return toast('No encuentro cerca ninguna zona donde quepan anclajes: prueba otro corte o pega las piezas', 5000);
+  if (Math.abs(best.offset) < 1e-6) { runSplitAnalysis(); return toast('Este ya es el mejor sitio cercano'); }
+  SPL.note = '';
+  setSplitPlane(best.plane);
+  toast(`Corte movido ${best.offset > 0 ? '+' : '−'}${fmtMM(Math.abs(best.offset))} mm: aquí caben ${best.count} anclajes`, 4500);
+}
+
+function enterSplit() {
+  if (!S.mesh) return;
+  if (!$('layerSlider').hidden) toggleLayers(false); // la vista por capas también recorta: una cosa u otra
+  if (SPL.plane) { V.showSplit(SPL.plane, { onChange: onSplitGizmo }); updateSplitLines(); scheduleSplitAnalysis(0); }
+  else placeSplitPlane(S.selected.size ? 'sel' : 'z');
+  renderPieces();
+}
+function leaveSplit() {
+  clearTimeout(SPL.timer);
+  V.hideSplit();
+}
+
+// Lista de piezas para imprimir
+function renderPieces() {
+  const box = $('piecesBox');
+  if (!S.mesh || ST.pieceCount() < 2) { box.hidden = true; return; }
+  box.hidden = false;
+  const list = ST.piecesSummary();
+  const bodies = list.filter((p) => p.kind !== 'dowel'), dowels = list.filter((p) => p.kind === 'dowel');
+  const dg = new Map();
+  for (const d of dowels) dg.set(d.name, (dg.get(d.name) || 0) + 1);
+  $('piecesCount').textContent = `(${bodies.length}${dowels.length ? ` + ${dowels.length} pasadores` : ''})`;
+  const fit = (p) => {
+    const m = Math.max(...p.size);
+    return m > 256 ? ' · <span class="warn-t">⚠ más de 256 mm</span>' : m > 180 ? ' · no cabe en A1 mini' : '';
+  };
+  $('piecesList').innerHTML =
+    bodies.map((p) => `<div class="piece-row"><i></i><div class="pr-info"><b>${escapeHtml(p.name)}</b><div class="pr-sub" title="${escapeHtml(p.parts)}">${p.size.map((v) => Math.round(v)).join(' × ')} mm${fit(p)} · ${escapeHtml(p.parts)}</div></div></div>`).join('') +
+    [...dg.entries()].map(([name, n]) => `<div class="piece-row"><i class="dowel"></i><div class="pr-info"><b>${n} × ${escapeHtml(name)}</b><div class="pr-sub">imprímelos de pie · se pegan con cola</div></div></div>`).join('');
+  $('btnPiecesAssemble').disabled = ST.piecesAssembled();
 }
 
 // ---------------------------------------------------------------- eventos
@@ -529,6 +837,32 @@ function bind() {
       V.showCutPlane(ST.topo().bbox.minZ + S.cutZ, true);
     });
   });
+  // cortar en piezas
+  fillConnSizes();
+  document.querySelectorAll('[data-plane]').forEach((b) => b.addEventListener('click', () => {
+    if (!S.mesh) return toast('Primero abre un modelo');
+    if (S.tool !== 'split') setTool('split');
+    placeSplitPlane(b.dataset.plane);
+  }));
+  $('splitOff').addEventListener('input', (e) => moveSplitTo(+e.target.value));
+  $('splitOffNum').addEventListener('change', (e) => moveSplitTo(parseFloat(String(e.target.value).replace(',', '.')) || 0));
+  document.querySelectorAll('[data-split-mode]').forEach((b) => b.addEventListener('click', () => {
+    V.setSplitMode(b.dataset.splitMode);
+    document.querySelectorAll('[data-split-mode]').forEach((x) => x.classList.toggle('active', x === b));
+  }));
+  $('splitClip').addEventListener('change', (e) => V.setSplitClip(e.target.checked ? -1 : 0));
+  $('connType').addEventListener('change', () => { fillConnSizes(); setPref('connType', $('connType').value); runSplitAnalysis(); });
+  $('connSize').addEventListener('change', () => runSplitAnalysis());
+  $('connFit').addEventListener('change', () => { setPref('connFit', $('connFit').value); runSplitAnalysis(); });
+  $('btnSplitApply').addEventListener('click', applySplit);
+  $('btnSplitAuto').addEventListener('click', () => { if (!SPL.plane) return toast('Primero coloca el plano'); runSplitAnalysis(); hint('Anclajes recalculados'); });
+  $('btnSplitBetter').addEventListener('click', findBetterSplit);
+  $('btnPiecesExplode').addEventListener('click', () => busy('Separando piezas…', () => { if (ST.explodePieces()) { V.fitView('iso'); toast('Piezas separadas: así encajan. «⊞ Montar» para juntarlas'); } }));
+  $('btnPiecesAssemble').addEventListener('click', () => busy('Montando…', () => { if (ST.assemblePieces()) { V.fitView('iso'); toast('Piezas montadas'); } else toast('Ya están montadas'); }));
+  $('btnPiecesLayout').addEventListener('click', () => busy('Colocando para imprimir…', () => {
+    if (ST.layoutPieces()) { V.fitView('iso'); toast('Piezas tumbadas por su cara plana y repartidas: así irán al laminador', 4500); }
+  }));
+
   $('btnAutoLevels').addEventListener('click', () => {
     if (!S.mesh) return;
     const t = ST.topo();
@@ -608,6 +942,7 @@ function bind() {
         else if (kind === '3mfpaint') showSlotGuide(EX.export3MF('paint'), '3mfpaint');
         else if (kind === 'obj') showSlotGuide(EX.exportOBJ(), 'obj');
         else if (kind === 'stlzip') EX.exportSTLZip();
+        else if (kind === 'stlpieces') { if (ST.pieceCount() < 2) toast('Aún no hay piezas: córtala primero con ✂ Cortar'); else EX.exportPiecesZip(); }
         else if (kind === 'sheet') EX.exportSheet();
         else if (kind === 'project') EX.exportProject();
       } catch (e) {
@@ -700,6 +1035,7 @@ function bind() {
     else if (k === 'b') setTool('brush');
     else if (k === 'f') setTool('fill');
     else if (k === 'c') setTool('cut');
+    else if (k === 'x') setTool('split');
     else if (k === 'm') setTool('move');
     else if (k === 't' && S.tool === 'move') setMoveMode('translate');
     else if (k === 'r' && S.tool === 'move') setMoveMode('rotate');
@@ -834,8 +1170,8 @@ function setScaleFactors(f, skip) {
       const q = Q.computeQuote({ scale: f });
       if (q) html = `Con este tamaño: <b>${Q.eur(q.price)}</b> · ${Q.grams(q.grams + q.purgeGrams)} · ${Q.duration(q.hours)}${lastQuote && Math.abs(q.price - lastQuote.price) > 0.001 ? ` <span class="muted">(ahora ${Q.eur(lastQuote.price)})</span>` : ''}`;
     } catch (e) { console.error(e); }
-    if (max > 256) html += '<br>⚠ Más de 256 mm: no cabe en la cama de una Bambu Lab X1, P1 o A1 (habría que partirla).';
-    else if (max > 180) html += '<br>Ojo: más de 180 mm no cabe en una A1 mini.';
+    if (max > 256) html += '<br>⚠ Más de 256 mm: no cabe en la cama de una Bambu Lab X1, P1 o A1. Pártela con ✂ Cortar (tecla X): pone los anclajes sola.';
+    else if (max > 180) html += '<br>Ojo: más de 180 mm no cabe en una A1 mini (se puede partir con ✂ Cortar, tecla X).';
     $('scQuote').innerHTML = html;
   });
 }
@@ -925,6 +1261,13 @@ function showSlotGuide(list, kind, opened = null) {
         ? `No he encontrado ${n} instalado en su carpeta habitual: el archivo se ha abierto con el programa que Windows usa para los .3mf. Si no es ${n}, ábrelo desde ${n} con <b>Archivo → Abrir proyecto</b>.`
         : `Te he abierto la carpeta con el archivo: arrástralo a la ventana de ${n}.`;
   }
+  if (ST.pieceCount() > 1 && steps.length) {
+    const nb = ST.piecesSummary().filter((p) => p.kind !== 'dowel').length, nd = ST.pieceCount() - nb;
+    const what = `${nb} piezas${nd ? ` y ${nd} pasadores` : ''}`;
+    steps.push(kind === 'obj'
+      ? `Las ${what} van en un mismo objeto: en el laminador, clic derecho → <b>Dividir → En objetos</b> para colocarlas por separado.`
+      : `Las ${what} llegan como objetos separados${ST.piecesAssembled() ? ', ya tumbadas por la cara del corte' : ''}. Si no caben en tu cama, pulsa <b>Organizar (A)</b> o repártelas en varias placas.`);
+  }
   $('slotSteps').innerHTML = steps.map((x) => `<li>${x}</li>`).join('');
   $('slotModal').hidden = false;
 }
@@ -993,6 +1336,7 @@ function scheduleAutosave() {
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(() => idbPut('last', {
     name: S.modelName, pos: S.mesh.pos, faceParts: S.mesh.faceParts, parts: S.parts, nextId: S.nextId, notes: S.notes,
+    facePiece: S.mesh.facePiece, pieces: S.pieces, nextPieceId: S.nextPieceId,
     variants: S.variants, variantSeq: S.variantSeq, savedAt: Date.now(),
   }), 1500);
 }
@@ -1018,6 +1362,7 @@ function togglePresent() {
   V.setPresentMode(on); // el cliente ve los colores reales, sin contornos ni brillos
   V.showBrush(null);
   V.showCutPlane(S.cutZ, false);
+  V.setSplitVisible(!on && S.tool === 'split' && !!SPL.plane);
   setTimeout(() => V.requestRender(), 50);
 }
 
@@ -1034,6 +1379,33 @@ const scheduleParts = () => {
 ST.on('parts', scheduleParts);
 ST.on('selection', scheduleParts);
 ST.on('selection', () => syncMove());
+ST.on('pieces', () => renderPieces());
+ST.on('mesh', () => {
+  renderPieces();
+  if (S.mesh !== SPL.mesh) {
+    // otro modelo: el plano anterior ya no vale
+    SPL.mesh = S.mesh;
+    SPL.plane = null;
+    SPL.an = null;
+    SPL.conns = [];
+    SPL.note = '';
+    V.hideSplit();
+    if (S.tool === 'split' && S.mesh) placeSplitPlane('z');
+    else renderSplitInfo();
+    return;
+  }
+  if (S.tool === 'split' && SPL.plane && S.mesh) setSplitPlane(SPL.plane, { resetRef: true });
+});
+ST.on('selection', () => {
+  // al cambiar la selección cambian las piezas que se cortarían
+  if (S.tool !== 'split' || !SPL.plane) return;
+  const t = splitTargetsNow();
+  const same = (a, b) => (!a && !b) || (a && b && a.size === b.size && [...a].every((x) => b.has(x)));
+  if (same(t, SPL.targets)) return;
+  SPL.targets = t;
+  updateSplitLines();
+  scheduleSplitAnalysis();
+});
 ST.on('parts', () => { renderVariants(); scheduleAutosave(); });
 ST.on('mesh', () => { renderVariants(); scheduleAutosave(); });
 ST.on('variants', () => { renderVariants(); scheduleAutosave(); });
@@ -1044,6 +1416,10 @@ loadPrefs().then(() => {
   S.layerHeight = Q.settings().layerHeight || 0.2;
   $('layerHeight').value = S.layerHeight;
   $('layerLines').checked = !!getPref('layerLines', false);
+  const ct = getPref('connType', 'dowel'), cf = getPref('connFit', '0.15');
+  if ([...$('connType').options].some((o) => o.value === ct)) $('connType').value = ct;
+  if ([...$('connFit').options].some((o) => o.value === cf)) $('connFit').value = cf;
+  fillConnSizes();
   V.setLayerLines($('layerLines').checked, S.layerHeight);
   updateQuote();
 });
@@ -1065,4 +1441,4 @@ onPrefChange((k) => {
 });
 initAI();
 setTool('select');
-window.FS = { S, ST, V, EX, Q, VID: { recordTurntable, videoSupport } }; // para depurar desde la consola
+window.FS = { S, ST, V, EX, Q, CUT, SPL, VID: { recordTurntable, videoSupport } }; // para depurar desde la consola

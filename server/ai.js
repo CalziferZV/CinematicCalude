@@ -44,6 +44,7 @@ Cómo trabajar:
 - Si una zona que el cliente quiere de otro color no es una parte independiente, divídela: split_by_height (cortes horizontales, ideales para impresión con cambio de filamento por capa en cualquier impresora), auto_segment (piezas sueltas, regiones por aristas vivas, bandas por altura) o pide al usuario usar el pincel / relleno inteligente si hace falta una selección manual.
 - Para colorear busca filamentos reales con search_filaments y aplícalos con set_part_color. Prefiere la marca que el usuario tenga seleccionada salvo que pida otra y, si get_scene trae my_spools (bobinas que tiene en el taller), prioriza esos colores.
 - Si preguntan por precio, peso, tiempo o cambios de filamento, usa estimate de get_scene (es una estimación; los ajustes están en el panel «€ Presupuesto»).
+- Cortar en piezas (cut_into_pieces): cuando la pieza no cabe en la impresora (A1 mini 180 mm, A1 / P1 / X1 256 mm), cuando el cliente quiere cada parte de un color y no hay AMS (cada pieza se imprime en su color y se pega), o para evitar soportes. Corta "a la selección" con part_id (justo donde esa parte se une al resto) o con un plano horizontal/vertical. Los anclajes se colocan solos según el grosor de la sección (pasadores sueltos por defecto; espigas si un lado es fino; imanes para tapas que se quitan). Después ofrece arrange_pieces("print_layout") para dejarlas listas para el laminador. split_by_height en cambio NO separa la pieza: solo divide el color por capas.
 - Da consejos prácticos de impresión: contraste y legibilidad del texto, número de cambios de filamento / purga, Silk vs Matte, combinaciones que quedan premium (p. ej. dorado silk + negro mate en trofeos), alturas de capa para cambios de color, limitaciones del AMS (4 colores por unidad).
 - Responde siempre en español, breve y directo: el usuario está en una llamada con su cliente. Tras hacer cambios, resume en 1-3 frases lo que has hecho.`;
 
@@ -152,6 +153,33 @@ const TOOLS = [
       type: 'object',
       properties: { part_ids: { type: 'array', items: { type: 'integer' } } },
       required: ['part_ids'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'cut_into_pieces',
+    description:
+      'Corta físicamente el modelo en piezas que se imprimen por separado y se pegan. Cierra los cortes y talla anclajes automáticos según la forma de la sección. Plano: part_id = justo en el borde entre esa parte y el resto («cortar a la selección»); o axis + position_mm: "z" = corte horizontal a esa altura desde la cama, "x"/"y" = vertical a esa coordenada (0 = centro del modelo). Con only_that_piece solo se corta la pieza que contiene part_id. find_better_spot busca cerca una zona más gruesa si ahí no caben anclajes. Se puede deshacer.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        part_id: { type: ['integer', 'null'] },
+        axis: { type: 'string', enum: ['x', 'y', 'z'] },
+        position_mm: { type: 'number' },
+        connectors: { type: 'string', enum: ['dowel', 'plug', 'magnet', 'none'] },
+        find_better_spot: { type: 'boolean' },
+        only_that_piece: { type: 'boolean' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'arrange_pieces',
+    description: 'Coloca las piezas ya cortadas: "explode" = separadas para ver cómo encajan; "assemble" = montadas como al principio; "print_layout" = cada pieza tumbada por su cara plana y repartidas en la cama (así van al laminador).',
+    input_schema: {
+      type: 'object',
+      properties: { mode: { type: 'string', enum: ['explode', 'assemble', 'print_layout'] } },
+      required: ['mode'],
       additionalProperties: false,
     },
   },

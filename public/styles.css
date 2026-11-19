@@ -115,7 +115,7 @@ details[open] summary { margin-bottom: 6px; }
 .part.hidden-part .sw, .part.hidden-part .info { opacity: 0.4; }
 .part input.rename { width: 100%; padding: 2px 6px; }
 
-.tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .tool {
   border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 7px 2px 5px; cursor: pointer; font-size: 11px;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -386,3 +386,24 @@ body.present .quote-panel { right: 16px; }
 body.eyedrop #viewport canvas { cursor: copy; }
 body.eyedrop #btnEyedrop { background: var(--accent-soft); border-color: var(--accent); }
 .palette .pal em.miss { font-style: normal; color: #b26a00; }
+
+/* ----------------------------------------------------------- cortar en piezas */
+.mt6 { margin-top: 6px; }
+.split-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+.split-h { margin: 10px 0 5px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; }
+#connType { width: 100%; }
+label.mini { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); margin: 0; }
+label.mini select { flex: 1; min-width: 0; }
+#splitInfo .ok { background: #eefaf2; color: #157a3a; }
+#splitInfo .warn { background: #fff6e5; color: #8a5a00; }
+.pieces-box { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.pieces-list { margin: 0 -4px 6px; max-height: 210px; overflow-y: auto; }
+.piece-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 7px; }
+.piece-row:hover { background: var(--hover); }
+.piece-row i { width: 12px; height: 12px; border-radius: 3px; flex: none; background: #c5cad3; }
+.piece-row i.dowel { border-radius: 50%; background: #2f6bff; }
+.piece-row b { font-weight: 600; }
+.piece-row .pr-info { flex: 1; min-width: 0; }
+.piece-row .pr-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.warn-t { color: #b4540a; font-weight: 600; }

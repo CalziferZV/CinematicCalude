@@ -565,6 +565,8 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   const brushVis = brushRing?.visible, cutVis = cutPlane?.visible;
   if (brushRing) brushRing.visible = false;
   if (cutPlane) cutPlane.visible = false;
+  const splitVis = split ? split.group.visible : false;
+  if (splitVis) setSplitVisible(false);
   const prevBg = scene.background;
   if (transparent) scene.background = null;
   // Mismo proceso que la pantalla (escena en lineal -> tono y sRGB con OutputPass), para que la
@@ -589,6 +591,7 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   scene.background = prevBg;
   if (brushRing) brushRing.visible = brushVis;
   if (cutPlane) cutPlane.visible = cutVis;
+  if (splitVis) setSplitVisible(true);
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -620,7 +623,8 @@ export function createTurntable({ width = 1080, height = 1080, elevation = 18 } 
   const elev = THREE.MathUtils.degToRad(elevation);
   const start = Math.atan2(camera.position.y - controls.target.y, camera.position.x - controls.target.x);
   // guardar y limpiar lo que no debe salir en el vídeo
-  const prev = { sel: new Set(S.selected), hover: hoverPart, move: moving ? moving.ids : null, grid: grid ? grid.visible : false, clip: renderer.clippingPlanes, brush: brushRing?.visible, cut: cutPlane?.visible, present };
+  const prev = { sel: new Set(S.selected), hover: hoverPart, move: moving ? moving.ids : null, grid: grid ? grid.visible : false, clip: renderer.clippingPlanes, brush: brushRing?.visible, cut: cutPlane?.visible, present, split: split ? split.group.visible : false };
+  if (prev.split) setSplitVisible(false);
   if (moving) stopMove();
   S.selected.clear();
   hoverPart = null;
@@ -667,6 +671,7 @@ export function createTurntable({ width = 1080, height = 1080, elevation = 18 } 
       if (brushRing) brushRing.visible = prev.brush;
       if (cutPlane) cutPlane.visible = prev.cut;
       renderer.clippingPlanes = prev.clip;
+      if (prev.split) setSplitVisible(true);
       refreshParts();
       if (prev.move) startMove(prev.move);
       needsRender = true;
@@ -843,3 +848,251 @@ export const isMoving = () => !!moving;
 
 export function domElement() { return renderer.domElement; }
 export function getControls() { return controls; }
+
+// ---------------------------------------------------------------- cortar en piezas: plano libre y anclajes
+// Plano semitransparente con flecha (mover a lo largo de su normal) y aros (inclinarlo), el contorno
+// de la sección y los anclajes previstos (se ven a través de la pieza).
+let split = null; // { group, quad, edge, lines, conns, tc, helper, onChange, clip }
+const splitClip = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+
+function splitPlaneNow() {
+  const g = split.group;
+  g.updateMatrixWorld();
+  const n = new THREE.Vector3(0, 0, 1).applyQuaternion(g.quaternion).normalize();
+  return { o: [g.position.x, g.position.y, g.position.z], n: [n.x, n.y, n.z] };
+}
+function updateSplitClip() {
+  if (!split) return;
+  const ours = renderer.clippingPlanes.length === 1 && renderer.clippingPlanes[0] === splitClip;
+  if (!split.clip || !split.group.visible) {
+    if (ours) renderer.clippingPlanes = [];
+    clipActive = false;
+    placeSplitOverlays();
+    updateOutlines();
+    needsRender = true;
+    return;
+  }
+  const p = splitPlaneNow();
+  const n = new THREE.Vector3(...p.n).multiplyScalar(split.clip); // se ve el lado split.clip (−1: el de abajo)
+  // 0,02 mm de margen: las caras que están justo en el plano (dos cuerpos que se tocan) se ven enteras
+  splitClip.set(n, -n.dot(new THREE.Vector3(...p.o)) + 0.02);
+  renderer.clippingPlanes = [splitClip];
+  clipActive = true;
+  placeSplitOverlays();
+  updateOutlines();
+  needsRender = true;
+}
+// Plano, contorno y relleno justo sobre el plano de recorte parpadean: se apartan 0,05 mm hacia el lado visible
+function placeSplitOverlays() {
+  if (!split) return;
+  const k = split.clip ? 0.05 * split.clip : 0;
+  split.quad.position.z = k;
+  split.edge.position.z = k;
+  const p = splitPlaneNow();
+  split.lines.position.set(p.n[0] * k, p.n[1] * k, p.n[2] * k);
+  split.fill.visible = !!split.clip && !!split.fillData && split.group.visible;
+  if (split.fill.visible) updateSplitFill();
+}
+export function showSplit(plane, { onChange, mode } = {}) {
+  if (!S.mesh) return;
+  if (!split) {
+    const group = new THREE.Group();
+    const quad = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xff6a13, transparent: true, opacity: 0.09, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    quad.renderOrder = 6;
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1, 1)), new THREE.LineBasicMaterial({ color: 0xff6a13, transparent: true, opacity: 0.85 }));
+    group.add(quad, edge);
+    scene.add(group);
+    const lines = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xff3b1f, depthTest: false, transparent: true, opacity: 0.95 }));
+    lines.renderOrder = 30;
+    lines.frustumCulled = false;
+    scene.add(lines);
+    const conns = new THREE.Group();
+    scene.add(conns);
+    const tc = new TransformControls(camera, renderer.domElement);
+    tc.setSpace('local');
+    tc.setSize(0.85);
+    tc.attach(group);
+    const helper = tc.getHelper();
+    scene.add(helper);
+    tc.addEventListener('change', () => (needsRender = true));
+    tc.addEventListener('mouseDown', () => (gizmoBusy = true));
+    tc.addEventListener('mouseUp', () => setTimeout(() => (gizmoBusy = false), 0));
+    tc.addEventListener('objectChange', () => {
+      updateSplitClip();
+      if (split.onChange) split.onChange(splitPlaneNow(), { final: false });
+    });
+    tc.addEventListener('dragging-changed', (e) => {
+      controls.enabled = !e.value;
+      if (!e.value && split.onChange) split.onChange(splitPlaneNow(), { final: true });
+    });
+    const fill = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+    fill.renderOrder = 7;
+    fill.visible = false;
+    scene.add(fill);
+    split = { group, quad, edge, lines, conns, tc, helper, fill, fillData: null, onChange: null, clip: 0, mode: 'translate' };
+  }
+  if (onChange) split.onChange = onChange;
+  setSplitPlane(plane);
+  setSplitMode(mode || split.mode);
+  setSplitVisible(true);
+}
+export function setSplitVisible(on) {
+  if (!split) return;
+  split.group.visible = on;
+  split.helper.visible = on;
+  split.lines.visible = on;
+  split.conns.visible = on;
+  split.tc.enabled = on;
+  if (!on) split.fill.visible = false;
+  updateSplitClip();
+}
+// Sección rellena (se ve al mirar el corte por dentro): máscaras de la sección a cada lado del plano
+export function setSplitFill(an) {
+  if (!split) return;
+  split.fillData = an && !an.empty && an.secN ? an : null;
+  placeSplitOverlays();
+  needsRender = true;
+}
+function updateSplitFill() {
+  const an = split.fillData;
+  const { W, H, u0, v0, h } = an.g;
+  const mask = split.clip < 0 ? an.secN : an.secP;
+  const key = `${split.clip}|${W}|${H}|${u0}|${v0}`;
+  if (split.fill.userData.key !== key || split.fill.userData.an !== an) {
+    const data = new Uint8Array(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      if (!mask[i]) continue;
+      const c = an.contact[i];
+      data[i * 4] = c ? 255 : 255; data[i * 4 + 1] = c ? 140 : 190; data[i * 4 + 2] = c ? 80 : 150; data[i * 4 + 3] = c ? 175 : 120;
+    }
+    const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+    tex.magFilter = THREE.LinearFilter;
+    tex.minFilter = THREE.LinearFilter;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    if (split.fill.material.map) split.fill.material.map.dispose();
+    split.fill.material.map = tex;
+    split.fill.material.needsUpdate = true;
+    split.fill.userData.key = key;
+    split.fill.userData.an = an;
+  }
+  // colocar el rectángulo de la rejilla sobre el plano (ejes U, V, n del análisis)
+  const U = new THREE.Vector3(...an.U), V = new THREE.Vector3(...an.V), n = new THREE.Vector3(...an.plane.n);
+  const cu = u0 + (W * h) / 2, cv = v0 + (H * h) / 2;
+  const k = 0.06 * split.clip;
+  const o = new THREE.Vector3(...an.plane.o).addScaledVector(U, cu).addScaledVector(V, cv).addScaledVector(n, k);
+  split.fill.matrixAutoUpdate = false;
+  split.fill.matrix.makeBasis(U.clone().multiplyScalar(W * h), V.clone().multiplyScalar(H * h), n).setPosition(o);
+  split.fill.matrixWorldNeedsUpdate = true;
+}
+export function hideSplit() {
+  if (!split) return;
+  setSplitVisible(false);
+  clearSplitPreview();
+  split.fillData = null;
+}
+export function setSplitPlane(plane) {
+  if (!split || !S.mesh) return;
+  const n = new THREE.Vector3(...plane.n).normalize();
+  split.group.position.set(plane.o[0], plane.o[1], plane.o[2]);
+  split.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+  const s = topo().diag * 1.1 + 10;
+  split.quad.scale.set(s, s, 1);
+  split.edge.scale.set(s, s, 1);
+  updateSplitClip();
+  needsRender = true;
+}
+export function getSplitPlane() { return split && split.group.visible ? splitPlaneNow() : null; }
+// 'translate': flecha a lo largo de la normal · 'rotate': aros para inclinar el plano
+export function setSplitMode(mode) {
+  if (!split) return;
+  split.mode = mode === 'rotate' ? 'rotate' : 'translate';
+  const tc = split.tc;
+  tc.setMode(split.mode);
+  tc.showX = split.mode === 'rotate';
+  tc.showY = split.mode === 'rotate';
+  tc.showZ = split.mode !== 'rotate';
+  needsRender = true;
+}
+// Ver por dentro: oculta un lado del plano (side = −1 se ve el de abajo, +1 el de arriba, 0 todo)
+export function setSplitClip(side) {
+  if (!split) return;
+  split.clip = side || 0;
+  updateSplitClip();
+}
+function clearSplitPreview() {
+  if (!split) return;
+  for (const c of [...split.conns.children]) {
+    split.conns.remove(c);
+    c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+  split.lines.geometry.dispose();
+  split.lines.geometry = new THREE.BufferGeometry();
+  needsRender = true;
+}
+// Contorno de la sección (pares de puntos xyz) y anclajes:
+// [{ c, n, U, V, kind, ok, segs: [{ from, to, R, m, phase }] }] (from/to: distancias a lo largo de n)
+export function setSplitPreview({ lines = null, connectors = null } = {}) {
+  if (!split) return;
+  if (lines) {
+    split.lines.geometry.dispose();
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(lines, 3));
+    split.lines.geometry = g;
+  }
+  if (connectors) {
+    for (const c of [...split.conns.children]) {
+      split.conns.remove(c);
+      c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    }
+    for (const k of connectors) {
+      const color = !k.ok ? 0xe5484d : k.kind === 'magnet' ? 0x8a3ffc : k.kind === 'plug' ? 0x00a3a3 : 0x2f6bff;
+      const grp = new THREE.Group();
+      for (const sg of k.segs) {
+        const ring = (d, R) => Array.from({ length: sg.m }, (_, i) => {
+          const a = sg.phase + (2 * Math.PI * i) / sg.m, cu = Math.cos(a) * R, sv = Math.sin(a) * R;
+          return [0, 1, 2].map((j) => k.c[j] + cu * k.U[j] + sv * k.V[j] + d * k.n[j]);
+        });
+        const A = ring(sg.from, sg.R), B = ring(sg.to, sg.R);
+        const pos = [];
+        const cB = [0, 1, 2].map((j) => k.c[j] + sg.to * k.n[j]);
+        for (let i = 0; i < sg.m; i++) {
+          const i2 = (i + 1) % sg.m;
+          pos.push(...A[i], ...A[i2], ...B[i2], ...A[i], ...B[i2], ...B[i], ...cB, ...B[i], ...B[i2]);
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const body = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthTest: false, depthWrite: false }));
+        body.renderOrder = 31;
+        const lg = new THREE.BufferGeometry();
+        lg.setAttribute('position', new THREE.Float32BufferAttribute(A.flat(), 3));
+        const loop = new THREE.LineLoop(lg, new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+        loop.renderOrder = 32;
+        grp.add(body, loop);
+      }
+      split.conns.add(grp);
+    }
+  }
+  needsRender = true;
+}
+// Punto del plano bajo el ratón (y si antes hay una superficie visible de la pieza)
+export function pickSplitPlane(clientX, clientY) {
+  if (!split || !split.group.visible) return null;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const p = splitPlaneNow();
+  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(...p.n), new THREE.Vector3(...p.o));
+  const hit = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(plane, hit)) return null;
+  const dPlane = hit.distanceTo(ray.ray.origin);
+  let blocked = false;
+  if (pickMesh && !split.clip) {
+    const h = ray.intersectObject(pickMesh, false)[0];
+    if (h && h.distance < dPlane - 0.3) blocked = true;
+  }
+  return { point: [hit.x, hit.y, hit.z], blocked };
+}

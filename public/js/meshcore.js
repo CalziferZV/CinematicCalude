@@ -22,7 +22,9 @@ export function removeDegenerate(pos) {
   return out;
 }
 
-export function buildTopology(pos) {
+// groups (opcional): número de pieza de cada cara. Los vértices de piezas distintas no se sueldan
+// aunque coincidan (las dos tapas de un corte montado siguen siendo dos sólidos cerrados).
+export function buildTopology(pos, groups = null) {
   const nF = pos.length / 9;
   const nC = nF * 3;
   let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -39,21 +41,22 @@ export function buildTopology(pos) {
   let cap = 1;
   while (cap < nC * 2) cap <<= 1;
   const table = new Int32Array(cap).fill(-1);
-  const qv = new Int32Array(nC * 3);
+  const qv = new Int32Array(nC * 4);
   const vid = new Uint32Array(nC);
   let nV = 0;
   for (let c = 0; c < nC; c++) {
     const qx = Math.round(pos[c * 3] / eps), qy = Math.round(pos[c * 3 + 1] / eps), qz = Math.round(pos[c * 3 + 2] / eps);
-    let h = (Math.imul(qx, 73856093) ^ Math.imul(qy, 19349663) ^ Math.imul(qz, 83492791)) & (cap - 1);
+    const qg = groups ? groups[(c / 3) | 0] : 0;
+    let h = (Math.imul(qx, 73856093) ^ Math.imul(qy, 19349663) ^ Math.imul(qz, 83492791) ^ Math.imul(qg, 2654435761)) & (cap - 1);
     for (;;) {
       const v = table[h];
       if (v === -1) {
         table[h] = nV;
-        qv[nV * 3] = qx; qv[nV * 3 + 1] = qy; qv[nV * 3 + 2] = qz;
+        qv[nV * 4] = qx; qv[nV * 4 + 1] = qy; qv[nV * 4 + 2] = qz; qv[nV * 4 + 3] = qg;
         vid[c] = nV++;
         break;
       }
-      if (qv[v * 3] === qx && qv[v * 3 + 1] === qy && qv[v * 3 + 2] === qz) {
+      if (qv[v * 4] === qx && qv[v * 4 + 1] === qy && qv[v * 4 + 2] === qz && qv[v * 4 + 3] === qg) {
         vid[c] = v;
         break;
       }
@@ -518,11 +521,12 @@ function splitTri(tri, z, tol) {
   return out;
 }
 
-export function cutAtLevels(pos, faceParts, levels, faceFilter, diag) {
+export function cutAtLevels(pos, faceParts, levels, faceFilter, diag, facePiece = null) {
   const nF = pos.length / 9;
   const tol = diag * 1e-7;
   const outPos = [];
   const outParts = [];
+  const outPieces = [];
   let extra = 0;
   const keepPos = [];
   for (let f = 0; f < nF; f++) {
@@ -541,16 +545,17 @@ export function cutAtLevels(pos, faceParts, levels, faceFilter, diag) {
       }
       tris = next;
     }
-    for (const t of tris) { outPos.push(t); outParts.push(faceParts[f]); }
+    for (const t of tris) { outPos.push(t); outParts.push(faceParts[f]); outPieces.push(facePiece ? facePiece[f] : 0); }
     extra += tris.length;
   }
   const total = keepPos.length + extra;
   const P = new Float32Array(total * 9);
   const FP = new Uint16Array(total);
+  const FPC = new Uint16Array(total);
   let w = 0;
-  for (const f of keepPos) { P.set(pos.subarray(f * 9, f * 9 + 9), w * 9); FP[w] = faceParts[f]; w++; }
-  for (let i = 0; i < outPos.length; i++) { P.set(outPos[i], w * 9); FP[w] = outParts[i]; w++; }
-  return { pos: P, faceParts: FP };
+  for (const f of keepPos) { P.set(pos.subarray(f * 9, f * 9 + 9), w * 9); FP[w] = faceParts[f]; FPC[w] = facePiece ? facePiece[f] : 0; w++; }
+  for (let i = 0; i < outPos.length; i++) { P.set(outPos[i], w * 9); FP[w] = outParts[i]; FPC[w] = outPieces[i]; w++; }
+  return { pos: P, faceParts: FP, facePiece: FPC };
 }
 
 // Banda (0..levels.length) de una cara según su centroide. Las caras horizontales justo en
@@ -566,8 +571,8 @@ export function bandOf(cz, nz, levels, tol) {
 
 // ------------------------------------------------------------------ subdivisión adaptativa
 // Divide aristas más largas que maxEdge (sin grietas: la decisión es simétrica por arista).
-export function subdivide(pos, faceParts, maxEdge, maxFaces = 2_000_000) {
-  let P = pos, FP = faceParts;
+export function subdivide(pos, faceParts, maxEdge, maxFaces = 2_000_000, facePiece = null) {
+  let P = pos, FP = faceParts, FPC = facePiece || new Uint16Array(faceParts.length);
   const L2 = maxEdge * maxEdge;
   for (let pass = 0; pass < 6; pass++) {
     const nF = P.length / 9;
@@ -589,12 +594,15 @@ export function subdivide(pos, faceParts, maxEdge, maxFaces = 2_000_000) {
     if (need > maxFaces) break;
     const NP = new Float32Array(need * 9);
     const NFP = new Uint16Array(need);
+    const NFPC = new Uint16Array(need);
     let w = 0;
-    const put = (a, b, c, part) => { NP.set(a, w * 9); NP.set(b, w * 9 + 3); NP.set(c, w * 9 + 6); NFP[w++] = part; };
+    let piece = 0;
+    const put = (a, b, c, part) => { NP.set(a, w * 9); NP.set(b, w * 9 + 3); NP.set(c, w * 9 + 6); NFPC[w] = piece; NFP[w++] = part; };
     for (let f = 0; f < nF; f++) {
       const o = f * 9, m = masks[f], part = FP[f];
+      piece = FPC[f];
       const V = [P.subarray(o, o + 3), P.subarray(o + 3, o + 6), P.subarray(o + 6, o + 9)];
-      if (!m) { NP.set(P.subarray(o, o + 9), w * 9); NFP[w++] = part; continue; }
+      if (!m) { NP.set(P.subarray(o, o + 9), w * 9); NFPC[w] = piece; NFP[w++] = part; continue; }
       const M = (i, j) => new Float32Array([(V[i][0] + V[j][0]) / 2, (V[i][1] + V[j][1]) / 2, (V[i][2] + V[j][2]) / 2]);
       const bits = (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1);
       if (bits === 3) {
@@ -615,9 +623,9 @@ export function subdivide(pos, faceParts, maxEdge, maxFaces = 2_000_000) {
         put(V[a], mbc, mca, part);
       }
     }
-    P = NP; FP = NFP;
+    P = NP; FP = NFP; FPC = NFPC;
   }
-  return { pos: P, faceParts: FP };
+  return { pos: P, faceParts: FP, facePiece: FPC };
 }
 
 // ------------------------------------------------------------------ análisis inteligente

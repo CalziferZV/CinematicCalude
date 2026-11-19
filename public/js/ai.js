@@ -1,5 +1,6 @@
 // Asistente IA: chat + ejecución local de las herramientas que pide Claude.
 import * as ST from './state.js';
+import * as CUT from './cut.js';
 import { capture, fitView } from './viewer.js';
 import { searchFilaments, resolveFilament, currentBrand, escapeHtml, ownedSpools } from './catalog.js';
 import { computeQuote } from './quote.js';
@@ -141,6 +142,7 @@ const TOOL_LABEL = {
   get_scene: 'Revisando la escena…', capture_view: 'Mirando la pieza…', search_filaments: 'Buscando filamentos…',
   set_part_color: 'Aplicando color…', rename_parts: 'Nombrando partes…', split_by_height: 'Cortando por altura…',
   auto_segment: 'Detectando partes…', merge_parts: 'Uniendo partes…', select_parts: 'Seleccionando…',
+  cut_into_pieces: 'Cortando en piezas…', arrange_pieces: 'Colocando las piezas…',
 };
 
 async function runTool(name, input) {
@@ -203,6 +205,51 @@ async function runTool(name, input) {
       ST.mergeParts(input.part_ids || []);
       return 'Partes unidas.';
     }
+    case 'cut_into_pieces': {
+      const t = ST.topo();
+      const sel = input.part_id != null && ST.partById(input.part_id) ? new Set([input.part_id]) : null;
+      const targets = sel && input.only_that_piece && ST.pieceCount() > 1 ? ST.piecesOfParts([...sel]) : null;
+      const fpc = S.mesh.facePiece;
+      const mask = targets ? (f) => targets.has(fpc[f]) : null;
+      let plane = null;
+      if (sel && !input.axis) {
+        const fit = CUT.fitPlaneToParts(S.mesh.pos, t, S.mesh.faceParts, sel);
+        if (!fit) throw new Error('No encuentro dónde se une esa parte con el resto: indica axis y position_mm.');
+        plane = { o: fit.o, n: fit.n };
+      } else {
+        const ax = input.axis || 'z';
+        const n = ax === 'x' ? [1, 0, 0] : ax === 'y' ? [0, 1, 0] : [0, 0, 1];
+        const b = t.bbox;
+        const c = [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.minZ + b.maxZ) / 2];
+        const pos = Number(input.position_mm);
+        if (ax === 'z') c[2] = b.minZ + (Number.isFinite(pos) ? pos : (b.maxZ - b.minZ) / 2);
+        else if (Number.isFinite(pos)) c[ax === 'x' ? 0 : 1] += pos;
+        plane = { o: c, n };
+      }
+      const opts = { type: input.connectors || 'dowel', clearance: 0.15 };
+      let an = CUT.analyzeCut(S.mesh.pos, plane, { faceMask: mask });
+      if (an.empty) throw new Error('Ese plano no atraviesa la pieza.');
+      let auto = CUT.autoConnectors(an, opts);
+      let moved = 0;
+      if (input.find_better_spot && opts.type !== 'none' && auto.list.length < 2) {
+        const best = CUT.searchBetterPlane(S.mesh.pos, plane, { faceMask: mask, opts });
+        if (best && best.offset) { plane = best.plane; moved = best.offset; auto = { list: best.list, warnings: best.warnings }; }
+      }
+      const r = ST.cutPieces(plane, auto.list, { targetPieces: targets });
+      if (!r.ok) throw new Error(r.reason || 'No se ha podido cortar.');
+      const kinds = {};
+      for (const c of r.placed) kinds[c.type] = (kinds[c.type] || 0) + 1;
+      return JSON.stringify({
+        ok: true, moved_mm: Math.round(moved * 10) / 10, connectors_placed: kinds, warnings: [...auto.warnings, ...r.warnings],
+        pieces: ST.piecesSummary().map((p) => ({ id: p.id, name: p.name, kind: p.kind, parts: p.parts, size_mm: p.size.map((v) => Math.round(v * 10) / 10) })),
+      });
+    }
+    case 'arrange_pieces': {
+      if (ST.pieceCount() < 2) throw new Error('Todavía no hay piezas: corta primero con cut_into_pieces.');
+      const ok = input.mode === 'explode' ? ST.explodePieces() : input.mode === 'assemble' ? ST.assemblePieces() : ST.layoutPieces();
+      fitView('iso');
+      return ok ? `Piezas: ${input.mode} hecho.` : 'No había nada que cambiar.';
+    }
     case 'select_parts': {
       ST.select(input.part_ids || []);
       if (input.part_ids?.length) fitView('iso');
@@ -212,3 +259,4 @@ async function runTool(name, input) {
       throw new Error(`Herramienta desconocida: ${name}`);
   }
 }
+if (typeof window !== 'undefined') window.FS_AI_RUN = runTool; // para probar las herramientas sin la API

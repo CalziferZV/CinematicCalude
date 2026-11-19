@@ -1,5 +1,6 @@
 // Estado de la aplicación: malla, partes, filamentos asignados, selección e historial.
 import * as MC from './meshcore.js';
+import * as CUT from './cut.js';
 
 const listeners = {};
 export function on(ev, fn) { (listeners[ev] ||= []).push(fn); }
@@ -8,8 +9,11 @@ export function emit(ev, data) { (listeners[ev] || []).forEach((fn) => fn(data))
 export const BLANK = Object.freeze({ name: 'Sin asignar', hex: '#ECECEC', finish: 'basic', kind: 'solid', blank: true });
 
 export const S = {
-  mesh: null, // { pos: Float32Array, faceParts: Uint16Array, topo, normals }
+  mesh: null, // { pos: Float32Array, faceParts: Uint16Array, facePiece: Uint16Array, topo, normals }
   parts: [], // { id, name, role, filament, visible }
+  // piezas físicas (tras cortar): { id, kind: 'body'|'dowel', M: matriz desde la posición montada | null, d, length }
+  pieces: [{ id: 0, kind: 'body', M: null }],
+  nextPieceId: 1,
   selected: new Set(),
   activeFilament: null,
   tool: 'select',
@@ -28,18 +32,26 @@ export const S = {
 // ---------------------------------------------------------------- historial
 const undoStack = [];
 const redoStack = [];
+const copyPieces = (list) => list.map((p) => ({ ...p, M: p.M ? [...p.M] : null }));
 function snapshot() {
   return {
     pos: S.mesh.pos, // los arrays de posiciones se reemplazan, nunca se mutan
     faceParts: S.mesh.faceParts.slice(),
+    facePiece: S.mesh.facePiece.slice(),
+    pieces: copyPieces(S.pieces),
+    nextPieceId: S.nextPieceId,
     parts: S.parts.map((p) => ({ ...p })),
     nextId: S.nextId,
   };
 }
 function restore(s) {
   const geomChanged = s.pos !== S.mesh.pos;
+  const piecesChanged = S.pieces.length !== s.pieces.length || s.facePiece.length !== S.mesh.facePiece.length;
   S.mesh.pos = s.pos;
   S.mesh.faceParts = s.faceParts.slice();
+  S.mesh.facePiece = s.facePiece.slice();
+  S.pieces = copyPieces(s.pieces);
+  S.nextPieceId = s.nextPieceId;
   // mostrar/ocultar es solo de vista: deshacer no vuelve a ocultar ni a mostrar partes
   const vis = new Map(S.parts.map((p) => [p.id, p.visible]));
   S.parts = s.parts.map((p) => ({ ...p, visible: vis.has(p.id) ? vis.get(p.id) : true }));
@@ -47,6 +59,7 @@ function restore(s) {
   if (geomChanged) { S.mesh.topo = null; S.mesh.normals = null; }
   for (const id of [...S.selected]) if (!partById(id)) S.selected.delete(id);
   emit(geomChanged ? 'mesh' : 'parts');
+  if (geomChanged || piecesChanged) emit('pieces');
   emit('selection', { restore: true });
 }
 // Memoria máxima del historial: en modelos enormes cada paso guarda una copia de la malla,
@@ -57,7 +70,7 @@ function historyBytes() {
   const arrays = new Set();
   let bytes = 0;
   for (const st of [...undoStack, ...redoStack]) {
-    bytes += st.faceParts.byteLength;
+    bytes += st.faceParts.byteLength + st.facePiece.byteLength;
     if (st.pos !== S.mesh.pos) arrays.add(st.pos);
   }
   for (const a of arrays) bytes += a.byteLength;
@@ -88,7 +101,7 @@ export const canRedo = () => redoStack.length > 0;
 // ---------------------------------------------------------------- malla
 export function topo() {
   if (!S.mesh) return null;
-  if (!S.mesh.topo) S.mesh.topo = MC.buildTopology(S.mesh.pos);
+  if (!S.mesh.topo) S.mesh.topo = MC.buildTopology(S.mesh.pos, S.pieces.length > 1 ? S.mesh.facePiece : null);
   return S.mesh.topo;
 }
 export function normals() {
@@ -115,7 +128,9 @@ export function loadMesh(pos, name) {
   pos = MC.removeDegenerate(pos);
   const clean = MC.removeStrayFragments(pos);
   pos = clean.pos;
-  S.mesh = { pos: placeOnBed(pos), faceParts: new Uint16Array(pos.length / 9), topo: null, normals: null };
+  S.mesh = { pos: placeOnBed(pos), faceParts: new Uint16Array(pos.length / 9), facePiece: new Uint16Array(pos.length / 9), topo: null, normals: null };
+  S.pieces = [{ id: 0, kind: 'body', M: null }];
+  S.nextPieceId = 1;
   S.modelName = name;
   S.nextId = 1;
   S.parts = [makePart('Pieza completa', 'otro')];
@@ -126,6 +141,7 @@ export function loadMesh(pos, name) {
   S.variantSeq = 0;
   S.cleanup = clean.removed;
   emit('mesh');
+  emit('pieces');
   emit('variants');
   emit('selection');
   emit('history');
@@ -145,6 +161,7 @@ export function rotateModel(axis, deg) {
   S.mesh.pos = placeOnBed(P);
   S.mesh.topo = null;
   S.mesh.normals = null;
+  for (const pc of S.pieces) pc.M = null;
   emit('mesh');
 }
 
@@ -161,6 +178,7 @@ export function scaleModelXYZ(fx, fy, fz) {
   S.mesh.pos = placeOnBed(P);
   S.mesh.topo = null;
   S.mesh.normals = null;
+  for (const pc of S.pieces) pc.M = null;
   emit('mesh');
 }
 
@@ -442,9 +460,10 @@ function splitByHeightInternal(partId, levelsAbs, autoName) {
   const t = topo();
   const levels = [...new Set(levelsAbs)].sort((a, b) => a - b);
   const filter = partId == null ? () => true : (f) => S.mesh.faceParts[f] === partId;
-  const res = MC.cutAtLevels(S.mesh.pos, S.mesh.faceParts, levels, filter, t.diag);
+  const res = MC.cutAtLevels(S.mesh.pos, S.mesh.faceParts, levels, filter, t.diag, S.mesh.facePiece);
   S.mesh.pos = res.pos;
   S.mesh.faceParts = res.faceParts;
+  S.mesh.facePiece = res.facePiece;
   S.mesh.topo = null;
   S.mesh.normals = null;
   const t2 = topo();
@@ -500,9 +519,10 @@ export function splitByHeight(partId, heights) {
 export function subdivideMesh(maxEdge) {
   if (!S.mesh) return;
   checkpoint();
-  const r = MC.subdivide(S.mesh.pos, S.mesh.faceParts, maxEdge);
+  const r = MC.subdivide(S.mesh.pos, S.mesh.faceParts, maxEdge, undefined, S.mesh.facePiece);
   S.mesh.pos = r.pos;
   S.mesh.faceParts = r.faceParts;
+  S.mesh.facePiece = r.facePiece;
   S.mesh.topo = null;
   S.mesh.normals = null;
   emit('mesh');
@@ -553,13 +573,22 @@ export function sceneSummary() {
           : 'sin asignar (blanco)',
       };
     }),
+    ...(S.pieces.length > 1
+      ? { print_pieces: piecesSummary().map((pc) => ({ id: pc.id, name: pc.name, kind: pc.kind === 'dowel' ? 'pasador' : 'pieza', parts: pc.parts, size_mm: pc.size.map(r1) })) }
+      : {}),
   };
 }
 
 export function loadProject(d) {
   undoStack.length = 0;
   redoStack.length = 0;
-  S.mesh = { pos: d.pos, faceParts: d.faceParts, topo: null, normals: null };
+  const nF = d.pos.length / 9;
+  const fpc = d.facePiece && d.facePiece.length === nF ? d.facePiece : new Uint16Array(nF);
+  S.mesh = { pos: d.pos, faceParts: d.faceParts, facePiece: fpc, topo: null, normals: null };
+  const ids = [...new Set(fpc)];
+  S.pieces = d.pieces && d.pieces.length ? copyPieces(d.pieces).filter((p) => ids.includes(p.id)) : [];
+  for (const id of ids) if (!S.pieces.some((p) => p.id === id)) S.pieces.push({ id, kind: 'body', M: null });
+  S.nextPieceId = Math.max(d.nextPieceId || 0, ...ids) + 1;
   S.modelName = d.name;
   S.parts = d.parts.map((p) => ({ ...p }));
   S.nextId = d.nextId;
@@ -569,6 +598,7 @@ export function loadProject(d) {
   S.activeVariant = null;
   S.selected.clear();
   emit('mesh');
+  emit('pieces');
   emit('variants');
   emit('selection');
   emit('history');
@@ -643,8 +673,19 @@ export function transformParts(ids, m) {
   if (!S.mesh || !ids.length) return;
   checkpoint();
   const P = S.mesh.pos.slice();
-  applyMatrix(P, new Set(ids), m);
+  const set = new Set(ids);
+  applyMatrix(P, set, m);
   S.mesh.pos = P;
+  if (S.pieces.length > 1) {
+    // piezas que se han movido enteras: se apunta el movimiento (para «Montar» después)
+    const whole = new Map();
+    const fp = S.mesh.faceParts, fpc = S.mesh.facePiece;
+    for (let f = 0; f < fp.length; f++) {
+      const id = fpc[f], st = whole.get(id) ?? true;
+      whole.set(id, st && set.has(fp[f]));
+    }
+    for (const pc of S.pieces) if (whole.get(pc.id)) pc.M = CUT.mat4Mul(m, pc.M || CUT.IDENTITY);
+  }
   geometryChanged();
 }
 const translation = (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
@@ -722,4 +763,267 @@ export function explodeParts(factor = 0.6) {
   S.mesh.pos = P;
   geometryChanged();
   return true;
+}
+
+// ---------------------------------------------------------------- piezas (cortar para imprimir por separado)
+export const pieceById = (id) => S.pieces.find((p) => p.id === id);
+export const pieceCount = () => S.pieces.length;
+
+// Caras de cada pieza: Map(id -> Int32Array)
+export function facesByPiece() {
+  const fpc = S.mesh.facePiece;
+  const counts = new Map();
+  for (let f = 0; f < fpc.length; f++) counts.set(fpc[f], (counts.get(fpc[f]) || 0) + 1);
+  const out = new Map();
+  for (const [id, c] of counts) out.set(id, new Int32Array(c));
+  const w = new Map();
+  for (let f = 0; f < fpc.length; f++) {
+    const id = fpc[f], i = w.get(id) || 0;
+    out.get(id)[i] = f;
+    w.set(id, i + 1);
+  }
+  return out;
+}
+
+// Piezas que contienen alguna de estas partes
+export function piecesOfParts(ids) {
+  const set = new Set(ids);
+  const out = new Set();
+  const fp = S.mesh.faceParts, fpc = S.mesh.facePiece;
+  for (let f = 0; f < fp.length; f++) if (set.has(fp[f])) out.add(fpc[f]);
+  return out;
+}
+
+function applyPieceMatrices(P, mats) {
+  const fpc = S.mesh.facePiece;
+  for (let f = 0; f < fpc.length; f++) {
+    const m = mats.get(fpc[f]);
+    if (!m) continue;
+    for (let k = 0; k < 9; k += 3) {
+      const o = f * 9 + k;
+      const x = P[o], y = P[o + 1], z = P[o + 2];
+      P[o] = m[0] * x + m[4] * y + m[8] * z + m[12];
+      P[o + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+      P[o + 2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+    }
+  }
+}
+function prunePieces() {
+  const ids = new Set(S.mesh.facePiece);
+  S.pieces = S.pieces.filter((p) => ids.has(p.id));
+  for (const id of ids) if (!pieceById(id)) S.pieces.push({ id, kind: 'body', M: null });
+}
+
+// Corta por el plano (con tapas y anclajes). Devuelve el resultado de CUT.executeCut.
+export function cutPieces(plane, connectors = [], { targetPieces = null } = {}) {
+  if (!S.mesh) return { ok: false, reason: 'Primero abre un modelo' };
+  const res = CUT.executeCut({ pos: S.mesh.pos, faceParts: S.mesh.faceParts, facePiece: S.mesh.facePiece }, plane, connectors, { targetPieces, nextPieceId: S.nextPieceId });
+  if (!res.ok) return res;
+  checkpoint();
+  S.mesh.pos = res.pos;
+  S.mesh.faceParts = res.faceParts;
+  S.mesh.facePiece = res.facePiece;
+  const firstBody = res.created.find((c) => c.kind === 'body');
+  for (const c of res.created) {
+    const parent = pieceById(c.from != null ? c.from : firstBody ? firstBody.from : -1);
+    S.pieces.push({ id: c.id, kind: c.kind, M: parent && parent.M ? [...parent.M] : null, ...(c.kind === 'dowel' ? { d: c.d, length: Math.round(c.length * 10) / 10, axis: [...c.axis] } : {}) });
+  }
+  S.nextPieceId = res.nextPieceId;
+  prunePieces();
+  S.mesh.topo = null;
+  S.mesh.normals = null;
+  cleanupEmpty();
+  emit('mesh');
+  emit('pieces');
+  emit('selection');
+  return res;
+}
+
+// Mueve piezas enteras (y apunta el movimiento para poder volver a montarlas)
+export function transformPieces(mats) {
+  if (!S.mesh || !mats.size) return;
+  checkpoint();
+  const P = S.mesh.pos.slice();
+  applyPieceMatrices(P, mats);
+  S.mesh.pos = P;
+  for (const [id, m] of mats) {
+    const pc = pieceById(id);
+    if (!pc) continue;
+    const M = CUT.mat4Mul(m, pc.M || CUT.IDENTITY);
+    pc.M = CUT.isIdentity(M) ? null : M;
+  }
+  geometryChanged();
+}
+
+// Centro (por área) y caja de cada pieza con las posiciones P
+function pieceStats(P, groups) {
+  const out = new Map();
+  for (const [id, faces] of groups) {
+    let ax = 0, ay = 0, az = 0, A = 0;
+    const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    for (const f of faces) {
+      const o = f * 9;
+      const ux = P[o + 3] - P[o], uy = P[o + 4] - P[o + 1], uz = P[o + 5] - P[o + 2];
+      const vx = P[o + 6] - P[o], vy = P[o + 7] - P[o + 1], vz = P[o + 8] - P[o + 2];
+      const a = Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) / 2;
+      ax += ((P[o] + P[o + 3] + P[o + 6]) / 3) * a; ay += ((P[o + 1] + P[o + 4] + P[o + 7]) / 3) * a; az += ((P[o + 2] + P[o + 5] + P[o + 8]) / 3) * a;
+      A += a;
+      for (let k = 0; k < 9; k += 3) for (let c = 0; c < 3; c++) { const v = P[o + k + c]; if (v < b[c]) b[c] = v; if (v > b[c + 3]) b[c + 3] = v; }
+    }
+    out.set(id, { c: A ? [ax / A, ay / A, az / A] : [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2], b });
+  }
+  return out;
+}
+
+// Vista separada: cada pieza se aparta del centro (desde la posición montada) para ver el encaje
+export function explodePieces() {
+  if (!S.mesh || S.pieces.length < 2) return false;
+  const groups = facesByPiece();
+  const P = S.mesh.pos.slice();
+  const inv = new Map();
+  for (const pc of S.pieces) if (pc.M) inv.set(pc.id, CUT.mat4RigidInverse(pc.M));
+  applyPieceMatrices(P, inv); // posición montada
+  const st = pieceStats(P, groups);
+  const all = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  for (const { b } of st.values()) for (let c = 0; c < 3; c++) { all[c] = Math.min(all[c], b[c]); all[c + 3] = Math.max(all[c + 3], b[c + 3]); }
+  const center = [(all[0] + all[3]) / 2, (all[1] + all[4]) / 2, (all[2] + all[5]) / 2];
+  const size = Math.max(all[3] - all[0], all[4] - all[1], all[5] - all[2]);
+  const gap = Math.min(60, Math.max(14, size * 0.3));
+  let maxD = 1e-9;
+  for (const { c } of st.values()) maxD = Math.max(maxD, Math.hypot(c[0] - center[0], c[1] - center[1], c[2] - center[2]));
+  const E = new Map();
+  for (const [id, { c }] of st) {
+    const d = [c[0] - center[0], c[1] - center[1], c[2] - center[2]];
+    const L = Math.hypot(d[0], d[1], d[2]);
+    const k = L > 1e-6 ? (gap * L) / maxD / L : 0;
+    E.set(id, CUT.mat4Translate(d[0] * k, d[1] * k, d[2] * k));
+  }
+  // apoyar el conjunto en la cama
+  let minZ = Infinity;
+  for (const [id, { b }] of st) minZ = Math.min(minZ, b[2] + E.get(id)[14]);
+  checkpoint();
+  for (const [id, m] of E) m[14] -= minZ - all[2];
+  applyPieceMatrices(P, E);
+  S.mesh.pos = P;
+  for (const pc of S.pieces) { const m = E.get(pc.id); pc.M = m && !CUT.isIdentity(m) ? m : null; }
+  geometryChanged();
+  return true;
+}
+
+// Vuelve a montar las piezas como estaban al cortar
+export function assemblePieces() {
+  if (!S.mesh) return false;
+  const mats = new Map();
+  for (const pc of S.pieces) if (pc.M && !CUT.isIdentity(pc.M)) mats.set(pc.id, CUT.mat4RigidInverse(pc.M));
+  if (!mats.size) return false;
+  checkpoint();
+  const P = S.mesh.pos.slice();
+  applyPieceMatrices(P, mats);
+  S.mesh.pos = P;
+  for (const pc of S.pieces) pc.M = null;
+  geometryChanged();
+  return true;
+}
+
+// Colocación para imprimir: cada pieza tumbada sobre su cara plana más grande (la del corte, salvo que
+// lleve espigas) y todas repartidas en la cama sin tocarse. Devuelve las matrices (no cambia nada).
+export function printLayoutMatrices(P = S.mesh.pos, gap = 8) {
+  const groups = facesByPiece();
+  const items = [];
+  for (const [id, faces] of groups) {
+    const meta = pieceById(id);
+    let dir;
+    if (meta && meta.kind === 'dowel' && meta.axis) {
+      // pasadores de pie: su eje (girado como esté ahora la pieza) en vertical
+      dir = meta.M ? CUT.normalize(CUT.applyMat3(meta.M, meta.axis)) : meta.axis;
+      if (dir[2] > 0) dir = [-dir[0], -dir[1], -dir[2]];
+    } else dir = CUT.restDirection(P, faces).dir;
+    const R = CUT.mat4RotateTo(dir, [0, 0, -1]);
+    const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    for (const f of faces) {
+      for (let k = 0; k < 9; k += 3) {
+        const o = f * 9 + k;
+        const v = CUT.applyMat3(R, [P[o], P[o + 1], P[o + 2]]);
+        for (let c = 0; c < 3; c++) { if (v[c] < b[c]) b[c] = v[c]; if (v[c] > b[c + 3]) b[c + 3] = v[c]; }
+      }
+    }
+    items.push({ id, R, b, w: b[3] - b[0], d: b[4] - b[1], dowel: meta && meta.kind === 'dowel' });
+  }
+  // estantería: primero las piezas grandes, los pasadores al final
+  items.sort((a, b) => (a.dowel - b.dowel) || b.w * b.d - a.w * a.d);
+  const area = items.reduce((s, it) => s + (it.w + gap) * (it.d + gap), 0);
+  const rowMax = Math.max(...items.map((it) => it.w), Math.sqrt(area) * 1.2);
+  let x = 0, y = 0, rowH = 0, maxX = 0;
+  for (const it of items) {
+    if (x > 0 && x + it.w > rowMax) { x = 0; y += rowH + gap; rowH = 0; }
+    it.x = x; it.y = y;
+    x += it.w + gap;
+    rowH = Math.max(rowH, it.d);
+    maxX = Math.max(maxX, it.x + it.w);
+  }
+  const cx = maxX / 2, cy = (y + rowH) / 2;
+  const mats = new Map();
+  for (const it of items) mats.set(it.id, CUT.mat4Mul(CUT.mat4Translate(it.x - it.b[0] - cx, it.y - it.b[1] - cy, -it.b[2]), it.R));
+  return mats;
+}
+export function layoutPieces() {
+  if (!S.mesh || S.pieces.length < 2) return false;
+  transformPieces(printLayoutMatrices());
+  return true;
+}
+// Posiciones para exportar: si las piezas siguen montadas (se solaparían en el laminador), colocadas para imprimir
+export function exportPositions() {
+  if (!S.mesh || S.pieces.length < 2 || S.pieces.some((p) => p.M)) return S.mesh.pos;
+  const P = S.mesh.pos.slice();
+  applyPieceMatrices(P, printLayoutMatrices(P));
+  return P;
+}
+export const piecesAssembled = () => S.pieces.every((p) => !p.M);
+
+// Lista de piezas para la interfaz y la IA
+export function piecesSummary() {
+  if (!S.mesh) return [];
+  const groups = facesByPiece();
+  const fp = S.mesh.faceParts, P = S.mesh.pos;
+  const st = pieceStats(P, groups);
+  // dónde está cada pieza en el modelo montado (arriba, izquierda...) para distinguir las mitades
+  const PA = S.pieces.some((p) => p.M) ? P.slice() : P;
+  if (PA !== P) {
+    const inv = new Map();
+    for (const pc of S.pieces) if (pc.M) inv.set(pc.id, CUT.mat4RigidInverse(pc.M));
+    applyPieceMatrices(PA, inv);
+  }
+  const sa = PA === P ? st : pieceStats(PA, groups);
+  const all = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  for (const { b } of sa.values()) for (let c = 0; c < 3; c++) { all[c] = Math.min(all[c], b[c]); all[c + 3] = Math.max(all[c + 3], b[c + 3]); }
+  const where = (id) => {
+    const c = sa.get(id).c, w = [];
+    const rel = (k) => (c[k] - (all[k] + all[k + 3]) / 2) / Math.max(all[k + 3] - all[k], 1e-6);
+    if (Math.abs(rel(2)) > 0.12) w.push(rel(2) > 0 ? 'arriba' : 'abajo');
+    if (Math.abs(rel(0)) > 0.12) w.push(rel(0) > 0 ? 'der.' : 'izq.');
+    if (Math.abs(rel(1)) > 0.12) w.push(rel(1) > 0 ? 'detrás' : 'delante');
+    return w.join(' ');
+  };
+  const out = [];
+  let num = 0;
+  for (const pc of S.pieces) {
+    const faces = groups.get(pc.id);
+    if (!faces) continue;
+    const areas = new Map();
+    for (const f of faces) {
+      const o = f * 9;
+      const ux = P[o + 3] - P[o], uy = P[o + 4] - P[o + 1], uz = P[o + 5] - P[o + 2];
+      const vx = P[o + 6] - P[o], vy = P[o + 7] - P[o + 1], vz = P[o + 8] - P[o + 2];
+      areas.set(fp[f], (areas.get(fp[f]) || 0) + Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx));
+    }
+    const names = [...areas.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => partById(id)?.name).filter(Boolean);
+    const b = st.get(pc.id).b;
+    const pos = pc.kind === 'dowel' ? '' : where(pc.id);
+    const name = pc.kind === 'dowel' ? `Pasador Ø${pc.d} × ${pc.length} mm` : `Pieza ${++num}${pos ? ` · ${pos}` : ''}`;
+    out.push({
+      id: pc.id, kind: pc.kind, name, parts: names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : ''), faces: faces.length,
+      size: [b[3] - b[0], b[4] - b[1], b[5] - b[2]], volume: Math.abs(CUT.meshVolume(P, faces)), d: pc.d, length: pc.length,
+    });
+  }
+  return out;
 }

@@ -11,7 +11,8 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Abrir modelos** | STL, 3MF (incluidos los de Bambu Studio / Orca / Prusa), OBJ, PLY, GLB. Arrastrar y soltar. |
 | **Detección automática de partes** | ✨ *Inteligente*: piezas sueltas, **base**, **texto / relieve** (también cuando el texto está fundido en la misma malla), placas y **escalones de altura** (p. ej. copa sobre columna). Pone nombres claros según la forma: *Base, Copa, Columna, Placa, Tapa, Pomo, Texto…* También *Piezas sueltas*, *Por caras* (aristas vivas) y *Por capas*. |
 | **Partes como capas** | Lista de partes con color, % de superficie, ocultar/mostrar, renombrar (doble clic, se puede deshacer), unir, quitar y **Aislar** (ver solo la selección, tecla **H**). **Tab** salta a la siguiente parte sin color. |
-| **Herramientas** | **Seleccionar** · **Pincel** (pinta zonas libres) · **Relleno inteligente** (una cara plana, una letra, un borde…) · **Cortar por altura** con plano visible y ajuste a altura de capa · **Mover / Girar** cada parte por separado con flechas y aros, como en Bambu Studio (con *Apoyar en la cama* y *Separar partes*). **Subdividir** la malla para pintar con más detalle. Deshacer/rehacer ilimitado. |
+| **Herramientas** | **Seleccionar** · **Pincel** (pinta zonas libres) · **Relleno inteligente** (una cara plana, una letra, un borde…) · **Capas** (franjas de color por altura, con ajuste a altura de capa) · **Mover / Girar** cada parte por separado con flechas y aros, como en Bambu Studio (con *Apoyar en la cama* y *Separar partes*). **Subdividir** la malla para pintar con más detalle. Deshacer/rehacer ilimitado. |
+| **✂ Cortar en piezas con anclajes automáticos** | Tecla **X**. Corta la pieza por donde quieras para imprimirla por partes: porque **no cabe en la impresora**, para **imprimir cada parte de su color sin AMS** (y sin purga) o para evitar soportes. El plano se coloca **a la selección** (justo donde la parte elegida se une al resto: la copa, la tapa, el texto…), horizontal, vertical o como quieras (flecha para moverlo, aros para inclinarlo). La app cierra los cortes y **calcula sola los anclajes según la forma de la sección**: tamaño (~30 % del grosor), cuántos (dos para que no gire, más en secciones grandes) y dónde (lo más separados posible, con pared suficiente y sin tocar escalones, huecos ni otros cuerpos). Tipos: **pasadores sueltos** (recomendado: las dos piezas se imprimen apoyadas en el corte), **espigas** (si un lado es demasiado fino, salen de ese lado solas), **imanes** (huecos para imanes de 3 a 12 mm, para tapas) o ninguno. Holgura justa / normal / holgada. Puedes añadir o quitar anclajes con un clic, y **🔎 Mejor sitio** busca cerca una zona más gruesa si en el corte no caben. Después: **Separar** (ver cómo encaja), **Montar** y **Colocar para imprimir** (cada pieza tumbada por su cara plana y repartidas en la cama). Se puede cortar varias veces y deshacer. |
 | **Catálogo de filamentos en vivo** | **Bambu Lab** (base oficial de colores de Bambu Studio, con HEX y código de cada bobina) + **más de 85 marcas** (Sunlu, eSun, Polymaker, Elegoo, Prusament, Overture, Jayo, Eryone, Creality, Anycubic…). Categorías: PLA Básico, PLA Matte, **PLA Silk**, PLA+/Tough, Translúcido, Especial (marble, sparkle, galaxy, bicolor…), Glow, Wood, Fibra, **PETG**, **ASA**, ABS, TPU, PC, PA/Nylon… Buscador en español/inglés («dorado», «negro mate», «silk rojo»). |
 | **Favoritos, recientes y Mis bobinas** | Los colores que usas aparecen a mano encima del catálogo. Clic derecho en un color = favorito ★. Marca **🧵 La tengo** en los colores que tienes en el taller: la lista **Mis bobinas** (en el selector de marcas) reúne tus bobinas de todas las marcas, y la app avisa ⚠ si el cliente elige un color que no tienes. Se guarda en el ordenador (`prefs.json`). |
 | **Equivalencias entre marcas** | Para el color activo, la app busca el más parecido **en tus bobinas** y en otras marcas (misma familia de material), con la diferencia de color que percibe el ojo (ΔE CIEDE2000: «idéntico a la vista», «muy parecido»…). También puedes **buscar en todas las marcas a la vez**. |
@@ -20,14 +21,14 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Tamaño en mm** | **Tamaño…** (tecla **S**): ancho, fondo y alto en milímetros, con candado de proporción, y el precio con el nuevo tamaño antes de aplicarlo. Avisa si no cabe en la cama. |
 | **Tiendas online** | Pega la dirección de cualquier tienda Shopify (p. ej. de una marca) y lee sus colores y disponibilidad en vivo. |
 | **Aspecto realista** | Silk brillante, Matte, translúcido, metálico, sparkle, glow, y filamentos **bicolor / tricolor / degradado**. Opción **Líneas de capa** para que, de cerca, la pieza se vea como impresa. |
-| **Asistente IA** | Ve la pieza, reconoce base/texto/trofeo, pone nombres, divide por alturas, busca filamentos reales y los aplica. Le hablas normal: *«la base en negro mate y el texto dorado silk»*. |
+| **Asistente IA** | Ve la pieza, reconoce base/texto/trofeo, pone nombres, divide por alturas, **corta en piezas con anclajes**, busca filamentos reales y los aplica. Le hablas normal: *«la base en negro mate y el texto dorado silk»*, *«córtala para que quepa en mi A1 mini»*. |
 | **Propuestas A / B / C** | Guarda varias combinaciones de colores y cambia entre ellas con un clic delante del cliente. **Exportar → Comparar propuestas** crea una sola imagen con todas lado a lado para que elija. |
-| **Vista por capas** | Deslizador que recorta la pieza a cualquier altura, como la vista previa del laminador (tecla **L**). Con la herramienta *Cortar* activa, mueve también el plano de corte. |
+| **Vista por capas** | Deslizador que recorta la pieza a cualquier altura, como la vista previa del laminador (tecla **L**). Con la herramienta *Capas* activa, mueve también el plano de corte. |
 | **Modo cliente** | Oculta los paneles y deja la pieza, la leyenda de colores y las propuestas, ideal para compartir pantalla (tecla **P**). |
 | **Autoguardado** | Si se cierra o recarga la página durante la llamada, al volver aparece «Recuperar» con todo tal cual estaba. |
 | **Abrir en Bambu Studio / OrcaSlicer** | Un clic en **Exportar → Abrir en Bambu Studio**: guarda el 3MF en `Documentos\Filament Studio` y abre el laminador instalado con él. |
 | **Vídeo 360°** | **Exportar → Vídeo 360°**: la pieza da una vuelta con los colores elegidos (cuadrado, vertical u horizontal, con rótulo y el nombre de tu taller) y se guarda en MP4 para enviarla por WhatsApp. |
-| **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF para Bambu Studio** (al abrirlo, Bambu Studio 2.5+ crea los filamentos con los colores exactos) · **3MF pintado** (cada zona con su número de filamento, para OrcaSlicer, PrusaSlicer y Bambu Studio antiguo) · **OBJ con colores** (Bambu Studio y OrcaSlicer convierten sus colores en filamentos) · **STL por color** (ZIP) · Ficha de filamentos · Proyecto `.fsproj`. Al exportar, la app muestra **qué color va en cada número de filamento** y los pasos a seguir en el laminador. |
+| **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF para Bambu Studio** (al abrirlo, Bambu Studio 2.5+ crea los filamentos con los colores exactos) · **3MF pintado** (cada zona con su número de filamento, para OrcaSlicer, PrusaSlicer y Bambu Studio antiguo) · **OBJ con colores** (Bambu Studio y OrcaSlicer convierten sus colores en filamentos) · **STL por color** (ZIP) · **STL por pieza** (cada pieza cortada ya tumbada para imprimir, los pasadores y un LÉEME para montarla) · Ficha de filamentos · Proyecto `.fsproj`. Si la pieza está cortada, el 3MF lleva **cada pieza como un objeto** separado y ya colocadas para imprimir. Al exportar, la app muestra **qué color va en cada número de filamento** y los pasos a seguir en el laminador. |
 | **Limpieza automática** | Al abrir un archivo se quitan los trocitos sueltos minúsculos que estén fuera de la pieza (errores del archivo que hacen que el laminador diga que «supera el límite de la placa»). |
 
 ## Programa para Windows (.exe) — lo más fácil
@@ -69,7 +70,7 @@ Se abre el navegador en <http://localhost:5173>.
 
 1. **Abrir modelo** (o arrástralo). La app detecta las partes automáticamente.
 2. Haz clic en una parte (en la pieza o en la lista) y después en un color del panel derecho: se aplica al instante.
-3. ¿El cliente quiere otro color en una zona que no es una parte? Usa **Cortar** (por altura), **Relleno** o **Pincel**, o pídeselo a la IA.
+3. ¿El cliente quiere otro color en una zona que no es una parte? Usa **Capas** (por altura), **Relleno** o **Pincel**, o pídeselo a la IA.
 4. ¿Dudas entre varias combinaciones? Pulsa **+ Guardar** (arriba a la derecha del visor) para crear la propuesta A, cambia colores, guarda la B… y alterna entre ellas con un clic.
 5. Pulsa **Modo cliente** (tecla P) para enseñar solo la pieza y la leyenda de colores. Gira con el ratón o con ⟳.
 6. **Exportar → Copiar imagen** y pégala en el chat de la llamada, descarga el PNG, **Comparar propuestas** para mandar todas juntas, o **Vídeo 360°** para enviarle un vídeo por WhatsApp.
@@ -85,12 +86,15 @@ Se abre el navegador en <http://localhost:5173>.
 - **Con AMS / multimaterial**: el 3MF ya trae cada zona asignada a su filamento (en Bambu Studio, con su color). Empareja cada filamento con la bobina del AMS.
 - **Sin AMS (cualquier impresora)**: si la pieza está dividida por alturas, la ficha te dice **en qué capa cambiar de filamento** (pausa / cambio de filamento en el laminador).
 - **Piezas sueltas** (base + texto + figura): exporta **STL por color** e imprímelas por separado o como un objeto de varias partes.
+- **No cabe en la cama, o quieres cada parte de un color sin AMS**: herramienta **✂ Cortar** (tecla X). Selecciona la parte, pulsa **◎ A la selección** (o un corte horizontal / vertical), revisa los anclajes que propone y **✂ Cortar aquí**. Con **⤓ Colocar para imprimir** cada pieza queda tumbada por la cara del corte; exporta el 3MF (una pieza por objeto) o **STL por pieza**. Imprime los pasadores de pie y pega con cianoacrilato.
 
 ## Atajos de teclado
 
 | Tecla | Acción |
 |---|---|
-| V / B / F / C / M | Seleccionar / Pincel / Relleno / Cortar / Mover |
+| V / B / F / M | Seleccionar / Pincel / Relleno / Mover |
+| X | Cortar en piezas (con anclajes) |
+| C | Capas: dividir el color por altura |
 | T / R | (con Mover) mover / girar |
 | [ y ] | Tamaño del pincel |
 | 1 – 7 | Vistas: 3D, frente, detrás, izquierda, derecha, arriba, abajo |
@@ -124,8 +128,9 @@ La app consulta estas fuentes en vivo y guarda una copia durante 6 horas (botón
 server/          servidor local (catálogo en vivo, preferencias, abrir en el laminador, puente con la IA)
   slicer.js        busca Bambu Studio / OrcaSlicer / PrusaSlicer y les abre el 3MF
 public/          la aplicación (three.js)
-  js/meshcore.js   geometría: topología, detección de partes, cortes, subdivisión
-  js/state.js      partes, colores, historial
+  js/meshcore.js   geometría: topología, detección de partes, cortes por altura, subdivisión
+  js/cut.js        corte en piezas: plano libre, tapas cerradas, anclajes automáticos, colocar para imprimir
+  js/state.js      partes, piezas, colores, historial
   js/viewer.js     visor 3D, selección, pincel, capturas, vídeo 360°
   js/catalog.js    panel de filamentos, favoritos, mis bobinas, equivalencias
   js/colorsci.js   diferencia de color (CIEDE2000) para las equivalencias

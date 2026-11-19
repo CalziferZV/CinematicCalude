@@ -53,6 +53,7 @@
           <button data-export="3mfpaint">3MF pintado (OrcaSlicer / Bambu antiguo)</button>
           <button data-export="obj">OBJ con colores (Bambu Studio / OrcaSlicer, ZIP)</button>
           <button data-export="stlzip">STL por color (ZIP)</button>
+          <button data-export="stlpieces">STL por pieza, colocadas para imprimir (ZIP)</button>
           <button data-export="sheet">Ficha de filamentos (TXT)</button>
           <div class="menu-sep"></div>
           <button data-export="project">Guardar proyecto (.fsproj)</button>
@@ -94,7 +95,8 @@
           <button class="tool active" data-tool="select" title="Seleccionar partes (V)"><span>⌖</span>Seleccionar</button>
           <button class="tool" data-tool="brush" title="Pincel (B)"><span>✎</span>Pincel</button>
           <button class="tool" data-tool="fill" title="Relleno inteligente (F)"><span>◧</span>Relleno</button>
-          <button class="tool" data-tool="cut" title="Cortar por altura (C)"><span>⫶</span>Cortar</button>
+          <button class="tool" data-tool="split" title="Cortar en piezas para imprimir por separado, con anclajes automáticos (X)"><span>✂</span>Cortar</button>
+          <button class="tool" data-tool="cut" title="Capas: franjas de color por altura (C)"><span>⫶</span>Capas</button>
           <button class="tool" data-tool="move" title="Mover y girar partes (M)"><span>✥</span>Mover</button>
         </div>
         <div class="tool-opts" id="toolOpts">
@@ -124,7 +126,56 @@
               <button class="btn small primary" id="btnCut">Cortar aquí</button>
               <button class="btn small" id="btnAutoLevels" title="Detecta escalones y corta por ellos">Auto escalones</button>
             </div>
-            <div class="hint-text">Corta la parte seleccionada (o todo) en dos por esta altura. Ideal para cambiar de filamento por capa.</div>
+            <div class="hint-text">Divide el color de la parte seleccionada (o de todo) por esta altura: franjas para cambiar de filamento por capa. La pieza sigue siendo una sola.</div>
+          </div>
+          <div data-opts="split" hidden>
+            <div class="split-presets">
+              <button class="btn small" data-plane="sel" title="Corta justo por el borde de la parte seleccionada">◎ A la selección</button>
+              <button class="btn small" data-plane="z" title="Corte horizontal">═ Horizontal</button>
+              <button class="btn small" data-plane="x" title="Corte vertical, de izquierda a derecha">║ Vertical X</button>
+              <button class="btn small" data-plane="y" title="Corte vertical, de delante a atrás">║ Vertical Y</button>
+            </div>
+            <label>Posición del corte <output id="splitOffOut"></output></label>
+            <div class="row gap">
+              <input type="range" id="splitOff" min="0" max="100" step="0.1" value="0" class="grow" />
+              <input type="number" id="splitOffNum" step="0.5" value="0" class="num" /> <span class="muted">mm</span>
+            </div>
+            <div class="seg2 mt6">
+              <button class="btn small active" data-split-mode="translate" title="Mover el plano con la flecha">↕ Mover</button>
+              <button class="btn small" data-split-mode="rotate" title="Inclinar el plano con los aros">⟳ Inclinar</button>
+            </div>
+            <label class="check"><input type="checkbox" id="splitClip" /> Ver el corte por dentro</label>
+            <div class="split-h">Anclajes</div>
+            <select id="connType">
+              <option value="dowel">Pasadores sueltos (recomendado)</option>
+              <option value="plug">Espigas (salen de una pieza)</option>
+              <option value="magnet">Imanes (huecos para imanes)</option>
+              <option value="none">Sin anclajes (para pegar)</option>
+            </select>
+            <div class="row gap mt6">
+              <label class="mini grow">Tamaño <select id="connSize"></select></label>
+              <label class="mini grow" title="Holgura entre pasador y agujero">Ajuste <select id="connFit">
+                <option value="0.1">Justo</option>
+                <option value="0.15" selected>Normal</option>
+                <option value="0.25">Holgado</option>
+              </select></label>
+            </div>
+            <div class="notes" id="splitInfo"></div>
+            <div class="row gap wrap mt6">
+              <button class="btn small primary" id="btnSplitApply" title="Corta y crea las piezas (se puede deshacer)">✂ Cortar aquí</button>
+              <button class="btn small" id="btnSplitAuto" title="Vuelve a calcular los anclajes automáticos">↻ Anclajes auto</button>
+              <button class="btn small" id="btnSplitBetter" title="Busca cerca una zona más gruesa donde quepan bien los anclajes">🔎 Mejor sitio</button>
+            </div>
+            <div class="hint-text">Arrastra la flecha para mover el plano o los aros para inclinarlo. Con «Ver el corte por dentro», clic en la cara del corte: añadir o quitar un anclaje.</div>
+            <div class="pieces-box" id="piecesBox" hidden>
+              <div class="split-h">Piezas para imprimir <span class="muted" id="piecesCount"></span></div>
+              <div class="pieces-list" id="piecesList"></div>
+              <div class="row gap wrap">
+                <button class="btn small" id="btnPiecesExplode" title="Aparta las piezas para ver cómo encajan">✣ Separar</button>
+                <button class="btn small" id="btnPiecesAssemble" title="Vuelve a juntar las piezas como estaban">⊞ Montar</button>
+                <button class="btn small" id="btnPiecesLayout" title="Cada pieza tumbada por su cara plana y repartidas en la cama (así van al laminador)">⤓ Colocar para imprimir</button>
+              </div>
+            </div>
           </div>
           <div data-opts="move" hidden>
             <div class="seg2">
@@ -297,7 +348,7 @@
         <div>
           <h4>Herramientas</h4>
           <p><kbd>V</kbd> Seleccionar</p><p><kbd>B</kbd> Pincel · <kbd>[</kbd> <kbd>]</kbd> tamaño</p><p><kbd>F</kbd> Relleno inteligente</p>
-          <p><kbd>C</kbd> Cortar por altura</p><p><kbd>M</kbd> Mover · <kbd>T</kbd> mover · <kbd>R</kbd> girar</p><p><kbd>I</kbd> Cuentagotas (copiar el color de una parte)</p>
+          <p><kbd>X</kbd> Cortar en piezas (con anclajes)</p><p><kbd>C</kbd> Capas: color por altura</p><p><kbd>M</kbd> Mover · <kbd>T</kbd> mover · <kbd>R</kbd> girar</p><p><kbd>I</kbd> Cuentagotas (copiar el color de una parte)</p>
         </div>
         <div>
           <h4>Partes y colores</h4>

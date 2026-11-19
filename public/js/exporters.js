@@ -1,6 +1,6 @@
 // Exportaciones: 3MF pintado, STL por color, imagen para el cliente, ficha y proyecto.
 import * as fflate from 'three/addons/libs/fflate.module.js';
-import { S, topo, BLANK, sceneSummary, emit } from './state.js';
+import { S, topo, BLANK, sceneSummary, emit, exportPositions, facesByPiece, piecesSummary, printLayoutMatrices } from './state.js';
 import { capture } from './viewer.js';
 import { swatchCss } from './materials.js';
 import { filamentKey } from './catalog.js';
@@ -125,13 +125,16 @@ export function export3MF(mode = 'bambu') {
 export function build3MF(mode = 'bambu') {
   const paint = mode === 'paint';
   const t = topo();
-  const P = S.mesh.pos;
+  // piezas cortadas: cada una es un objeto del laminador y, si siguen montadas, van tumbadas y repartidas
+  const P = exportPositions();
   const { list, indexOfPart } = usedFilaments();
   const hexes = slotHexes(list);
   const partSlot = new Map(S.parts.map((p) => [p.id, indexOfPart(p)]));
   const vpos = weldedVertices(t, P);
+  let minZ = Infinity;
+  for (let i = 2; i < P.length; i += 3) if (P[i] < minZ) minZ = P[i];
   // colocar dentro de la cama (vale para A1 mini, A1, P1, X1) y con la base en Z = 0
-  const off = [90, 90, -t.bbox.minZ];
+  const off = [90, 90, -minZ];
   const out = [];
   out.push('<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="es-ES" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">\n');
   out.push(`<metadata name="Title">${escXml(baseName())}</metadata>\n<metadata name="Application">Filament Studio</metadata>\n<resources>\n`);
@@ -139,23 +142,46 @@ export function build3MF(mode = 'bambu') {
   out.push('<m:colorgroup id="1">\n');
   for (const h of hexes) out.push(`<m:color color="${h}FF"/>\n`);
   out.push('</m:colorgroup>\n');
-  out.push(`<object id="2" type="model" name="${escXml(baseName())}" pid="1" pindex="0">\n<mesh>\n<vertices>\n`);
-  const vs = [];
-  for (let v = 0; v < t.nV; v++) vs.push(`<vertex x="${(vpos[v * 3] + off[0]).toFixed(5)}" y="${(vpos[v * 3 + 1] + off[1]).toFixed(5)}" z="${(vpos[v * 3 + 2] + off[2]).toFixed(5)}"/>`);
-  out.push(vs.join('\n'));
-  out.push('\n</vertices>\n<triangles>\n');
-  const ts = [];
-  for (let f = 0; f < t.nF; f++) {
-    const a = t.vid[f * 3], b = t.vid[f * 3 + 1], c = t.vid[f * 3 + 2];
-    if (a === b || b === c || a === c) continue;
-    const slot = partSlot.get(S.mesh.faceParts[f]) ?? 0;
-    const code = paintCode(slot + 1);
-    ts.push(paint
-      ? `<triangle v1="${a}" v2="${b}" v3="${c}" pid="1" p1="${slot}" paint_color="${code}" slic3rpe:mmu_segmentation="${code}"/>`
-      : `<triangle v1="${a}" v2="${b}" v3="${c}" pid="1" p1="${slot}" slic3rpe:mmu_segmentation="${code}"/>`);
-  }
-  out.push(ts.join('\n'));
-  out.push('\n</triangles>\n</mesh>\n</object>\n</resources>\n<build>\n<item objectid="2" printable="1"/>\n</build>\n</model>\n');
+  const multi = S.pieces.length > 1;
+  const groups = multi ? [...facesByPiece().entries()] : [[0, null]];
+  const names = multi ? new Map(piecesSummary().map((p) => [p.id, p.name])) : new Map();
+  const items = [];
+  groups.forEach(([pid, faces], gi) => {
+    const oid = gi + 2;
+    items.push(oid);
+    // vértices de esta pieza (los ids de vértice no se comparten entre piezas)
+    const local = new Map();
+    const vs = [], ts = [];
+    const nf = faces ? faces.length : t.nF;
+    for (let i = 0; i < nf; i++) {
+      const f = faces ? faces[i] : i;
+      const v = [t.vid[f * 3], t.vid[f * 3 + 1], t.vid[f * 3 + 2]];
+      if (v[0] === v[1] || v[1] === v[2] || v[0] === v[2]) continue;
+      const idx = v.map((g) => {
+        let l = local.get(g);
+        if (l === undefined) {
+          l = local.size;
+          local.set(g, l);
+          vs.push(`<vertex x="${(vpos[g * 3] + off[0]).toFixed(5)}" y="${(vpos[g * 3 + 1] + off[1]).toFixed(5)}" z="${(vpos[g * 3 + 2] + off[2]).toFixed(5)}"/>`);
+        }
+        return l;
+      });
+      const slot = partSlot.get(S.mesh.faceParts[f]) ?? 0;
+      const code = paintCode(slot + 1);
+      ts.push(paint
+        ? `<triangle v1="${idx[0]}" v2="${idx[1]}" v3="${idx[2]}" pid="1" p1="${slot}" paint_color="${code}" slic3rpe:mmu_segmentation="${code}"/>`
+        : `<triangle v1="${idx[0]}" v2="${idx[1]}" v3="${idx[2]}" pid="1" p1="${slot}" slic3rpe:mmu_segmentation="${code}"/>`);
+    }
+    const oname = multi ? `${baseName()} - ${names.get(pid) || 'Pieza'}` : baseName();
+    out.push(`<object id="${oid}" type="model" name="${escXml(oname)}" pid="1" pindex="0">\n<mesh>\n<vertices>\n`);
+    out.push(vs.join('\n'));
+    out.push('\n</vertices>\n<triangles>\n');
+    out.push(ts.join('\n'));
+    out.push('\n</triangles>\n</mesh>\n</object>\n');
+  });
+  out.push('</resources>\n<build>\n');
+  for (const oid of items) out.push(`<item objectid="${oid}" printable="1"/>\n`);
+  out.push('</build>\n</model>\n');
   const enc = new TextEncoder();
   const files = {
     '[Content_Types].xml': enc.encode('<?xml version="1.0" encoding="UTF-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="txt" ContentType="text/plain"/></Types>'),
@@ -184,7 +210,7 @@ export async function openInSlicer(slicer = 'bambu') {
 // Bambu Studio y OrcaSlicer importan los colores de un OBJ y los convierten en filamentos.
 export function exportOBJ() {
   const t = topo();
-  const P = S.mesh.pos;
+  const P = exportPositions();
   const { list, indexOfPart } = usedFilaments();
   const partSlot = new Map(S.parts.map((p) => [p.id, indexOfPart(p)]));
   const vpos = weldedVertices(t, P);
@@ -192,7 +218,8 @@ export function exportOBJ() {
   const ascii = (str) => String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
   const matName = (i) => `F${i + 1}_${ascii(list[i].fil.blank ? 'sin_color' : list[i].fil.name) || 'color'}`;
   const obj = [`# Filament Studio - ${name}`, `# Filamentos: ${list.map((e, i) => `${i + 1}=${filLabel(e.fil)}`).join(' | ')}`, `mtllib ${name}.mtl`, `o ${name}`];
-  const minZ = t.bbox.minZ;
+  let minZ = Infinity;
+  for (let i = 2; i < P.length; i += 3) if (P[i] < minZ) minZ = P[i];
   for (let v = 0; v < t.nV; v++) obj.push(`v ${vpos[v * 3].toFixed(5)} ${vpos[v * 3 + 1].toFixed(5)} ${(vpos[v * 3 + 2] - minZ).toFixed(5)}`);
   const bySlot = list.map(() => []);
   for (let f = 0; f < t.nF; f++) {
@@ -230,7 +257,7 @@ function escXml(s) {
 // ---------------------------------------------------------------- STL por color
 export function exportSTLZip() {
   const { list, indexOfPart } = usedFilaments();
-  const P = S.mesh.pos;
+  const P = exportPositions();
   const fp = S.mesh.faceParts;
   const slot = new Map(S.parts.map((p) => [p.id, indexOfPart(p)]));
   const files = {};
@@ -251,6 +278,75 @@ export function exportSTLZip() {
   download(new Blob([fflate.zipSync(files, { level: 6 })], { type: 'application/zip' }), `${baseName()}_por_color.zip`);
 }
 
+// ---------------------------------------------------------------- STL por pieza (cortadas)
+// Cada pieza tumbada sobre su cara plana y centrada en el origen; los pasadores iguales, un solo STL.
+export function exportPiecesZip() {
+  const groups = facesByPiece();
+  const mats = printLayoutMatrices(S.mesh.pos);
+  const summary = piecesSummary();
+  const t = topo();
+  const fp = S.mesh.faceParts, P0 = S.mesh.pos;
+  const files = {};
+  const lines = [`PIEZAS PARA IMPRIMIR — ${S.modelName || 'modelo'}`, ''];
+  const doneDowels = new Map();
+  let n = 0;
+  const stl = (faces, m) => {
+    const tmp = new Float32Array(faces.length * 9);
+    const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    faces.forEach((f, j) => {
+      for (let k = 0; k < 9; k += 3) {
+        const o = f * 9 + k, x = P0[o], y = P0[o + 1], z = P0[o + 2];
+        const v = [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+        for (let c = 0; c < 3; c++) { tmp[j * 9 + k + c] = v[c]; if (v[c] < b[c]) b[c] = v[c]; if (v[c] > b[c + 3]) b[c + 3] = v[c]; }
+      }
+    });
+    const cx = (b[0] + b[3]) / 2, cy = (b[1] + b[4]) / 2;
+    const buf = new ArrayBuffer(84 + faces.length * 50);
+    const dv = new DataView(buf);
+    dv.setUint32(80, faces.length, true);
+    for (let j = 0; j < faces.length; j++) {
+      const o = 84 + j * 50;
+      for (let k = 0; k < 9; k++) dv.setFloat32(o + 12 + k * 4, tmp[j * 9 + k] - (k % 3 === 0 ? cx : k % 3 === 1 ? cy : b[2]), true);
+    }
+    return { data: new Uint8Array(buf), size: [b[3] - b[0], b[4] - b[1], b[5] - b[2]] };
+  };
+  const safe = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\-]+/g, '_').replace(/^_|_$/g, '').slice(0, 60);
+  for (const pc of summary) {
+    const faces = groups.get(pc.id);
+    if (!faces) continue;
+    if (pc.kind === 'dowel') {
+      const key = `${pc.d}x${pc.length}`;
+      if (doneDowels.has(key)) { doneDowels.get(key).count++; continue; }
+      const r = stl(faces, mats.get(pc.id));
+      doneDowels.set(key, { count: 1, r, pc });
+      continue;
+    }
+    const r = stl(faces, mats.get(pc.id));
+    n++;
+    // colores de la pieza (de mayor a menor superficie)
+    const area = new Map();
+    for (const f of faces) area.set(fp[f], (area.get(fp[f]) || 0) + t.area[f]);
+    const cols = [...area.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => S.parts.find((p) => p.id === id)).filter(Boolean)
+      .map((p) => `${p.name}: ${filLabel(p.filament || BLANK)}`);
+    const file = `${String(n).padStart(2, '0')}_${safe(pc.name)}.stl`;
+    files[file] = r.data;
+    lines.push(`${file} — ${r.size.map((v) => v.toFixed(1)).join(' × ')} mm`);
+    for (const c of cols.slice(0, 6)) lines.push(`   · ${c}`);
+  }
+  for (const { count, r, pc } of doneDowels.values()) {
+    const file = `pasador_${String(pc.d).replace('.', ',')}x${String(pc.length).replace('.', ',')}mm_imprimir_${count}.stl`;
+    files[file] = r.data;
+    lines.push(`${file} — imprime ${count} (Ø${pc.d} × ${pc.length} mm, de pie)`);
+  }
+  lines.push('', 'CÓMO MONTARLO', '1. Imprime cada pieza tal como viene en su archivo (ya está apoyada en la cara plana del corte).',
+    '2. Prueba los pasadores sin pegamento: deben entrar con un poco de presión. Si entran muy duros, lija un poco o vuelve a cortar con ajuste «Holgado».',
+    '3. Pega con cianoacrilato (o epoxi en piezas grandes): una gota en cada agujero, mete los pasadores y une las piezas.',
+    '4. Si hay huecos para imanes, comprueba la polaridad antes de pegarlos.');
+  files['LEEME_piezas.txt'] = new TextEncoder().encode('\ufeff' + lines.join('\r\n') + '\r\n');
+  download(new Blob([fflate.zipSync(files, { level: 6 })], { type: 'application/zip' }), `${baseName()}_piezas.zip`);
+  return { pieces: n, dowels: [...doneDowels.values()].reduce((s, d) => s + d.count, 0) };
+}
+
 // ---------------------------------------------------------------- ficha de texto
 // quote = true solo en la ficha que descargas tú: el precio no va dentro de los archivos del modelo
 export function sheetText({ quote = false } = {}) {
@@ -269,6 +365,16 @@ export function sheetText({ quote = false } = {}) {
   lines.push('');
   lines.push('PARTES:');
   for (const p of sum.parts) lines.push(`  · ${p.name}: ${typeof p.filament === 'string' ? p.filament : `${p.filament.brand} ${p.filament.line} ${p.filament.color}`}`);
+  if (S.pieces.length > 1) {
+    const ps = piecesSummary();
+    const bodies = ps.filter((p) => p.kind !== 'dowel'), dowels = ps.filter((p) => p.kind === 'dowel');
+    lines.push('');
+    lines.push(`PIEZAS PARA IMPRIMIR (${bodies.length}${dowels.length ? ` + ${dowels.length} pasadores` : ''}):`);
+    for (const p of bodies) lines.push(`  · ${p.name}: ${p.size.map((v) => v.toFixed(1)).join(' × ')} mm (${p.parts})`);
+    const dg = new Map();
+    for (const d of dowels) dg.set(d.name, (dg.get(d.name) || 0) + 1);
+    for (const [name, n] of dg) lines.push(`  · ${n} × ${name} (imprimir de pie, pegar con cola)`);
+  }
   if (quote) {
     try {
       const q = computeQuote();
@@ -463,6 +569,7 @@ export function exportProject() {
   const data = {
     app: 'filament-studio', version: 1, name: S.modelName, nextId: S.nextId, notes: S.notes,
     parts: S.parts, variants: S.variants, variantSeq: S.variantSeq, pos: toB64(new Uint8Array(S.mesh.pos.buffer.slice(0))), faceParts: toB64(new Uint8Array(S.mesh.faceParts.buffer.slice(0))),
+    facePiece: toB64(new Uint8Array(S.mesh.facePiece.buffer.slice(0))), pieces: S.pieces, nextPieceId: S.nextPieceId,
   };
   const json = new TextEncoder().encode(JSON.stringify(data));
   download(new Blob([fflate.gzipSync(json)], { type: 'application/octet-stream' }), `${baseName()}.fsproj`);
@@ -475,5 +582,6 @@ export function parseProject(buf) {
   return {
     name: d.name, nextId: d.nextId, notes: d.notes || [], parts: d.parts, variants: d.variants || [], variantSeq: d.variantSeq || 0,
     pos: new Float32Array(fromB64(d.pos).buffer), faceParts: new Uint16Array(fromB64(d.faceParts).buffer),
+    facePiece: d.facePiece ? new Uint16Array(fromB64(d.facePiece).buffer) : null, pieces: d.pieces || null, nextPieceId: d.nextPieceId || 0,
   };
 }
