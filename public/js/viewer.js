@@ -9,7 +9,7 @@ import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import { S, on, topo, normals, BLANK, transformParts } from './state.js';
-import { filamentMaterial, flatMaterial, falseColor } from './materials.js';
+import { filamentMaterial, flatMaterial, falseColor, setLayerLines as setLayerUniforms } from './materials.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -371,7 +371,8 @@ function refreshParts() {
       // latido azul mientras se elige el color
       const orig = m;
       m = m.clone();
-      if (orig.userData.uniforms) { m.onBeforeCompile = orig.onBeforeCompile; m.customProgramCacheKey = orig.customProgramCacheKey; }
+      m.onBeforeCompile = orig.onBeforeCompile;
+      m.customProgramCacheKey = orig.customProgramCacheKey;
       m.emissive = new THREE.Color(0x3d6bff);
       m.emissiveIntensity = 0.12;
       m.userData.tmp = true;
@@ -412,6 +413,11 @@ function buildBoundaries() {
   scene.add(boundary);
 }
 export function setShowBoundaries(v) { showBoundaries = v; refreshParts(); }
+// Líneas de capa en el render (aspecto de pieza impresa)
+export function setLayerLines(on, height) {
+  setLayerUniforms(on, height);
+  needsRender = true;
+}
 
 // ---------------------------------------------------------------- picking
 const ray = new THREE.Raycaster();
@@ -597,6 +603,75 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   refreshParts();
   if (restartMove) startMove(restartMove);
   return canvas;
+}
+
+// Fotogramas para el vídeo 360°: la cámara da una vuelta alrededor de la pieza con la misma
+// imagen que la pantalla (tono y sRGB), sin contornos, rejilla ni herramientas.
+export function createTurntable({ width = 1080, height = 1080, elevation = 18 } = {}) {
+  if (!S.mesh) return null;
+  const t = topo();
+  const bb = t.bbox;
+  const center = new THREE.Vector3((bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2, (bb.minZ + bb.maxZ) / 2);
+  const cam = new THREE.PerspectiveCamera(30, width / height, 0.1, 10000);
+  cam.up.set(0, 0, 1);
+  const vfov = THREE.MathUtils.degToRad(cam.fov);
+  const hfov = 2 * Math.atan(Math.tan(vfov / 2) * cam.aspect);
+  const dist = (t.diag / 2 / Math.sin(Math.min(vfov, hfov) / 2)) * 1.04;
+  const elev = THREE.MathUtils.degToRad(elevation);
+  const start = Math.atan2(camera.position.y - controls.target.y, camera.position.x - controls.target.x);
+  // guardar y limpiar lo que no debe salir en el vídeo
+  const prev = { sel: new Set(S.selected), hover: hoverPart, move: moving ? moving.ids : null, grid: grid ? grid.visible : false, clip: renderer.clippingPlanes, brush: brushRing?.visible, cut: cutPlane?.visible, present };
+  if (moving) stopMove();
+  S.selected.clear();
+  hoverPart = null;
+  present = true;
+  refreshParts();
+  if (grid) grid.visible = false;
+  if (brushRing) brushRing.visible = false;
+  if (cutPlane) cutPlane.visible = false;
+  renderer.clippingPlanes = [];
+  const float = renderer.capabilities.isWebGL2 && renderer.extensions.has('EXT_color_buffer_float');
+  const rt = new THREE.WebGLRenderTarget(width, height, { samples: 4, type: float ? THREE.HalfFloatType : THREE.UnsignedByteType });
+  const out = new THREE.WebGLRenderTarget(width, height);
+  captureOutput ||= new OutputPass();
+  captureOutput.renderToScreen = false;
+  const buf = new Uint8Array(width * height * 4);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(width, height);
+  return {
+    canvas,
+    render(frac) {
+      const a = start + frac * Math.PI * 2;
+      cam.position.set(center.x + Math.cos(a) * Math.cos(elev) * dist, center.y + Math.sin(a) * Math.cos(elev) * dist, center.z + Math.sin(elev) * dist);
+      cam.lookAt(center);
+      renderer.setRenderTarget(rt);
+      renderer.clear();
+      renderer.render(scene, cam);
+      captureOutput.render(renderer, out, rt);
+      renderer.readRenderTargetPixels(out, 0, 0, width, height, buf);
+      renderer.setRenderTarget(null);
+      for (let y = 0; y < height; y++) img.data.set(buf.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4);
+      ctx.putImageData(img, 0, 0);
+      return canvas;
+    },
+    dispose() {
+      rt.dispose();
+      out.dispose();
+      S.selected = prev.sel;
+      hoverPart = prev.hover;
+      present = prev.present;
+      if (grid) grid.visible = prev.grid;
+      if (brushRing) brushRing.visible = prev.brush;
+      if (cutPlane) cutPlane.visible = prev.cut;
+      renderer.clippingPlanes = prev.clip;
+      refreshParts();
+      if (prev.move) startMove(prev.move);
+      needsRender = true;
+    },
+  };
 }
 
 function drawPartLabels(ctx, cam, w, h) {

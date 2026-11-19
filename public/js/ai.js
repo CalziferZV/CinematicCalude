@@ -1,7 +1,8 @@
 // Asistente IA: chat + ejecución local de las herramientas que pide Claude.
 import * as ST from './state.js';
 import { capture, fitView } from './viewer.js';
-import { searchFilaments, resolveFilament, currentBrand, escapeHtml } from './catalog.js';
+import { searchFilaments, resolveFilament, currentBrand, escapeHtml, ownedSpools } from './catalog.js';
+import { computeQuote } from './quote.js';
 import { falseColor } from './materials.js';
 
 let messages = [];
@@ -150,6 +151,17 @@ async function runTool(name, input) {
     case 'get_scene': {
       const sum = ST.sceneSummary();
       sum.catalog = { active_brand: currentBrand()?.name || null };
+      try {
+        const q = computeQuote();
+        if (q) {
+          sum.estimate = {
+            filament_g: Math.round(q.grams + q.purgeGrams), purge_g: Math.round(q.purgeGrams), color_changes: q.changes,
+            print_time_h: +q.hours.toFixed(2), price_eur: q.price, price_includes_vat: q.settings.vat > 0,
+          };
+        }
+      } catch { /* sin presupuesto */ }
+      const spools = ownedSpools();
+      if (spools.length) sum.my_spools = spools.slice(0, 80).map((f) => `${f.brandName} ${f.line} · ${f.name} ${f.hex}`);
       return JSON.stringify(sum);
     }
     case 'capture_view': {
@@ -176,7 +188,7 @@ async function runTool(name, input) {
       return `Asignado ${fil.brandName} ${fil.line} "${fil.name}" (${fil.hex}) a las partes ${ids.join(', ')}.`;
     }
     case 'rename_parts': {
-      for (const p of input.parts || []) ST.renamePart(p.part_id, p.name, p.role);
+      ST.renameParts(input.parts || []);
       return 'Partes renombradas.';
     }
     case 'split_by_height': {

@@ -4,6 +4,7 @@ import { S, topo, BLANK, sceneSummary, emit } from './state.js';
 import { capture } from './viewer.js';
 import { swatchCss } from './materials.js';
 import { filamentKey } from './catalog.js';
+import { computeQuote, settings as quoteSettings, sheetLines, eur, grams as fmtGrams, duration } from './quote.js';
 
 function download(blob, name) {
   const a = document.createElement('a');
@@ -117,6 +118,11 @@ function paintCode(state) {
 // mode 'paint': cada triángulo lleva el NÚMERO de filamento (paint_color), además de los
 //   colores. Para OrcaSlicer y Bambu Studio anterior a 2.5, que no leen los colores del 3MF.
 export function export3MF(mode = 'bambu') {
+  const r = build3MF(mode);
+  download(r.blob, r.name);
+  return r.list;
+}
+export function build3MF(mode = 'bambu') {
   const paint = mode === 'paint';
   const t = topo();
   const P = S.mesh.pos;
@@ -158,8 +164,20 @@ export function export3MF(mode = 'bambu') {
     'Metadata/filamentos.txt': enc.encode(sheetText()),
   };
   const zip = fflate.zipSync(files, { level: 6 });
-  download(new Blob([zip], { type: 'model/3mf' }), `${baseName()}_${paint ? 'pintado' : 'bambu'}.3mf`);
-  return list;
+  return { blob: new Blob([zip], { type: 'model/3mf' }), name: `${baseName()}_${paint ? 'pintado' : 'bambu'}.3mf`, list };
+}
+
+// Guarda el 3MF en Documentos\Filament Studio y lo abre en el laminador instalado
+export async function openInSlicer(slicer = 'bambu') {
+  const r = build3MF(slicer === 'bambu' ? 'bambu' : 'paint');
+  const res = await fetch(`/api/open-in-slicer?slicer=${encodeURIComponent(slicer)}&name=${encodeURIComponent(r.name)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: r.blob,
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`);
+  return { ...j, list: r.list };
 }
 
 // ---------------------------------------------------------------- OBJ con colores (OBJ + MTL)
@@ -250,6 +268,10 @@ export function sheetText() {
   lines.push('');
   lines.push('PARTES:');
   for (const p of sum.parts) lines.push(`  · ${p.name}: ${typeof p.filament === 'string' ? p.filament : `${p.filament.brand} ${p.filament.line} ${p.filament.color}`}`);
+  try {
+    const q = computeQuote();
+    if (q) { lines.push(''); lines.push(...sheetLines(q)); }
+  } catch { /* sin presupuesto */ }
   const lc = layerChanges();
   if (lc && lc.length) {
     lines.push('');
@@ -284,6 +306,26 @@ export function clientImage() {
   const sum = sceneSummary();
   ctx.fillText(`${sum.size_mm.x} × ${sum.size_mm.y} × ${sum.size_mm.z} mm · ${new Date().toLocaleDateString('es-ES')}`, x0, 104);
   let y = 160;
+  const qs = quoteSettings();
+  let q = null;
+  if (qs.showClient) { try { q = computeQuote(); } catch { q = null; } }
+  if (q) {
+    // recuadro con el precio
+    ctx.fillStyle = '#eefaf2';
+    ctx.beginPath();
+    ctx.roundRect(x0, 128, side - 80, 74, 12);
+    ctx.fill();
+    ctx.fillStyle = '#157a3a';
+    ctx.font = '800 34px system-ui, sans-serif';
+    ctx.fillText(eur(q.price), x0 + 16, 176, side - 120);
+    ctx.fillStyle = '#5b6170';
+    ctx.font = '16px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${fmtGrams(q.grams + q.purgeGrams)} · ${duration(q.hours)}`, x0 + side - 96, 158);
+    ctx.fillText(qs.vat > 0 ? 'IVA incluido' : 'precio estimado', x0 + side - 96, 182);
+    ctx.textAlign = 'left';
+    y = 236;
+  }
   ctx.font = '600 16px system-ui, sans-serif';
   ctx.fillStyle = '#7a808c';
   ctx.fillText('COLORES ELEGIDOS', x0, y);
@@ -304,6 +346,11 @@ export function clientImage() {
   ctx.fillStyle = '#b0b4bc';
   ctx.font = '15px system-ui, sans-serif';
   ctx.fillText('Previsualización orientativa · colores reales del fabricante', x0, H - 30);
+  if (qs.shopName) {
+    ctx.fillStyle = '#1d2129';
+    ctx.font = '700 22px system-ui, sans-serif';
+    ctx.fillText(qs.shopName, 28, H - 30, W - side - 60);
+  }
   return c;
 }
 function drawSwatch(ctx, f, x, y, s) {

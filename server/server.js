@@ -1,11 +1,13 @@
 // Servidor local de Filament Studio.
 import './env.js';
 import express from 'express';
+import fs from 'node:fs';
 import path from 'node:path';
 import { exec } from 'node:child_process';
-import { getBrandList, getBrand, getShopifyStore, CATEGORY_ORDER } from './catalog.js';
+import { getBrandList, getBrand, getAllBrands, getShopifyStore, CATEGORY_ORDER } from './catalog.js';
 import { aiStatus, aiTurn, aiErrorMessage, saveApiKey } from './ai.js';
-import { isExe, rootDir, readResource } from './runtime.js';
+import { openInSlicer, slicerStatus } from './slicer.js';
+import { isExe, rootDir, userDir, readResource } from './runtime.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -69,8 +71,55 @@ app.get('/api/shop', async (req, res) => {
     res.status(502).json({ error: e.message });
   }
 });
+app.get('/api/catalog/all', (req, res) => {
+  try {
+    res.json(getAllBrands());
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.get('/api/categories', (req, res) => res.json(CATEGORY_ORDER));
 app.get('/api/ping', (req, res) => res.json({ app: 'filament-studio' }));
+
+// ---------------------------------------------------------------- preferencias del usuario
+// Favoritos, bobinas que tienes, recientes y ajustes del presupuesto. Se guardan en este
+// ordenador (no en el navegador) para que no se pierdan si cambia el puerto o el navegador.
+const PREFS_FILE = path.join(userDir, 'prefs.json');
+app.get('/api/prefs', (req, res) => {
+  try {
+    res.json(JSON.parse(fs.readFileSync(PREFS_FILE, 'utf8')));
+  } catch {
+    res.json({});
+  }
+});
+const savePrefs = (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return res.status(400).json({ error: 'Formato no válido' });
+  const txt = JSON.stringify(body);
+  if (txt.length > 4_000_000) return res.status(413).json({ error: 'Preferencias demasiado grandes' });
+  try {
+    fs.mkdirSync(path.dirname(PREFS_FILE), { recursive: true });
+    fs.writeFileSync(`${PREFS_FILE}.tmp`, txt);
+    fs.renameSync(`${PREFS_FILE}.tmp`, PREFS_FILE);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+app.put('/api/prefs', savePrefs);
+app.post('/api/prefs', savePrefs); // navigator.sendBeacon al cerrar la pestaña
+
+// ---------------------------------------------------------------- abrir en el laminador
+app.get('/api/slicers', async (req, res) => res.json(await slicerStatus()));
+app.post('/api/open-in-slicer', express.raw({ type: 'application/octet-stream', limit: '400mb' }), async (req, res) => {
+  try {
+    const id = String(req.query.slicer || 'bambu');
+    res.json(await openInSlicer(id, req.body, String(req.query.name || 'modelo')));
+  } catch (e) {
+    console.error('[laminador]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.get('/api/ai/status', (req, res) => res.json(aiStatus()));
 app.post('/api/ai/key', (req, res) => {

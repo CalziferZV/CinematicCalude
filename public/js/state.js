@@ -40,18 +40,34 @@ function restore(s) {
   const geomChanged = s.pos !== S.mesh.pos;
   S.mesh.pos = s.pos;
   S.mesh.faceParts = s.faceParts.slice();
-  S.parts = s.parts.map((p) => ({ ...p }));
+  // mostrar/ocultar es solo de vista: deshacer no vuelve a ocultar ni a mostrar partes
+  const vis = new Map(S.parts.map((p) => [p.id, p.visible]));
+  S.parts = s.parts.map((p) => ({ ...p, visible: vis.has(p.id) ? vis.get(p.id) : true }));
   S.nextId = s.nextId;
   if (geomChanged) { S.mesh.topo = null; S.mesh.normals = null; }
   for (const id of [...S.selected]) if (!partById(id)) S.selected.delete(id);
   emit(geomChanged ? 'mesh' : 'parts');
   emit('selection', { restore: true });
 }
+// Memoria máxima del historial: en modelos enormes cada paso guarda una copia de la malla,
+// así que se descartan los pasos más antiguos para no agotar la memoria del navegador.
+const HISTORY_MAX_STEPS = 60;
+const HISTORY_MAX_BYTES = 384 * 1024 * 1024;
+function historyBytes() {
+  const arrays = new Set();
+  let bytes = 0;
+  for (const st of [...undoStack, ...redoStack]) {
+    bytes += st.faceParts.byteLength;
+    if (st.pos !== S.mesh.pos) arrays.add(st.pos);
+  }
+  for (const a of arrays) bytes += a.byteLength;
+  return bytes;
+}
 export function checkpoint() {
   if (!S.mesh) return;
   undoStack.push(snapshot());
-  if (undoStack.length > 60) undoStack.shift();
   redoStack.length = 0;
+  while (undoStack.length > HISTORY_MAX_STEPS || (undoStack.length > 3 && historyBytes() > HISTORY_MAX_BYTES)) undoStack.shift();
   emit('history');
 }
 export function undo() {
@@ -133,9 +149,15 @@ export function rotateModel(axis, deg) {
 }
 
 export function scaleModel(factor) {
-  if (!S.mesh || !(factor > 0)) return;
+  scaleModelXYZ(factor, factor, factor);
+}
+// Escala por eje (fx, fy, fz). Con los tres iguales se mantiene la proporción.
+export function scaleModelXYZ(fx, fy, fz) {
+  if (!S.mesh || !(fx > 0 && fy > 0 && fz > 0)) return;
+  if (Math.abs(fx - 1) < 1e-9 && Math.abs(fy - 1) < 1e-9 && Math.abs(fz - 1) < 1e-9) return;
   checkpoint();
-  const P = S.mesh.pos.map((v) => v * factor);
+  const P = S.mesh.pos.slice();
+  for (let i = 0; i < P.length; i += 3) { P[i] *= fx; P[i + 1] *= fy; P[i + 2] *= fz; }
   S.mesh.pos = placeOnBed(P);
   S.mesh.topo = null;
   S.mesh.normals = null;
@@ -200,17 +222,40 @@ export function setPartFilament(ids, filament) {
   emit('filament', ids); // el visor deja de "latir" en las partes que ya tienen color
 }
 
-export function renamePart(id, name, role) {
+export function renamePart(id, name, role, { history = true } = {}) {
   const p = partById(id);
   if (!p) return;
-  p.name = name || p.name;
+  const newName = name || p.name;
+  if (newName === p.name && (!role || role === p.role)) return;
+  if (history) checkpoint(); // renombrar también se puede deshacer
+  p.name = newName;
   if (role) p.role = role;
   emit('parts');
+}
+// Varios nombres de una vez (la IA): un solo paso de deshacer
+export function renameParts(list) {
+  const changes = (list || []).filter((x) => {
+    const p = partById(x.part_id);
+    return p && ((x.name && x.name !== p.name) || (x.role && x.role !== p.role));
+  });
+  if (!changes.length) return;
+  checkpoint();
+  for (const x of changes) renamePart(x.part_id, x.name, x.role, { history: false });
 }
 
 export function toggleVisible(id) {
   const p = partById(id);
   if (p) { p.visible = !p.visible; emit('parts'); }
+}
+// Visibilidad de varias partes a la vez (aislar / ver todo)
+export function setVisibility(map) {
+  let changed = false;
+  for (const p of S.parts) {
+    if (!map.has(p.id)) continue;
+    const v = !!map.get(p.id);
+    if (p.visible !== v) { p.visible = v; changed = true; }
+  }
+  if (changed) emit('parts');
 }
 
 export function mergeParts(ids) {
@@ -250,6 +295,8 @@ export function deletePart(id) {
 }
 
 export function select(ids, additive = false) {
+  // misma selección que ya había: no se avisa (evita redibujar la lista, p. ej. al hacer doble clic para renombrar)
+  if (!additive && ids.length === S.selected.size && ids.every((id) => S.selected.has(id))) return;
   if (!additive) S.selected.clear();
   for (const id of ids) {
     if (additive && S.selected.has(id)) S.selected.delete(id);
@@ -301,10 +348,14 @@ export function autoSegment(mode) {
     applyLabels(label, groups);
     // aplicar los escalones detectados (cortes reales de triángulos)
     const groupParts = r.groups.map((g, i) => S.parts.find((p) => p.name === g.name && p.role === g.role) || S.parts[i]);
+    const splitSets = [];
     for (const sp of r.splits || []) {
       const part = groupParts[sp.group];
-      if (part) splitByHeightInternal(part.id, sp.levels, true);
+      if (!part) continue;
+      const created = splitByHeightInternal(part.id, sp.levels, true);
+      if (created.length) splitSets.push([part.id, ...created]); // de abajo arriba
     }
+    refineNames(splitSets);
     sortPartsByHeight();
     if (S.parts.length < 2) S.notes.push('Pieza de una sola malla sin divisiones evidentes: usa Cortar, Pincel o Relleno para crear partes.');
     S.selected.clear();
@@ -317,6 +368,51 @@ export function autoSegment(mode) {
   emit('parts');
   emit('selection');
   return S.notes;
+}
+
+// Nombres claros tras dividir por escalones: Copa, Columna, Pie... según la forma de cada banda.
+function refineNames(splitSets) {
+  const hasBase = S.parts.some((p) => p.role === 'base' && p.name === 'Base');
+  const box = (id) => {
+    const b = partsBBox([id]);
+    return { w: Math.max(b.maxX - b.minX, b.maxY - b.minY), h: b.maxZ - b.minZ, z: b.minZ };
+  };
+  for (const ids of splitSets) {
+    const dims = ids.map(box);
+    const wMax = Math.max(...dims.map((d) => d.w));
+    ids.forEach((id, i) => {
+      const p = partById(id);
+      if (!p || (p.role === 'base' && p.name === 'Base')) return; // banda de abajo de una pieza única
+      const d = dims[i];
+      const below = dims[i - 1];
+      let name, role;
+      if (i === ids.length - 1) {
+        if (hasBase && below && d.w >= below.w * 1.2) { name = 'Copa'; role = 'copa'; }
+        else { name = hasBase ? 'Figura' : 'Parte superior'; role = 'figura'; }
+      } else if (d.h >= d.w * 0.9 && d.w <= wMax * 0.8) { name = 'Columna'; role = 'columna'; }
+      else if (d.h < d.w * 0.45) { name = i === 0 ? 'Pie' : 'Anillo'; role = 'detalle'; }
+      else { name = 'Cuerpo'; role = 'otro'; }
+      p.name = name;
+      p.role = role;
+    });
+  }
+  // pieza principal sin dividir: nombre según su forma
+  for (const p of S.parts) {
+    if (p.name !== 'Pieza principal') continue;
+    const d = box(p.id);
+    if (d.h < d.w * 0.15) { p.name = 'Placa'; p.role = 'placa'; }
+    else if (d.h > d.w * 1.4) { p.name = 'Figura'; p.role = 'figura'; }
+  }
+  // nombres repetidos: se numeran de abajo arriba
+  const byName = new Map();
+  for (const p of S.parts) {
+    if (!byName.has(p.name)) byName.set(p.name, []);
+    byName.get(p.name).push(p);
+  }
+  for (const [name, list] of byName) {
+    if (list.length < 2) continue;
+    list.map((p) => [p, box(p.id).z]).sort((a, b) => a[1] - b[1]).forEach(([p], i) => (p.name = `${name} ${i + 1}`));
+  }
 }
 
 // Ordena la lista como "capas": lo más alto arriba (el texto/relieve justo encima de su soporte).

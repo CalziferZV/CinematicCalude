@@ -6,3 +6,6 @@ data/cache/
 build/
 dist/
 .cache/
+data/prefs.json
+data/prefs.json.tmp
+data/exportados/

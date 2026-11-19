@@ -2,11 +2,14 @@
 import * as ST from './state.js';
 import * as V from './viewer.js';
 import * as MC from './meshcore.js';
-import { initCatalog, filamentKey, setActiveKey, escapeHtml } from './catalog.js';
+import { initCatalog, filamentKey, setActiveKey, escapeHtml, isFavorite, isOwned, toggleFavorite, toggleOwned, pushRecent, equivalents, ownedSpools } from './catalog.js';
 import { loadFile, parseBuffer } from './loaders.js';
 import * as EX from './exporters.js';
 import { initAI } from './ai.js';
 import { swatchCss } from './materials.js';
+import * as Q from './quote.js';
+import { recordTurntable, videoSupport } from './video.js';
+import { onPrefChange, loadPrefs, getPref, setPref } from './prefs.js';
 
 const { S } = ST;
 const $ = (id) => document.getElementById(id);
@@ -45,6 +48,7 @@ async function openFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   await busy(`Cargando ${file.name}…`, async () => {
     const buf = await file.arrayBuffer();
+    isolated = null;
     if (ext === 'fsproj' || ext === 'json') {
       const d = EX.parseProject(buf);
       V.resetCameraOnNextLoad();
@@ -73,8 +77,11 @@ async function openSample(name) {
 }
 
 // ---------------------------------------------------------------- partes
+let renamePending = false;
 function renderParts() {
   const list = $('partsList');
+  // renombrando una parte: no redibujar hasta terminar (se perdería lo que se está escribiendo)
+  if (list.querySelector('input.rename')) { renamePending = true; return; }
   $('emptyState').hidden = !!S.mesh;
   $('fileName').textContent = S.mesh ? S.modelName : 'Sin modelo';
   if (!S.mesh) { list.innerHTML = '<div class="empty-small">Abre un modelo para empezar</div>'; return; }
@@ -88,6 +95,7 @@ function renderParts() {
     el.className = 'part' + (S.selected.has(p.id) ? ' selected' : '') + (p.visible ? '' : ' hidden-part');
     el.dataset.id = p.id;
     const pct = ((100 * (areas.get(p.id) || 0)) / total).toFixed(1);
+    el.title = `${p.name}${ROLE_LABEL[p.role] ? ` (${ROLE_LABEL[p.role]})` : ''}\n${f.blank ? 'Sin color' : `${f.brandName || ''} · ${f.line || ''} · ${f.name}`}\n${pct}% de la superficie`;
     el.innerHTML = `
       <div class="sw" style="background:${swatchCss(p.filament)}"></div>
       <div class="info">
@@ -109,7 +117,16 @@ function renderParts() {
       nameEl.replaceWith(inp);
       inp.focus();
       inp.select();
-      const done = (save) => { if (save && inp.value.trim()) ST.renamePart(p.id, inp.value.trim()); else renderParts(); };
+      let finished = false;
+      const done = (save) => {
+        if (finished) return;
+        finished = true;
+        const v = inp.value.trim();
+        inp.remove(); // fuera el cuadro de texto antes de redibujar la lista
+        renamePending = false;
+        if (save && v && v !== p.name) ST.renamePart(p.id, v);
+        renderParts();
+      };
       inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') done(true); if (ev.key === 'Escape') done(false); ev.stopPropagation(); });
       inp.addEventListener('blur', () => done(true));
     });
@@ -117,6 +134,11 @@ function renderParts() {
     el.addEventListener('mouseleave', () => V.setHover(null));
     list.appendChild(el);
   }
+  if (scrollToSelection) {
+    scrollToSelection = false;
+    list.querySelector('.part.selected')?.scrollIntoView({ block: 'nearest' });
+  }
+  $('btnIsolate').classList.toggle('active', !!isolated);
   renderPalette();
   renderPresentBar();
   renderStats();
@@ -139,11 +161,13 @@ function renderPalette() {
   if (!used.size) { el.innerHTML = '<span class="muted">Aún no hay colores asignados</span>'; return; }
   el.innerHTML = '';
   let i = 1;
+  const haveSpools = ownedSpools().length > 0;
   for (const { f, ids } of used.values()) {
     const b = document.createElement('div');
     b.className = 'pal';
-    b.title = `${f.brandName} · ${f.line} · ${f.name} (${f.hex})\nClic: seleccionar las partes con este color`;
-    b.innerHTML = `<i style="background:${swatchCss(f)}"></i><span>${i++}. ${escapeHtml(f.name)}</span>`;
+    const missing = haveSpools && !isOwned(f);
+    b.title = `${f.brandName} · ${f.line} · ${f.name} (${f.hex})${missing ? '\n⚠ No está en «Mis bobinas»' : ''}\nClic: seleccionar las partes con este color`;
+    b.innerHTML = `<i style="background:${swatchCss(f)}"></i><span>${i++}. ${escapeHtml(f.name)}${missing ? ' <em class="miss">⚠</em>' : ''}</span>`;
     b.addEventListener('click', () => { ST.select(ids); setActive(f, false); });
     el.appendChild(b);
   }
@@ -174,7 +198,9 @@ function renderStats() {
 // ---------------------------------------------------------------- color activo
 function setActive(fil, applyToSelection = true) {
   S.activeFilament = fil;
+  pushRecent(fil);
   setActiveKey(filamentKey(fil));
+  renderActiveExtras(fil);
   $('activeFil').innerHTML = `<div class="big" style="background:${swatchCss(fil)}"></div><div><div class="t1">${escapeHtml(fil.name)}</div><div class="t2">${escapeHtml(`${fil.brandName} · ${fil.line}`)}<br>${fil.hexes ? fil.hexes.join(' · ') : fil.hex}${fil.code ? ` · ${fil.code}` : ''}</div></div>`;
   if (applyToSelection && S.mesh) {
     if (S.selected.size) {
@@ -182,6 +208,44 @@ function setActive(fil, applyToSelection = true) {
       toast(`${fil.name} aplicado a ${S.selected.size === 1 ? ST.partById([...S.selected][0])?.name : S.selected.size + ' partes'}`);
     } else hint('Color activo listo: haz clic en una parte para aplicarlo, o usa el pincel / relleno', 3000);
   }
+}
+
+// Debajo del color activo: favorito, "la tengo" y colores equivalentes de otras marcas / tus bobinas
+let eqToken = 0;
+function renderActiveExtras(fil) {
+  const box = $('activeExtras');
+  if (!fil || fil.blank) { box.innerHTML = ''; return; }
+  const fav = isFavorite(fil), own = isOwned(fil);
+  box.innerHTML = `<div class="ae-toggles">
+      <button class="btn small fav${fav ? ' on' : ''}" id="aeFav" title="Favoritos: siempre a mano encima del catálogo (también con clic derecho en cualquier color)">${fav ? '★ Favorito' : '☆ Favorito'}</button>
+      <button class="btn small${own ? ' on' : ''}" id="aeOwn" title="Márcalo si tienes esta bobina en el taller: aparecerá en «Mis bobinas»">${own ? '🧵 La tengo ✓' : '🧵 La tengo'}</button>
+    </div><div class="ae-eq" id="aeEq"></div>`;
+  $('aeFav').addEventListener('click', () => {
+    const on = toggleFavorite(fil);
+    toast(on ? `★ ${fil.name} añadido a favoritos` : `${fil.name} quitado de favoritos`);
+    renderActiveExtras(fil);
+  });
+  $('aeOwn').addEventListener('click', () => {
+    const on = toggleOwned(fil);
+    toast(on ? `🧵 ${fil.name} añadida a «Mis bobinas»` : `${fil.name} quitada de «Mis bobinas»`);
+    renderActiveExtras(fil);
+    renderPalette();
+  });
+  const token = ++eqToken;
+  equivalents(fil).then(({ mine, others }) => {
+    const el = $('aeEq');
+    if (token !== eqToken || !el) return;
+    const all = [];
+    const item = (x, mineCls) => {
+      all.push(x.f);
+      return `<button class="eq${mineCls ? ' mine' : ''}" data-i="${all.length - 1}" title="${escapeHtml(`${x.f.brandName} · ${x.f.line} · ${x.f.name} (${x.f.hex})\nDiferencia de color ΔE ${x.d.toFixed(1)}: ${x.label}\nClic: usar este color`)}"><i style="background:${swatchCss(x.f)}"></i><span class="eq-n">${escapeHtml(`${x.f.brandName} · ${x.f.name}`)}</span><span class="eq-d">${x.label}</span></button>`;
+    };
+    let html = '';
+    if (!own && mine.length) html += `<div class="ae-t">🧵 Lo más parecido que tienes</div><div class="eq-list">${mine.map((x) => item(x, true)).join('')}</div>`;
+    if (others.length) html += `<div class="ae-t"${html ? ' style="margin-top:6px"' : ''}>Equivalentes en otras marcas</div><div class="eq-list">${others.map((x) => item(x, false)).join('')}</div>`;
+    el.innerHTML = html;
+    el.querySelectorAll('.eq').forEach((b) => b.addEventListener('click', () => setActive(all[+b.dataset.i], true)));
+  }).catch(() => {});
 }
 
 // ---------------------------------------------------------------- herramientas
@@ -216,6 +280,61 @@ function setMoveMode(mode) {
   document.querySelectorAll('[data-move-mode]').forEach((b) => b.classList.toggle('active', b.dataset.moveMode === mode));
 }
 
+// Cuentagotas: el siguiente clic en la pieza copia el color de esa parte
+let eyedrop = false;
+function setEyedrop(on) {
+  eyedrop = on && !!S.mesh;
+  document.body.classList.toggle('eyedrop', eyedrop);
+  if (eyedrop) hint('Cuentagotas: haz clic en una parte para copiar su color (Esc para cancelar)', 4000);
+}
+function eyedropAt(hit) {
+  setEyedrop(false);
+  const p = hit && ST.partById(hit.partId);
+  if (!p) return;
+  if (!p.filament) { hint(`«${p.name}» aún no tiene color`); return; }
+  setActive(p.filament, false);
+  toast(`💧 Color copiado de «${p.name}»: ${p.filament.name}. Selecciona otra parte y pulsa «Aplicar a selección» (o Alt+clic)`, 4200);
+}
+
+// Aislar: ver solo la selección (vuelve a pulsar para ver todo como estaba)
+let isolated = null;
+function toggleIsolate() {
+  if (!S.mesh) return;
+  if (isolated) {
+    ST.setVisibility(isolated);
+    isolated = null;
+    hint('Mostrando todas las partes');
+    renderParts();
+    return;
+  }
+  if (!S.selected.size) return toast('Selecciona la parte (o partes) que quieres ver sola');
+  isolated = new Map(S.parts.map((p) => [p.id, p.visible]));
+  ST.setVisibility(new Map(S.parts.map((p) => [p.id, S.selected.has(p.id)])));
+  hint('Viendo solo la selección · H o «Aislar» para ver todo');
+  renderParts();
+}
+
+// Tab: saltar a la siguiente parte sin color (Mayús+Tab: la anterior)
+let scrollToSelection = false;
+function selectNextUncolored(dir = 1) {
+  if (!S.mesh) return;
+  const order = S.parts.filter((p) => p.visible);
+  if (!order.length) return;
+  const pending = order.filter((p) => !p.filament);
+  const pool = new Set((pending.length ? pending : order).map((p) => p.id));
+  const cur = [...S.selected][0];
+  let idx = order.findIndex((p) => p.id === cur);
+  if (idx < 0) idx = dir > 0 ? -1 : order.length;
+  for (let step = 1; step <= order.length; step++) {
+    const p = order[(((idx + dir * step) % order.length) + order.length) % order.length];
+    if (!pool.has(p.id)) continue;
+    scrollToSelection = true;
+    ST.select([p.id]);
+    hint(pending.length ? `${p.name} · quedan ${pending.length} ${pending.length === 1 ? 'parte' : 'partes'} sin color` : `${p.name} · todas las partes tienen color ✓`, 2600);
+    return;
+  }
+}
+
 function paintTarget() {
   if (S.selected.size === 1) return [...S.selected][0];
   const fil = S.activeFilament;
@@ -232,7 +351,7 @@ let downPos = null;
 function onPointerDown(e) {
   downPos = { x: e.clientX, y: e.clientY };
   if (!S.mesh || e.button !== 0) return;
-  if (S.tool === 'brush') {
+  if (S.tool === 'brush' && !eyedrop) {
     const hit = V.pick(e.clientX, e.clientY);
     if (!hit) return;
     V.getControls().enabled = false;
@@ -254,11 +373,11 @@ function onPointerMove(e) {
   if (moveRaf) return;
   moveRaf = requestAnimationFrame(() => {
     moveRaf = 0;
-    if (S.tool === 'brush') {
+    if (S.tool === 'brush' && !eyedrop) {
       const hit = V.pick(e.clientX, e.clientY);
       V.showBrush(hit?.point, hit?.normal, S.brushRadius);
       if (painting && hit) paintAt(hit);
-    } else if (S.tool === 'select' || S.tool === 'fill' || S.tool === 'move') {
+    } else if (eyedrop || S.tool === 'select' || S.tool === 'fill' || S.tool === 'move') {
       if (e.buttons) return;
       const hit = V.pick(e.clientX, e.clientY);
       V.setHover(hit ? hit.partId : null);
@@ -277,6 +396,7 @@ function onPointerUp(e) {
   downPos = null;
   if (moved || V.isGizmoBusy()) return;
   const hit = V.pick(e.clientX, e.clientY);
+  if (eyedrop) { eyedropAt(hit); return; }
   if (S.tool === 'select' || S.tool === 'move') {
     if (!hit) { if (!e.shiftKey) ST.select([]); return; }
     if (S.tool === 'select' && S.activeFilament && (e.altKey || $('clickApply').checked)) {
@@ -394,7 +514,12 @@ function bind() {
   $('fillAngle').addEventListener('input', (e) => { S.fillAngle = +e.target.value; $('fillAngleOut').textContent = `${S.fillAngle}°`; });
   $('cutZ').addEventListener('input', (e) => setCutZ(snapZ(+e.target.value), 'range'));
   $('cutZNum').addEventListener('change', (e) => setCutZ(+e.target.value, 'num'));
-  $('layerHeight').addEventListener('change', (e) => { S.layerHeight = parseFloat(e.target.value) || 0.2; setCutZ(snapZ(S.cutZ)); });
+  $('layerHeight').addEventListener('change', (e) => {
+    S.layerHeight = parseFloat(e.target.value) || 0.2;
+    setCutZ(snapZ(S.cutZ));
+    Q.saveSettings({ layerHeight: S.layerHeight }); // misma altura de capa para el presupuesto y las líneas
+    V.setLayerLines($('layerLines').checked, S.layerHeight);
+  });
   $('btnCut').addEventListener('click', () => {
     if (!S.mesh) return;
     const b = ST.topo().bbox;
@@ -420,15 +545,16 @@ function bind() {
 
   // modelo
   document.querySelectorAll('[data-rot]').forEach((b) => b.addEventListener('click', () => { ST.rotateModel(b.dataset.rot, 90); V.fitView('iso'); }));
-  $('btnScale').addEventListener('click', () => {
-    if (!S.mesh) return;
-    const t = ST.topo();
-    const h = (t.bbox.maxZ - t.bbox.minZ).toFixed(1);
-    const v = prompt(`Escala en % (100 = igual). También puedes escribir la altura final en mm, p. ej. "120mm". Altura actual: ${h} mm`, '100');
-    if (!v) return;
-    const f = /mm$/i.test(v.trim()) ? parseFloat(v) / parseFloat(h) : parseFloat(v.replace(',', '.')) / 100;
-    if (f > 0) { ST.scaleModel(f); V.fitView('iso'); }
+  $('btnScale').addEventListener('click', openScaleDialog);
+  ['scX', 'scY', 'scZ'].forEach((id, axis) => $(id).addEventListener('input', () => scaleFromAxis(axis, $(id).value)));
+  $('scP').addEventListener('input', () => {
+    const k = parseFloat(String($('scP').value).replace(',', '.')) / 100;
+    if (k > 0) setScaleFactors([k, k, k], 'scP');
   });
+  $('scLock').addEventListener('change', () => { if ($('scLock').checked) setScaleFactors([scaleF[2], scaleF[2], scaleF[2]]); });
+  document.querySelectorAll('[data-scp]').forEach((b) => b.addEventListener('click', () => { const k = +b.dataset.scp / 100; setScaleFactors([k, k, k]); }));
+  $('scApply').addEventListener('click', applyScale);
+  $('scaleModal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyScale(); } });
   $('btnSubdivide').addEventListener('click', () => {
     if (!S.mesh) return;
     const size = parseFloat($('subdivSize').value);
@@ -439,6 +565,11 @@ function bind() {
     });
   });
   $('showBoundaries').addEventListener('change', (e) => V.setShowBoundaries(e.target.checked));
+  $('layerLines').addEventListener('change', (e) => {
+    setPref('layerLines', e.target.checked);
+    V.setLayerLines(e.target.checked, S.layerHeight);
+    if (e.target.checked) hint('Acércate a la pieza para ver las líneas de capa', 3000);
+  });
   $('bgSelect').addEventListener('change', (e) => V.setBackground(e.target.value));
 
   // vistas
@@ -470,7 +601,9 @@ function bind() {
       if (!S.mesh) return toast('No hay modelo');
       const kind = b.dataset.export;
       try {
-        if (kind === 'png') EX.exportPNG();
+        if (kind === 'openbambu' || kind === 'openorca') await openInSlicer(kind === 'openbambu' ? 'bambu' : 'orca');
+        else if (kind === 'video') openVideoDialog();
+        else if (kind === 'png') EX.exportPNG();
         else if (kind === 'copy') { await EX.copyPNG(); toast('Imagen copiada: pégala en el chat de la videollamada'); }
         else if (kind === 'compare') EX.exportCompare();
         else if (kind === '3mf') showSlotGuide(EX.export3MF('bambu'), '3mf');
@@ -516,6 +649,31 @@ function bind() {
   // modo cliente
   $('btnPresent').addEventListener('click', togglePresent);
 
+  // vídeo 360°
+  $('videoStart').addEventListener('click', startVideo);
+  const cancelVideo = () => { if (videoAbort) videoAbort.abort(); else $('videoModal').hidden = true; };
+  $('videoCancel').addEventListener('click', cancelVideo);
+  $('videoCancel0').addEventListener('click', cancelVideo);
+  $('videoX').addEventListener('click', cancelVideo);
+
+  // presupuesto
+  $('btnQuote').addEventListener('click', () => toggleQuote());
+  $('quoteClose').addEventListener('click', () => toggleQuote(false));
+  $('priceChip').addEventListener('click', () => toggleQuote(true));
+  $('qShowClient').addEventListener('change', (e) => Q.saveSettings({ showClient: e.target.checked }));
+  $('qCopy').addEventListener('click', async () => {
+    const q = lastQuote || (S.mesh && Q.computeQuote());
+    if (!q) return toast('Abre un modelo primero');
+    try { await navigator.clipboard.writeText(Q.clientMessage(q)); toast('Mensaje copiado: pégalo en WhatsApp'); } catch { toast('No se pudo copiar'); }
+  });
+
+  // atajos, cuentagotas, aislar
+  $('btnHelp').addEventListener('click', () => ($('helpModal').hidden = false));
+  $('btnEyedrop').addEventListener('click', () => setEyedrop(!eyedrop));
+  $('btnIsolate').addEventListener('click', toggleIsolate);
+  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => ($(b.dataset.close).hidden = true)));
+  document.querySelectorAll('.modal').forEach((m) => m.addEventListener('click', (e) => { if (e.target === m && m.id !== 'videoModal') m.hidden = true; }));
+
   // propuestas
   $('btnSaveVariant').addEventListener('click', () => {
     const n = ST.saveVariant();
@@ -524,8 +682,18 @@ function bind() {
 
   // teclado
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('slotModal').hidden) { $('slotModal').hidden = true; return; }
+    if (e.key === 'Escape') {
+      const open = [...document.querySelectorAll('.modal')].reverse().find((m) => !m.hidden);
+      if (open) { if (open.id !== 'videoModal') open.hidden = true; return; }
+      if (eyedrop) { setEyedrop(false); return; }
+    }
     if (e.target.matches('input, textarea, select')) return;
+    if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if ([...document.querySelectorAll('.modal')].some((m) => !m.hidden)) return;
+      e.preventDefault();
+      selectNextUncolored(e.shiftKey ? -1 : 1);
+      return;
+    }
     const k = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? ST.redo() : ST.undo(); return; }
     if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); ST.redo(); return; }
@@ -539,6 +707,11 @@ function bind() {
     else if (k === 'r' && S.tool === 'move') setMoveMode('rotate');
     else if (k === 'p') togglePresent();
     else if (k === 'l') toggleLayers();
+    else if (k === 'i') setEyedrop(!eyedrop);
+    else if (k === 'h') toggleIsolate();
+    else if (k === 's') openScaleDialog();
+    else if (k === 'q') toggleQuote();
+    else if (k === '?') $('helpModal').hidden = false;
     else if (k === 'escape') ST.select([]);
     else if (k === '[' || k === ']') {
       S.brushRadius = Math.max(0.5, Math.min(30, S.brushRadius * (k === ']' ? 1.25 : 0.8)));
@@ -548,6 +721,135 @@ function bind() {
       hint(`Pincel: ${S.brushRadius} mm`);
     } else if (k === 'delete' && S.selected.size) for (const id of [...S.selected]) ST.deletePart(id);
     else if ('1234567'.includes(k)) V.fitView(['iso', 'front', 'back', 'left', 'right', 'top', 'bottom'][+k - 1]);
+  });
+}
+
+// ---------------------------------------------------------------- abrir en el laminador
+async function openInSlicer(slicer) {
+  const name = slicer === 'bambu' ? 'Bambu Studio' : 'OrcaSlicer';
+  await busy(`Abriendo ${name}…`, async () => {
+    const r = await EX.openInSlicer(slicer);
+    const where = r.file ? `Guardado en: ${r.file}` : '';
+    if (r.launched === 'slicer') toast(`Abriendo ${name}… ${where}`, 6000);
+    else if (r.launched === 'default') toast(`No encuentro ${name} instalado: lo abro con el programa predeterminado. ${where}`, 8000);
+    else toast(`No encuentro ${name}: te abro la carpeta con el archivo. ${where}`, 8000);
+    showSlotGuide(r.list, slicer === 'bambu' ? '3mf' : '3mfpaint', r);
+  });
+}
+
+// ---------------------------------------------------------------- vídeo 360°
+let videoAbort = null;
+function openVideoDialog() {
+  const sup = videoSupport();
+  if (!sup) return toast('Este navegador no puede grabar vídeo. Abre la app en Chrome o Edge.', 5000);
+  $('videoOpts').hidden = false;
+  $('videoProgress').hidden = true;
+  $('videoStart').textContent = `● Grabar ${sup.ext.toUpperCase()}`;
+  $('videoModal').hidden = false;
+}
+async function startVideo() {
+  const [w, h] = $('videoFormat').value.split('x').map(Number);
+  const seconds = +$('videoSecs').value;
+  $('videoOpts').hidden = true;
+  $('videoProgress').hidden = false;
+  $('videoBar').style.width = '0%';
+  $('videoText').textContent = 'Grabando la vuelta… no cambies de pestaña hasta que termine.';
+  videoAbort = new AbortController();
+  try {
+    const r = await recordTurntable({
+      width: w, height: h, seconds, caption: $('videoCaption').checked, signal: videoAbort.signal,
+      onProgress: (k) => { $('videoBar').style.width = `${Math.round(k * 100)}%`; },
+    });
+    if (!r) { toast('Vídeo cancelado'); return; }
+    const base = (S.modelName || 'modelo').replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.blob);
+    a.download = `${base}_360.${r.ext}`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast(r.ext === 'mp4' ? `Vídeo listo (${(r.blob.size / 1048576).toFixed(1)} MB): envíalo por WhatsApp` : 'Vídeo listo en WebM. Si WhatsApp no lo acepta como vídeo, envíalo como documento.', 6000);
+  } catch (e) {
+    console.error(e);
+    toast(`No se pudo grabar el vídeo: ${e.message}`, 6000);
+  } finally {
+    videoAbort = null;
+    $('videoModal').hidden = true;
+  }
+}
+
+// ---------------------------------------------------------------- presupuesto instantáneo
+let quoteTimer = 0;
+let lastQuote = null;
+function scheduleQuote() {
+  clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(updateQuote, 250);
+}
+function updateQuote() {
+  try { lastQuote = S.mesh ? Q.computeQuote() : null; } catch (e) { console.error(e); lastQuote = null; }
+  const chip = $('priceChip');
+  chip.hidden = !lastQuote;
+  if (lastQuote) chip.innerHTML = Q.chipHtml(lastQuote);
+  if (!$('quotePanel').hidden) Q.renderPanel($('quoteBody'), lastQuote);
+  const set = Q.settings();
+  $('qShowClient').checked = !!set.showClient;
+  document.body.classList.toggle('show-price', !!set.showClient);
+}
+function toggleQuote(force) {
+  const on = force ?? $('quotePanel').hidden;
+  $('quotePanel').hidden = !on;
+  $('btnQuote').classList.toggle('active', on);
+  if (on) { clearTimeout(quoteTimer); updateQuote(); }
+}
+
+// ---------------------------------------------------------------- tamaño en mm
+let scaleBase = [1, 1, 1];
+let scaleF = [1, 1, 1];
+function openScaleDialog() {
+  if (!S.mesh) return toast('Primero abre un modelo');
+  const b = ST.topo().bbox;
+  scaleBase = [b.maxX - b.minX, b.maxY - b.minY, b.maxZ - b.minZ];
+  $('scLock').checked = true;
+  setScaleFactors([1, 1, 1]);
+  $('scaleModal').hidden = false;
+  setTimeout(() => { $('scZ').focus(); $('scZ').select(); }, 30);
+}
+function scaleFromAxis(axis, value) {
+  const v = parseFloat(String(value).replace(',', '.'));
+  if (!(v > 0)) return;
+  const k = v / scaleBase[axis];
+  if ($('scLock').checked) setScaleFactors([k, k, k], ['scX', 'scY', 'scZ'][axis]);
+  else { const f = scaleF.slice(); f[axis] = k; setScaleFactors(f, ['scX', 'scY', 'scZ'][axis]); }
+}
+let scaleRaf = 0;
+function setScaleFactors(f, skip) {
+  scaleF = f;
+  ['scX', 'scY', 'scZ'].forEach((id, i) => { if (id !== skip) $(id).value = +(scaleBase[i] * f[i]).toFixed(1); });
+  const uniform = Math.abs(f[0] - f[1]) < 1e-6 && Math.abs(f[1] - f[2]) < 1e-6;
+  if (skip !== 'scP') $('scP').value = uniform ? +(f[0] * 100).toFixed(1) : '';
+  cancelAnimationFrame(scaleRaf);
+  scaleRaf = requestAnimationFrame(() => {
+    const size = scaleBase.map((v, i) => v * f[i]);
+    const max = Math.max(...size);
+    let html = '';
+    try {
+      const q = Q.computeQuote({ scale: f });
+      if (q) html = `Con este tamaño: <b>${Q.eur(q.price)}</b> · ${Q.grams(q.grams + q.purgeGrams)} · ${Q.duration(q.hours)}${lastQuote && Math.abs(q.price - lastQuote.price) > 0.001 ? ` <span class="muted">(ahora ${Q.eur(lastQuote.price)})</span>` : ''}`;
+    } catch (e) { console.error(e); }
+    if (max > 256) html += '<br>⚠ Más de 256 mm: no cabe en la cama de una Bambu Lab X1, P1 o A1 (habría que partirla).';
+    else if (max > 180) html += '<br>Ojo: más de 180 mm no cabe en una A1 mini.';
+    $('scQuote').innerHTML = html;
+  });
+}
+function applyScale() {
+  const f = scaleF;
+  $('scaleModal').hidden = true;
+  if (f.some((v) => !(v > 0)) || f.every((v) => Math.abs(v - 1) < 1e-6)) return;
+  busy('Cambiando el tamaño…', () => {
+    ST.scaleModelXYZ(f[0], f[1], f[2]);
+    V.fitView('iso');
+    const b = ST.topo().bbox;
+    toast(`Nuevo tamaño: ${(b.maxX - b.minX).toFixed(1)} × ${(b.maxY - b.minY).toFixed(1)} × ${(b.maxZ - b.minZ).toFixed(1)} mm`);
   });
 }
 
@@ -572,7 +874,7 @@ function updateLayerClip(fromUser) {
 }
 
 // ---------------------------------------------------------------- guía: qué color va en cada filamento del laminador
-function showSlotGuide(list, kind) {
+function showSlotGuide(list, kind, opened = null) {
   const text = [];
   const n = list.length;
   const G = {
@@ -605,8 +907,8 @@ function showSlotGuide(list, kind) {
       ],
     },
   }[kind] || {};
-  $('slotTitle').textContent = G.title || 'Exportado';
-  $('slotIntro').textContent = G.intro || '';
+  $('slotTitle').textContent = opened ? `Abriendo en ${opened.slicer}` : G.title || 'Exportado';
+  $('slotIntro').textContent = (opened && opened.file ? `Archivo guardado en ${opened.file}. ` : '') + (G.intro || '');
   $('slotList').innerHTML = list.map((e, i) => {
     const f = e.fil;
     const hex = EX.flatHex(f);
@@ -616,7 +918,16 @@ function showSlotGuide(list, kind) {
     return `<div class="slot"><div class="num" style="background:${hex};color:${light ? '#000' : '#fff'}">${i + 1}</div><div class="sw" style="background:${swatchCss(f.blank ? null : f)}"></div><div class="grow"><div class="t1">${escapeHtml(label)}</div><div class="t2">${hex}${f.code ? ` · código ${escapeHtml(f.code)}` : ''} · ${e.parts.map((p) => escapeHtml(p.name)).slice(0, 4).join(', ')}${e.parts.length > 4 ? '…' : ''}</div></div></div>`;
   }).join('');
   $('slotList').dataset.text = text.join('\n');
-  $('slotSteps').innerHTML = (G.steps || []).map((x) => `<li>${x}</li>`).join('');
+  const steps = (G.steps || []).slice();
+  if (opened && steps.length) {
+    const n = escapeHtml(opened.slicer);
+    steps[0] = opened.launched === 'slicer'
+      ? `${n} se está abriendo con el archivo (puede tardar unos segundos). ${kind === '3mf' ? 'El aviso «El 3mf no es de Bambu Lab, solo se cargan los datos de geometría y color» es normal.' : ''}`
+      : opened.launched === 'default'
+        ? `No he encontrado ${n} instalado en su carpeta habitual: el archivo se ha abierto con el programa que Windows usa para los .3mf. Si no es ${n}, ábrelo desde ${n} con <b>Archivo → Abrir proyecto</b>.`
+        : `Te he abierto la carpeta con el archivo: arrástralo a la ventana de ${n}.`;
+  }
+  $('slotSteps').innerHTML = steps.map((x) => `<li>${x}</li>`).join('');
   $('slotModal').hidden = false;
 }
 
@@ -695,7 +1006,7 @@ async function offerRecover() {
   const b = document.createElement('button');
   b.className = 'btn';
   b.textContent = `↺ Recuperar «${last.name}» (${when})`;
-  b.addEventListener('click', () => { V.resetCameraOnNextLoad(); ST.loadProject(last); toast('Trabajo recuperado'); });
+  b.addEventListener('click', () => { isolated = null; V.resetCameraOnNextLoad(); ST.loadProject(last); toast('Trabajo recuperado'); });
   $('recoverBox').appendChild(b);
 }
 
@@ -729,7 +1040,28 @@ ST.on('parts', () => { renderVariants(); scheduleAutosave(); });
 ST.on('mesh', () => { renderVariants(); scheduleAutosave(); });
 ST.on('variants', () => { renderVariants(); scheduleAutosave(); });
 offerRecover();
-initCatalog((fil) => setActive(fil, true));
+initCatalog((fil) => setActive(fil, true), { notify: toast });
+loadPrefs().then(() => {
+  // altura de capa compartida (presupuesto, cortes, líneas de capa) y líneas de capa guardadas
+  S.layerHeight = Q.settings().layerHeight || 0.2;
+  $('layerHeight').value = S.layerHeight;
+  $('layerLines').checked = !!getPref('layerLines', false);
+  V.setLayerLines($('layerLines').checked, S.layerHeight);
+  updateQuote();
+});
+ST.on('parts', scheduleQuote);
+ST.on('mesh', scheduleQuote);
+onPrefChange((k) => {
+  if (k === 'quote' || k === 'spools') scheduleQuote();
+  if (k === 'quote') {
+    const lh = Q.settings().layerHeight;
+    if (lh > 0 && Math.abs(lh - S.layerHeight) > 1e-9) {
+      S.layerHeight = lh;
+      $('layerHeight').value = lh;
+      V.setLayerLines($('layerLines').checked, lh);
+    }
+  }
+});
 initAI();
 setTool('select');
-window.FS = { S, ST, V, EX }; // para depurar desde la consola
+window.FS = { S, ST, V, EX, Q, VID: { recordTurntable, videoSupport } }; // para depurar desde la consola

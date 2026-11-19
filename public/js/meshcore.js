@@ -688,28 +688,50 @@ export function smartSegment(pos, topo) {
     return id;
   };
 
-  // grupos de piezas grandes
-  let idx = 1;
-  for (const i of bigShells) {
+  // grupos de piezas grandes (se numeran solo si hay varias del mismo tipo)
+  const base = baseShell >= 0 ? st[baseShell] : null;
+  const kinds = bigShells.map((i) => {
     const s = st[i];
     const h = s.maxZ - s.minZ;
     const w = Math.max(s.maxX - s.minX, s.maxY - s.minY);
-    let name, role;
-    if (i === baseShell) { name = 'Base'; role = 'base'; }
-    else if (bigShells.length === 1) { name = 'Pieza principal'; role = 'figura'; }
-    else if (h > w * 1.4) { name = `Figura / columna ${idx++}`; role = 'figura'; }
-    else if (h < w * 0.15) { name = `Placa ${idx++}`; role = 'placa'; }
-    else { name = `Pieza ${idx++}`; role = 'otro'; }
+    if (i === baseShell) return ['Base', 'base'];
+    if (bigShells.length === 1) return ['Pieza principal', 'figura'];
+    if (h > w * 1.4) return ['Figura', 'figura'];
+    if (h < w * 0.15) {
+      // tapa: pieza plana apoyada encima de la base y con la misma huella (caja con tapa)
+      if (base && Math.abs(s.minZ - base.maxZ) < H * 0.03) {
+        const fw = (s.maxX - s.minX) / Math.max(base.maxX - base.minX, 1e-6), fd = (s.maxY - s.minY) / Math.max(base.maxY - base.minY, 1e-6);
+        if (fw > 0.93 && fw < 1.1 && fd > 0.93 && fd < 1.1) return ['Tapa', 'placa'];
+      }
+      return ['Placa', 'placa'];
+    }
+    return ['Pieza', 'otro'];
+  });
+  const total = new Map(), seen = new Map();
+  for (const [n] of kinds) total.set(n, (total.get(n) || 0) + 1);
+  bigShells.forEach((i, k) => {
+    const [n, role] = kinds[k];
+    seen.set(n, (seen.get(n) || 0) + 1);
+    const name = total.get(n) > 1 ? `${n} ${seen.get(n)}` : n;
     const gid = addGroup(name, role, (f) => sh.label[f] === i);
     if (gid >= 0) groups[gid].shell = i;
-  }
-  // piezas pequeñas: agruparlas todas como "Texto / detalles" si son muchas; si pocas, por separado
+  });
+  // piezas pequeñas: si parecen letras (finas y en un mismo plano) son "Texto"; si no, detalles
   if (smallShells.length >= 3) {
     const set = new Set(smallShells);
-    addGroup('Texto / detalles', 'texto', (f) => set.has(sh.label[f]));
+    const letters = looksLikeLetters(smallShells.map((i) => st[i]));
+    addGroup(letters ? 'Texto' : 'Detalles', letters ? 'texto' : 'detalle', (f) => set.has(sh.label[f]));
+    if (letters) notes[notes.length - 1] = `${smallShells.length} letras o símbolos sueltos: agrupados como «Texto»`;
   } else {
+    // pomo / asa: pieza pequeña encima de una tapa
+    const lidK = kinds.findIndex((k) => k[0] === 'Tapa');
+    const lid = lidK >= 0 ? st[bigShells[lidK]] : null;
+    const onLid = (s) => lid && Math.abs(s.minZ - lid.maxZ) < H * 0.05 && s.cx > lid.minX && s.cx < lid.maxX && s.cy > lid.minY && s.cy < lid.maxY;
     let d = 1;
-    for (const i of smallShells) addGroup(`Detalle ${d++}`, 'detalle', (f) => sh.label[f] === i);
+    for (const i of smallShells) {
+      const name = onLid(st[i]) ? 'Pomo' : smallShells.length > 1 ? `Detalle ${d++}` : 'Detalle';
+      addGroup(name, 'detalle', (f) => sh.label[f] === i);
+    }
   }
 
   // ---- 3) dentro de la pieza principal (si es una sola malla), buscar relieve/texto y escalones
@@ -745,6 +767,30 @@ export function smartSegment(pos, topo) {
   }
   for (let f = 0; f < nF; f++) if (label[f] === -1) label[f] = 0;
   return { label, groups, notes, splits };
+}
+
+// ¿Las piezas sueltas parecen letras? Finas en una misma dirección y alineadas en un plano
+// (texto en relieve sobre la cara de una base o de una placa).
+function looksLikeLetters(list) {
+  if (list.length < 3) return false;
+  const axisCount = [0, 0, 0];
+  for (const s of list) {
+    const d = [s.maxX - s.minX, s.maxY - s.minY, s.maxZ - s.minZ];
+    const a = d.indexOf(Math.min(...d));
+    const others = d.filter((_, k) => k !== a);
+    if (d[a] < Math.max(...others) * 0.6) axisCount[a]++;
+  }
+  const axis = axisCount.indexOf(Math.max(...axisCount));
+  if (axisCount[axis] < list.length * 0.6) return false;
+  const lo = ['minX', 'minY', 'minZ'][axis], hi = ['maxX', 'maxY', 'maxZ'][axis];
+  // extensión del grupo en las otras dos direcciones y dispersión a lo largo del eje fino
+  const ext = [0, 1, 2].filter((k) => k !== axis).map((k) => {
+    const a = ['minX', 'minY', 'minZ'][k], b = ['maxX', 'maxY', 'maxZ'][k];
+    return Math.max(...list.map((s) => s[b])) - Math.min(...list.map((s) => s[a]));
+  });
+  const mids = list.map((s) => (s[lo] + s[hi]) / 2);
+  const spread = Math.max(...mids) - Math.min(...mids);
+  return spread < Math.max(...ext) * 0.2;
 }
 
 // Relieve: regiones (por aristas vivas) pequeñas, cercanas a un gran plano y dentro de su huella.

@@ -37,21 +37,29 @@
       <button class="btn icon" id="btnRedo" title="Rehacer (Ctrl+Y)" disabled>↷</button>
       <span class="sep"></span>
       <button class="btn" id="btnPresent" title="Modo cliente: oculta los paneles para compartir pantalla (tecla P)">Modo cliente</button>
+      <button class="btn" id="btnQuote" title="Presupuesto instantáneo: peso, tiempo y precio (tecla Q)">€ Presupuesto</button>
       <div class="dropdown">
         <button class="btn" data-dd="exportMenu">Exportar ▾</button>
         <div class="menu right" id="exportMenu">
+          <button data-export="openbambu" class="strong">▶ Abrir en Bambu Studio</button>
+          <button data-export="openorca">▶ Abrir en OrcaSlicer</button>
+          <div class="menu-sep"></div>
           <button data-export="png">Imagen para el cliente (PNG)</button>
           <button data-export="copy">Copiar imagen al portapapeles</button>
           <button data-export="compare">Comparar propuestas A/B/C (PNG)</button>
+          <button data-export="video">Vídeo 360° para WhatsApp (MP4)</button>
+          <div class="menu-sep"></div>
           <button data-export="3mf">3MF para Bambu Studio (colores automáticos)</button>
           <button data-export="3mfpaint">3MF pintado (OrcaSlicer / Bambu antiguo)</button>
           <button data-export="obj">OBJ con colores (Bambu Studio / OrcaSlicer, ZIP)</button>
           <button data-export="stlzip">STL por color (ZIP)</button>
           <button data-export="sheet">Ficha de filamentos (TXT)</button>
+          <div class="menu-sep"></div>
           <button data-export="project">Guardar proyecto (.fsproj)</button>
         </div>
       </div>
       <button class="btn ai" id="btnAI" title="Asistente IA">✦ IA</button>
+      <button class="btn icon" id="btnHelp" title="Atajos de teclado (tecla ?)">?</button>
     </div>
   </header>
 
@@ -72,10 +80,11 @@
       <section class="grow">
         <h3>Partes <span class="muted" id="partsCount"></span></h3>
         <div class="parts-list" id="partsList"><div class="empty-small">Abre un modelo para empezar</div></div>
-        <div class="row gap">
+        <div class="row gap wrap">
           <button class="btn small" id="btnNewPart" title="Crea una parte vacía y activa el pincel">+ Nueva parte</button>
           <button class="btn small" id="btnMerge" title="Unir las partes seleccionadas">Unir</button>
           <button class="btn small" id="btnDeletePart" title="Devuelve la parte a la pieza vecina">Quitar</button>
+          <button class="btn small" id="btnIsolate" title="Ver solo las partes seleccionadas (H). Otra vez: ver todo">Aislar</button>
         </div>
       </section>
 
@@ -91,7 +100,7 @@
         <div class="tool-opts" id="toolOpts">
           <div data-opts="select">
             <label class="check"><input type="checkbox" id="clickApply" /> Clic en una parte = aplicar el color activo</label>
-            <div class="hint-text">Clic: seleccionar parte · Mayús+clic: varias · Alt+clic: aplicar color activo · Doble clic en la lista: renombrar</div>
+            <div class="hint-text">Clic: seleccionar parte · Mayús+clic: varias · Alt+clic: aplicar color activo · Doble clic en la lista: renombrar · Tab: siguiente parte sin color</div>
           </div>
           <div data-opts="brush" hidden>
             <label>Tamaño del pincel <output id="brushRadiusOut">3 mm</output></label>
@@ -139,7 +148,7 @@
             <button class="btn small" data-rot="x" title="Girar 90° sobre X">↻ X</button>
             <button class="btn small" data-rot="y" title="Girar 90° sobre Y">↻ Y</button>
             <button class="btn small" data-rot="z" title="Girar 90° sobre Z">↻ Z</button>
-            <button class="btn small" id="btnScale" title="Escalar">Escala…</button>
+            <button class="btn small" id="btnScale" title="Cambiar el tamaño en mm (tecla S)">Tamaño…</button>
           </div>
           <label>Detalle para pintar (subdividir)</label>
           <div class="row gap">
@@ -151,6 +160,7 @@
             <button class="btn small" id="btnSubdivide" title="Divide triángulos grandes para pintar con más precisión">Subdividir</button>
           </div>
           <label class="check"><input type="checkbox" id="showBoundaries" checked /> Mostrar líneas entre partes</label>
+          <label class="check" title="Simula las líneas de capa de la impresión (se ven al acercarte)"><input type="checkbox" id="layerLines" /> Líneas de capa (aspecto impreso)</label>
           <label>Fondo</label>
           <select id="bgSelect">
             <option value="studio">Estudio</option>
@@ -199,6 +209,7 @@
         <button class="btn tiny" id="layerReset" title="Ver la pieza completa">↺</button>
       </div>
       <div class="present-bar" id="presentBar"></div>
+      <button class="price-chip" id="priceChip" hidden title="Presupuesto estimado: clic para ver el detalle (Q)"></button>
       <div class="hint" id="hint"></div>
       <div class="loading" id="loading" hidden><div class="spinner"></div><span id="loadingText">Cargando…</span></div>
     </section>
@@ -214,6 +225,8 @@
         </div>
         <select id="brandSelect" class="brand-select"></select>
         <input type="search" id="colorSearch" placeholder="Buscar color… (dorado, negro mate, silk rojo)" />
+        <label class="check small-check"><input type="checkbox" id="searchAll" /> Buscar en todas las marcas</label>
+        <div class="quick" id="quickColors" hidden></div>
         <div class="chips" id="catChips"></div>
       </section>
       <section class="grow scroll">
@@ -222,9 +235,13 @@
       <section class="active-box">
         <div class="row between">
           <h3>Color activo</h3>
-          <button class="btn small" id="btnApplyActive" title="Aplicar a las partes seleccionadas">Aplicar a selección</button>
+          <div class="row gap">
+            <button class="btn small" id="btnEyedrop" title="Cuentagotas: copia el color de una parte de la pieza (tecla I)">💧</button>
+            <button class="btn small" id="btnApplyActive" title="Aplicar a las partes seleccionadas">Aplicar a selección</button>
+          </div>
         </div>
         <div id="activeFil" class="active-fil"><span class="muted">Haz clic en un color</span></div>
+        <div id="activeExtras" class="active-extras"></div>
         <h3 class="mt">Paleta del proyecto</h3>
         <div id="projectPalette" class="palette"><span class="muted">Aún no hay colores asignados</span></div>
         <details class="shop">
@@ -269,6 +286,104 @@
         <button class="btn" id="slotCopy">Copiar lista</button>
         <button class="btn primary" id="slotClose">Entendido</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ======================= AYUDA: ATAJOS -->
+  <div class="modal" id="helpModal" hidden>
+    <div class="modal-card wide">
+      <div class="row between"><h2>Atajos de teclado</h2><button class="btn icon tiny" data-close="helpModal" title="Cerrar">✕</button></div>
+      <div class="help-grid">
+        <div>
+          <h4>Herramientas</h4>
+          <p><kbd>V</kbd> Seleccionar</p><p><kbd>B</kbd> Pincel · <kbd>[</kbd> <kbd>]</kbd> tamaño</p><p><kbd>F</kbd> Relleno inteligente</p>
+          <p><kbd>C</kbd> Cortar por altura</p><p><kbd>M</kbd> Mover · <kbd>T</kbd> mover · <kbd>R</kbd> girar</p><p><kbd>I</kbd> Cuentagotas (copiar el color de una parte)</p>
+        </div>
+        <div>
+          <h4>Partes y colores</h4>
+          <p><kbd>Tab</kbd> Siguiente parte sin color · <kbd>Mayús</kbd>+<kbd>Tab</kbd> anterior</p><p><kbd>H</kbd> Aislar la selección / ver todo</p>
+          <p><kbd>Esc</kbd> Quitar la selección · <kbd>Supr</kbd> quitar parte</p><p><kbd>Alt</kbd>+clic en la pieza: aplicar el color activo</p>
+          <p>Clic derecho en un color: favorito ★</p><p>Doble clic en la lista: renombrar</p>
+        </div>
+        <div>
+          <h4>Vista</h4>
+          <p><kbd>1</kbd>…<kbd>7</kbd> 3D, frente, detrás, izq., der., arriba, abajo</p><p><kbd>L</kbd> Vista por capas · <kbd>P</kbd> Modo cliente</p>
+          <p>Arrastrar: girar · Rueda: zoom · Botón derecho: desplazar</p>
+        </div>
+        <div>
+          <h4>Proyecto</h4>
+          <p><kbd>Ctrl</kbd>+<kbd>Z</kbd> deshacer · <kbd>Ctrl</kbd>+<kbd>Y</kbd> rehacer</p><p><kbd>Q</kbd> Presupuesto · <kbd>S</kbd> Tamaño en mm</p><p><kbd>?</kbd> Esta ayuda</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= TAMAÑO EN MM -->
+  <div class="modal" id="scaleModal" hidden>
+    <div class="modal-card narrow">
+      <div class="row between"><h2>Tamaño de la pieza</h2><button class="btn icon tiny" data-close="scaleModal" title="Cerrar">✕</button></div>
+      <p class="muted">Escribe la medida final en milímetros. Con el candado puesto se mantiene la proporción.</p>
+      <div class="scale-grid">
+        <label for="scX">Ancho (X)</label><input type="number" id="scX" step="0.1" min="0.1" /><span>mm</span>
+        <label for="scY">Fondo (Y)</label><input type="number" id="scY" step="0.1" min="0.1" /><span>mm</span>
+        <label for="scZ">Alto (Z)</label><input type="number" id="scZ" step="0.1" min="0.1" /><span>mm</span>
+        <label for="scP">Escala</label><input type="number" id="scP" step="1" min="1" /><span>%</span>
+      </div>
+      <label class="check"><input type="checkbox" id="scLock" checked /> 🔒 Mantener la proporción</label>
+      <div class="row gap wrap scale-presets">
+        <button class="btn small" data-scp="50">50 %</button><button class="btn small" data-scp="75">75 %</button><button class="btn small" data-scp="100">100 %</button>
+        <button class="btn small" data-scp="125">125 %</button><button class="btn small" data-scp="150">150 %</button><button class="btn small" data-scp="200">200 %</button>
+      </div>
+      <div class="scale-quote" id="scQuote"></div>
+      <div class="row gap end">
+        <button class="btn" data-close="scaleModal">Cancelar</button>
+        <button class="btn primary" id="scApply">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= VÍDEO 360° -->
+  <div class="modal" id="videoModal" hidden>
+    <div class="modal-card narrow">
+      <div class="row between"><h2>Vídeo 360° para el cliente</h2><button class="btn icon tiny" id="videoX" title="Cerrar">✕</button></div>
+      <div id="videoOpts">
+        <p class="muted">La pieza da una vuelta completa con los colores elegidos. Se guarda como vídeo para enviarlo por WhatsApp o redes.</p>
+        <label>Formato</label>
+        <select id="videoFormat">
+          <option value="1080x1080">Cuadrado 1080 × 1080 (WhatsApp, Instagram)</option>
+          <option value="1080x1920">Vertical 1080 × 1920 (estados, reels)</option>
+          <option value="1920x1080">Horizontal 1920 × 1080</option>
+        </select>
+        <label>Duración de la vuelta</label>
+        <select id="videoSecs">
+          <option value="6">6 segundos</option>
+          <option value="8" selected>8 segundos</option>
+          <option value="12">12 segundos</option>
+        </select>
+        <label class="check"><input type="checkbox" id="videoCaption" checked /> Rótulo con el nombre y los colores</label>
+        <div class="row gap end mt">
+          <button class="btn" id="videoCancel0">Cancelar</button>
+          <button class="btn primary" id="videoStart">● Grabar</button>
+        </div>
+      </div>
+      <div id="videoProgress" hidden>
+        <p class="muted" id="videoText">Grabando…</p>
+        <div class="progress"><i id="videoBar"></i></div>
+        <div class="row gap end"><button class="btn" id="videoCancel">Cancelar</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= PRESUPUESTO -->
+  <div class="quote-panel" id="quotePanel" hidden>
+    <div class="qp-head">
+      <strong>€ Presupuesto</strong><span class="muted">estimación al momento</span>
+      <button class="btn icon tiny" id="quoteClose" title="Cerrar">✕</button>
+    </div>
+    <div class="qp-body" id="quoteBody"></div>
+    <div class="qp-foot">
+      <label class="check" title="Muestra el precio en el modo cliente y en la imagen que envías"><input type="checkbox" id="qShowClient" /> Enseñar el precio al cliente</label>
+      <button class="btn primary" id="qCopy" title="Copia un mensaje con el presupuesto, listo para pegar en WhatsApp">Copiar mensaje</button>
     </div>
   </div>
 

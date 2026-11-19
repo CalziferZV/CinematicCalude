@@ -342,6 +342,31 @@ export async function getBrand(id, { force = false } = {}) {
   }
 }
 
+// Todas las marcas de una vez (para buscar en todas y calcular equivalencias de color).
+// Usa lo que ya esté descargado (memoria o disco) y, para el resto, la instantánea incluida:
+// así responde al momento sin lanzar 90 descargas.
+export function getAllBrands() {
+  const snap = loadSnapshot();
+  const ids = [...new Set(['bambulab', ...(snap.brandList || []), ...Object.keys(snap.brands || {})])];
+  const out = [];
+  for (const id of ids) {
+    const entry = mem.get(`brand-${id}`) || readDisk(`brand-${id}`);
+    const data = (entry && entry.data) || snap.brands[id];
+    if (!data || !Array.isArray(data.lines)) continue;
+    out.push({
+      id,
+      name: data.name || prettyName(id),
+      lines: data.lines.map((l) => ({
+        name: l.name,
+        category: l.category,
+        finish: l.finish,
+        colors: l.colors.map((c) => ({ name: c.name, nameEn: c.nameEn, hex: c.hex, hexes: c.hexes, alpha: c.alpha, kind: c.kind, code: c.code })),
+      })),
+    });
+  }
+  return { at: snap.at, brands: out };
+}
+
 // ---------------------------------------------------------------- tiendas Shopify
 // Lee cualquier tienda Shopify en vivo (products.json) y extrae los colores de las variantes.
 // El HEX se aproxima a partir del nombre del color (las tiendas no publican el HEX).

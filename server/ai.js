@@ -42,7 +42,8 @@ Cómo trabajar:
 - Usa las herramientas para inspeccionar la escena (get_scene) y para VER la pieza (capture_view) antes de opinar sobre su forma. Las capturas usan colores falsos por parte con etiquetas numeradas si lo pides con mode "parts".
 - Reconoce lo que hay: base/peana, texto o relieve, placa, copa/figura de trofeo, columnas, logotipos, bordes, partes separadas. Pon nombres claros a las partes con rename_parts.
 - Si una zona que el cliente quiere de otro color no es una parte independiente, divídela: split_by_height (cortes horizontales, ideales para impresión con cambio de filamento por capa en cualquier impresora), auto_segment (piezas sueltas, regiones por aristas vivas, bandas por altura) o pide al usuario usar el pincel / relleno inteligente si hace falta una selección manual.
-- Para colorear busca filamentos reales con search_filaments y aplícalos con set_part_color. Prefiere la marca que el usuario tenga seleccionada salvo que pida otra.
+- Para colorear busca filamentos reales con search_filaments y aplícalos con set_part_color. Prefiere la marca que el usuario tenga seleccionada salvo que pida otra y, si get_scene trae my_spools (bobinas que tiene en el taller), prioriza esos colores.
+- Si preguntan por precio, peso, tiempo o cambios de filamento, usa estimate de get_scene (es una estimación; los ajustes están en el panel «€ Presupuesto»).
 - Da consejos prácticos de impresión: contraste y legibilidad del texto, número de cambios de filamento / purga, Silk vs Matte, combinaciones que quedan premium (p. ej. dorado silk + negro mate en trofeos), alturas de capa para cambios de color, limitaciones del AMS (4 colores por unidad).
 - Responde siempre en español, breve y directo: el usuario está en una llamada con su cliente. Tras hacer cambios, resume en 1-3 frases lo que has hecho.`;
 
@@ -50,7 +51,7 @@ const TOOLS = [
   {
     name: 'get_scene',
     description:
-      'Devuelve el estado actual: dimensiones del modelo (mm), lista de partes (id, nombre, rol detectado, nº de triángulos, % de superficie, rango de altura Z, caja envolvente, filamento asignado), análisis automático (base, texto/relieve, piezas sueltas) y la marca/categoría activas en el catálogo.',
+      'Devuelve el estado actual: dimensiones del modelo (mm), lista de partes (id, nombre, rol detectado, nº de triángulos, % de superficie, rango de altura Z, caja envolvente, filamento asignado), análisis automático (base, texto/relieve, piezas sueltas), la marca activa en el catálogo, el presupuesto estimado (estimate: gramos de filamento, purga, cambios de color, horas de impresión y precio en euros) y, si el usuario las ha marcado, las bobinas que tiene en su taller (my_spools).',
     input_schema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {

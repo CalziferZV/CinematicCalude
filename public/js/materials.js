@@ -3,6 +3,44 @@ import * as THREE from 'three';
 
 const cache = new Map();
 
+// Líneas de capa (aspecto de pieza impresa): uniforms compartidos por todos los materiales,
+// así se encienden y apagan sin recompilar nada.
+export const layerLines = { uLayerOn: { value: 0 }, uLayerH: { value: 0.2 }, uLayerAmp: { value: 0.38 } };
+export function setLayerLines(on, height) {
+  layerLines.uLayerOn.value = on ? 1 : 0;
+  if (height > 0) layerLines.uLayerH.value = height;
+}
+function injectLayerLines(shader) {
+  shader.uniforms.uLayerOn = layerLines.uLayerOn;
+  shader.uniforms.uLayerH = layerLines.uLayerH;
+  shader.uniforms.uLayerAmp = layerLines.uLayerAmp;
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vLLPos;\nvarying vec3 vLLNrm;')
+    .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvLLPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvLLNrm = normalize(mat3(modelMatrix) * objectNormal);');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vLLPos;\nvarying vec3 vLLNrm;\nuniform float uLayerOn;\nuniform float uLayerH;\nuniform float uLayerAmp;')
+    .replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+float llFade = 0.0;
+float llPh = 0.0;
+if (uLayerOn > 0.5) {
+  llPh = vLLPos.z / uLayerH;
+  // se desvanecen cuando cada capa ocupa menos de ~2-4 píxeles (evita el muaré)
+  llFade = (1.0 - smoothstep(0.22, 0.5, fwidth(llPh))) * smoothstep(0.15, 0.6, 1.0 - abs(normalize(vLLNrm).z));
+  diffuseColor.rgb *= 1.0 - 0.07 * llFade * (0.5 + 0.5 * cos(llPh * 6.2831853));
+}`,
+    )
+    .replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+if (llFade > 0.001) {
+  vec3 llUp = normalize((viewMatrix * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
+  normal = normalize(normal + llUp * (sin(llPh * 6.2831853) * uLayerAmp * llFade));
+}`,
+    );
+}
+
 function hexToColor(h) {
   // los negros puros (#000000) se ven planos en pantalla: se aclaran un poco solo para el render
   const c = new THREE.Color(h || '#ECECEC');
@@ -24,6 +62,7 @@ function addMultiColor(mat, hexes, kind, zRange) {
     uZ: { value: new THREE.Vector2(zRange[0], zRange[1]) },
   };
   mat.onBeforeCompile = (shader) => {
+    injectLayerLines(shader);
     Object.assign(shader.uniforms, mat.userData.uniforms);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNorm;')
@@ -72,7 +111,7 @@ vec3 pickCol(float t){
 }`,
       );
   };
-  mat.customProgramCacheKey = () => `multi-${kind}-${hexes.length}`;
+  mat.customProgramCacheKey = () => `ll-multi-${kind}-${hexes.length}`;
 }
 
 export function filamentMaterial(fil, { zRange = [0, 100] } = {}) {
@@ -118,6 +157,10 @@ export function filamentMaterial(fil, { zRange = [0, 100] } = {}) {
   if (fil.blank) Object.assign(p, { roughness: 0.6, clearcoat: 0 });
   const mat = new THREE.MeshPhysicalMaterial(p);
   if (fil.hexes && fil.hexes.length > 1) addMultiColor(mat, fil.hexes, fil.kind === 'gradient' ? 'gradient' : 'multi', zRange);
+  else {
+    mat.onBeforeCompile = injectLayerLines;
+    mat.customProgramCacheKey = () => 'll';
+  }
   cache.set(key, mat);
   return mat;
 }

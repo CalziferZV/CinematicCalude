@@ -73,6 +73,15 @@ jobs:
           if ($n -lt 100) { throw 'El catálogo no ha cargado' }
           $s = Invoke-RestMethod http://127.0.0.1:5173/api/brands/sunlu
           Write-Host "Sunlu: $($s.lines.Count) líneas (origen: $($s.origin))"
+          $null = Invoke-RestMethod -Method Put -Uri http://127.0.0.1:5173/api/prefs -Headers @{ Origin = 'http://localhost:5173' } -ContentType 'application/json' -Body '{"ci":1}'
+          $back = Invoke-RestMethod http://127.0.0.1:5173/api/prefs
+          if ($back.ci -ne 1) { throw 'Las preferencias no se guardan' }
+          Write-Host "Preferencias guardadas en $env:LOCALAPPDATA\FilamentStudio\prefs.json"
+          $all = Invoke-RestMethod http://127.0.0.1:5173/api/catalog/all
+          Write-Host "Catálogo completo: $($all.brands.Count) marcas"
+          if ($all.brands.Count -lt 50) { throw 'El catálogo completo no ha cargado' }
+          $sl = Invoke-RestMethod http://127.0.0.1:5173/api/slicers
+          Write-Host "Laminadores instalados: Bambu Studio=$($sl.bambu.found) OrcaSlicer=$($sl.orca.found) PrusaSlicer=$($sl.prusa.found)"
           Get-ChildItem "$env:LOCALAPPDATA\FilamentStudio" -Recurse | Select-Object -First 5 | ForEach-Object { Write-Host "  datos: $($_.FullName)" }
           Stop-Process -Id $p.Id -Force
           Write-Host 'FilamentStudio.exe funciona en Windows'
