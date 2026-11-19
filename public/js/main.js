@@ -220,16 +220,14 @@ function renderActiveExtras(fil) {
       <button class="btn small fav${fav ? ' on' : ''}" id="aeFav" title="Favoritos: siempre a mano encima del catálogo (también con clic derecho en cualquier color)">${fav ? '★ Favorito' : '☆ Favorito'}</button>
       <button class="btn small${own ? ' on' : ''}" id="aeOwn" title="Márcalo si tienes esta bobina en el taller: aparecerá en «Mis bobinas»">${own ? '🧵 La tengo ✓' : '🧵 La tengo'}</button>
     </div><div class="ae-eq" id="aeEq"></div>`;
+  // al cambiar la lista, onPrefChange vuelve a dibujar este bloque y la paleta
   $('aeFav').addEventListener('click', () => {
     const on = toggleFavorite(fil);
     toast(on ? `★ ${fil.name} añadido a favoritos` : `${fil.name} quitado de favoritos`);
-    renderActiveExtras(fil);
   });
   $('aeOwn').addEventListener('click', () => {
     const on = toggleOwned(fil);
     toast(on ? `🧵 ${fil.name} añadida a «Mis bobinas»` : `${fil.name} quitada de «Mis bobinas»`);
-    renderActiveExtras(fil);
-    renderPalette();
   });
   const token = ++eqToken;
   equivalents(fil).then(({ mine, others }) => {
@@ -1053,6 +1051,9 @@ ST.on('parts', scheduleQuote);
 ST.on('mesh', scheduleQuote);
 onPrefChange((k) => {
   if (k === 'quote' || k === 'spools') scheduleQuote();
+  // favorito / bobina cambiados desde el catálogo (clic derecho): refrescar el color activo y la paleta
+  if ((k === 'favorites' || k === 'spools') && S.activeFilament) renderActiveExtras(S.activeFilament);
+  if (k === 'spools') renderPalette();
   if (k === 'quote') {
     const lh = Q.settings().layerHeight;
     if (lh > 0 && Math.abs(lh - S.layerHeight) > 1e-9) {

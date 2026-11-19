@@ -252,7 +252,8 @@ export function exportSTLZip() {
 }
 
 // ---------------------------------------------------------------- ficha de texto
-export function sheetText() {
+// quote = true solo en la ficha que descargas tú: el precio no va dentro de los archivos del modelo
+export function sheetText({ quote = false } = {}) {
   const sum = sceneSummary();
   const { list } = usedFilaments();
   const lines = [];
@@ -268,10 +269,12 @@ export function sheetText() {
   lines.push('');
   lines.push('PARTES:');
   for (const p of sum.parts) lines.push(`  · ${p.name}: ${typeof p.filament === 'string' ? p.filament : `${p.filament.brand} ${p.filament.line} ${p.filament.color}`}`);
-  try {
-    const q = computeQuote();
-    if (q) { lines.push(''); lines.push(...sheetLines(q)); }
-  } catch { /* sin presupuesto */ }
+  if (quote) {
+    try {
+      const q = computeQuote();
+      if (q) { lines.push(''); lines.push(...sheetLines(q)); }
+    } catch { /* sin presupuesto */ }
+  }
   const lc = layerChanges();
   if (lc && lc.length) {
     lines.push('');
@@ -281,7 +284,7 @@ export function sheetText() {
   return lines.join('\n');
 }
 export function exportSheet() {
-  download(new Blob([sheetText()], { type: 'text/plain;charset=utf-8' }), `${baseName()}_filamentos.txt`);
+  download(new Blob([sheetText({ quote: true })], { type: 'text/plain;charset=utf-8' }), `${baseName()}_filamentos.txt`);
 }
 
 // ---------------------------------------------------------------- imagen para el cliente
