@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Filament Studio — presentación</title>
+<script type="importmap">
+  { "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }
+</script>
+<style>
+  :root { --orange: #ff6a13; --ink: #1d1d1f; --muted: #6e6e73; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+  body { font-family: 'Inter Display', 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: var(--ink); }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  .layer, .bg { position: absolute; inset: 0; }
+  .bg-black { background: #000; }
+  .bg-white { background: #fff; }
+  .bg-light { background: radial-gradient(120% 90% at 50% 40%, #ffffff 0%, #f5f5f7 55%, #e9e9ee 100%); }
+  .bg-dark { background: radial-gradient(90% 80% at 50% 45%, #232327 0%, #0b0b0d 70%, #000 100%); }
+  .bg-ai { background: radial-gradient(80% 90% at 30% 40%, #2c1d5c 0%, #120a26 55%, #050308 100%); }
+  #gl { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+  .abs { position: absolute; }
+  .center { left: 0; right: 0; text-align: center; }
+  .h-xl { font-size: 150px; font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
+  .h-l { font-size: 112px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; }
+  .h-m { font-size: 76px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.05; }
+  .sub { font-size: 34px; font-weight: 500; letter-spacing: -0.01em; color: var(--muted); line-height: 1.35; }
+  .white { color: #f5f5f7; }
+  .sub.white { color: #a1a1a6; }
+  .grad { background: linear-gradient(90deg, #ff6a13 0%, #ff9a3c 45%, #ffc46b 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .grad-ai { background: linear-gradient(90deg, #c7a6ff, #8f6bff 50%, #6aa8ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .chip { display: inline-flex; align-items: center; gap: 14px; padding: 14px 24px 14px 16px; border-radius: 999px; background: rgba(255,255,255,0.86); box-shadow: 0 10px 30px rgba(0,0,0,0.08); font-size: 26px; font-weight: 600; color: var(--ink); backdrop-filter: blur(8px); }
+  .chip i { width: 34px; height: 34px; border-radius: 50%; display: inline-block; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .chip small { font-weight: 500; color: var(--muted); font-size: 22px; }
+  .dark-chip { background: rgba(255,255,255,0.08); color: #f5f5f7; box-shadow: none; border: 1px solid rgba(255,255,255,0.14); }
+  .dark-chip small { color: #a1a1a6; }
+  /* logo */
+  #logo { left: 50%; top: 300px; width: 180px; height: 180px; margin-left: -90px; }
+  /* app */
+  .window { border-radius: 22px; overflow: hidden; box-shadow: 0 60px 140px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08); background: #fff; }
+  .window img { display: block; width: 100%; }
+  /* presupuesto */
+  .price { font-size: 220px; font-weight: 800; letter-spacing: -0.05em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .panel-img { border-radius: 20px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06); background: #fff; }
+  .panel-img img { display: block; width: 100%; }
+  /* IA */
+  .chat { width: 760px; padding: 0; }
+  .bubble { padding: 22px 28px; border-radius: 26px; font-size: 30px; line-height: 1.38; font-weight: 500; }
+  .bubble.user { background: #f5f5f7; color: var(--ink); margin-left: 70px; border-bottom-right-radius: 8px; }
+  .bubble.bot { background: rgba(143,107,255,0.22); color: #f2edff; margin-right: 50px; border-bottom-left-radius: 8px; border: 1px solid rgba(199,166,255,0.25); }
+  .tool { font-size: 24px; color: #b9a7f5; margin: 16px 6px; font-weight: 500; }
+  .caret { display: inline-block; width: 3px; height: 1em; background: currentColor; vertical-align: -0.12em; margin-left: 3px; }
+  /* bambu */
+  .btn { display: inline-flex; align-items: center; gap: 14px; padding: 26px 46px; border-radius: 22px; background: var(--orange); color: #fff; font-size: 38px; font-weight: 700; box-shadow: 0 20px 50px rgba(255,106,19,0.35); }
+  .slots { width: 760px; padding: 30px; border-radius: 28px; background: #fff; box-shadow: 0 40px 100px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.05); }
+  .slot { display: flex; align-items: center; gap: 22px; padding: 16px 10px; border-bottom: 1px solid #f0f0f2; font-size: 28px; font-weight: 600; }
+  .slot:last-child { border-bottom: none; }
+  .slot .n { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 26px; }
+  .slot small { display: block; font-size: 21px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .cursor { width: 46px; height: 46px; }
+  /* rejilla */
+  .grid { left: 160px; right: 160px; top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+  .tile { height: 250px; border-radius: 30px; background: linear-gradient(160deg, #1c1c1f, #111113); border: 1px solid rgba(255,255,255,0.08); padding: 34px; color: #f5f5f7; display: flex; flex-direction: column; justify-content: space-between; }
+  .tile .ico { font-size: 54px; line-height: 1; }
+  .tile b { font-size: 34px; letter-spacing: -0.02em; }
+  .tile span { font-size: 22px; color: #a1a1a6; font-weight: 500; margin-top: 6px; display: block; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- fondos -->
+  <div class="bg bg-black" id="bgBlack"></div>
+  <div class="bg bg-white" id="bgWhite"></div>
+  <div class="bg bg-light" id="bgLight"></div>
+  <div class="bg bg-dark" id="bgDark"></div>
+  <div class="bg bg-ai" id="bgAI"></div>
+  <div class="bg bg-light" id="bgLight2"></div>
+  <div class="bg bg-black" id="bgBlack2"></div>
+
+  <!-- 3D -->
+  <canvas id="gl" width="1920" height="1080"></canvas>
+
+  <!-- 1 · intro -->
+  <svg id="logo" class="abs" viewBox="0 0 100 100">
+    <defs><filter id="glow"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <circle id="ring" cx="50" cy="50" r="42" fill="none" stroke="#ff6a13" stroke-width="9" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="264" transform="rotate(-90 50 50)" filter="url(#glow)"/>
+    <circle id="ringFill" cx="50" cy="50" r="46" fill="#ff6a13" opacity="0"/>
+    <circle id="dot" cx="50" cy="50" r="15" fill="#fff" transform="scale(0)" transform-origin="50 50"/>
+  </svg>
+  <div id="title" class="abs center h-xl white" style="top: 540px"></div>
+  <div id="tagline" class="abs center sub white" style="top: 720px">Personaliza piezas 3D en directo, con tu cliente.</div>
+
+  <!-- 2 · frases -->
+  <div id="l1" class="abs center h-l" style="top: 300px">Tu cliente elige.</div>
+  <div id="l2" class="abs center h-l" style="top: 450px">Tú se lo enseñas.</div>
+  <div id="l3" class="abs center h-l grad" style="top: 600px">Al momento.</div>
+
+  <!-- 3 · producto -->
+  <div id="p3t" class="abs h-m" style="left: 150px; top: 170px">Colores reales.</div>
+  <div id="p3s" class="abs sub" style="left: 150px; top: 270px; width: 640px">6.663 filamentos de 87 marcas,<br/>del catálogo, en vivo.</div>
+  <div id="p3c1" class="abs chip" style="left: 150px; top: 520px"><i style="background:#1F1F21"></i>Carbón <small>PLA Matte</small></div>
+  <div id="p3c2" class="abs chip" style="left: 150px; top: 610px"><i style="background:linear-gradient(135deg,#fff6d5,#E5B03D 45%,#9c7420)"></i>Dorado <small>PLA Silk</small></div>
+  <div id="p3c3" class="abs chip" style="left: 150px; top: 700px"><i style="background:linear-gradient(135deg,#fff,#D9DCDB 45%,#8a8e93)"></i>Plateado <small>PLA Silk</small></div>
+  <div id="p3b" class="abs sub" style="left: 150px; top: 860px; font-size: 26px">Bambu Lab · Sunlu · Polymaker · eSun · Elegoo · Prusament…</div>
+
+  <!-- 4 · app -->
+  <div id="p4t" class="abs center h-m white" style="top: 80px">Todo en una pantalla.</div>
+  <div id="p4s" class="abs center sub white" style="top: 178px">Pensada para compartirla en la videollamada con tu cliente.</div>
+  <div id="p4w" class="abs window" style="left: 290px; top: 270px; width: 1340px"><img id="imgApp" alt="" /></div>
+
+  <!-- 5 · presupuesto -->
+  <div id="p5k" class="abs sub" style="left: 150px; top: 250px; font-weight: 600; color: #ff6a13">Presupuesto al instante</div>
+  <div id="p5p" class="abs price" style="left: 140px; top: 300px">0,00 €</div>
+  <div id="p5c" class="abs" style="left: 150px; top: 600px; display: flex; gap: 14px">
+    <span class="chip">102 g</span><span class="chip">3 h 56 min</span><span class="chip">55 cambios de color</span>
+  </div>
+  <div id="p5s" class="abs sub" style="left: 150px; top: 720px; width: 760px">Peso, tiempo, purga y tu margen.<br/>Y el mensaje, listo para WhatsApp.</div>
+  <div id="p5i" class="abs panel-img" style="left: 1090px; top: 150px; width: 640px"><img id="imgQuote" alt="" /></div>
+
+  <!-- 6 · cortar -->
+  <div id="p6t" class="abs h-l white" style="left: 150px; top: 230px">Córtalo.</div>
+  <div id="p6s" class="abs h-m white" style="left: 150px; top: 370px; width: 820px; font-size: 64px; color: #f5f5f7">Los anclajes<br/>se colocan solos.</div>
+  <div id="p6c" class="abs sub white" style="left: 150px; top: 560px; width: 760px">Tamaño, cantidad y posición según el grosor de cada pieza. Para que quepa en tu impresora o para imprimir cada color por separado.</div>
+  <div id="p6k2" class="abs chip dark-chip" style="left: 150px; top: 760px"><i style="background:#FF6A13"></i>2 pasadores <small>Ø4 mm</small></div>
+  <div id="p6k1" class="abs chip dark-chip" style="left: 150px; top: 850px"><i style="background:#FF6A13"></i>4 pasadores <small>Ø8 mm</small></div>
+
+  <!-- 7 · texto -->
+  <div id="p7t" class="abs center h-l" style="top: 790px">Su nombre. En relieve.</div>
+  <div id="p7s" class="abs center sub" style="top: 925px">Con tildes y eñes. Cuatro tipos de letra. Un clic.</div>
+
+  <!-- 8 · IA -->
+  <div id="p8t" class="abs h-m grad-ai" style="left: 150px; top: 140px">Tu asistente IA.</div>
+  <div id="p8chat" class="abs chat" style="left: 150px; top: 290px">
+    <div class="bubble user" id="p8u"></div>
+    <div class="tool" id="p8a">· Buscando filamentos…</div>
+    <div class="tool" id="p8b" style="margin-top:-6px">· Aplicando color…</div>
+    <div class="bubble bot" id="p8r">Hecho: la copa ahora es PLA Silk Dorado, a juego con la placa y el texto.</div>
+  </div>
+
+  <!-- 9 · Bambu Studio -->
+  <div id="p9t" class="abs h-m" style="left: 150px; top: 200px">Directo a<br/>Bambu Studio.</div>
+  <div id="p9s" class="abs sub" style="left: 150px; top: 440px; width: 720px">El 3MF lleva cada color en su sitio y cada pieza cortada como un objeto.</div>
+  <div id="p9b" class="abs btn" style="left: 150px; top: 640px">▶ Abrir en Bambu Studio</div>
+  <svg id="p9cur" class="abs cursor" viewBox="0 0 24 24" style="left: 560px; top: 780px"><path d="M3 2l17 9-7.5 1.6L9 20z" fill="#1d1d1f" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  <div id="p9l" class="abs slots" style="left: 1010px; top: 300px">
+    <div class="slot" id="s1"><span class="n" style="background:#1F1F21;color:#fff">1</span><div>Carbón<small>Bambu Lab · PLA Matte · Base, Columna</small></div></div>
+    <div class="slot" id="s2"><span class="n" style="background:#E5B03D;color:#1d1d1f">2</span><div>Dorado<small>Bambu Lab · PLA Silk · Copa, Placa, Texto</small></div></div>
+    <div class="slot" id="s3"><span class="n" style="background:#FF6A13;color:#fff">✂</span><div>3 piezas + 6 pasadores<small>cada una como objeto, ya colocadas</small></div></div>
+  </div>
+
+  <!-- 10 · rejilla de funciones -->
+  <div id="p10t" class="abs center h-m white" style="top: 120px">Y mucho más.</div>
+  <div class="abs grid" id="grid">
+    <div class="tile"><div class="ico">€</div><div><b>Presupuesto</b><span>peso, tiempo y precio</span></div></div>
+    <div class="tile"><div class="ico">✂</div><div><b>Cortar en piezas</b><span>anclajes automáticos</span></div></div>
+    <div class="tile"><div class="ico" style="font-family: Georgia, serif; font-weight: 700">T</div><div><b>Texto 3D</b><span>nombres y fechas</span></div></div>
+    <div class="tile"><div class="ico">✦</div><div><b>Asistente IA</b><span>le hablas normal</span></div></div>
+    <div class="tile"><div class="ico">A·B·C</div><div><b>Propuestas</b><span>compara con un clic</span></div></div>
+    <div class="tile"><div class="ico">⟳</div><div><b>Vídeo 360°</b><span>para WhatsApp</span></div></div>
+    <div class="tile"><div class="ico">🧵</div><div><b>Mis bobinas</b><span>y avisos si falta una</span></div></div>
+    <div class="tile"><div class="ico">ΔE</div><div><b>Equivalencias</b><span>entre marcas</span></div></div>
+  </div>
+
+  <!-- 11 · cierre -->
+  <div id="p11t" class="abs center h-xl" style="top: 120px">Filament Studio</div>
+  <div id="p11s" class="abs center sub" style="top: 290px; font-size: 40px; color: #1d1d1f">Personaliza. Imprime. Entrega.</div>
+  <div id="p11f" class="abs center sub" style="top: 960px; font-size: 26px">Para Windows · Con Bambu Studio y OrcaSlicer</div>
+  <div class="bg bg-black" id="fadeOut"></div>
+</div>
+<script type="module" src="video.js"></script>
+</body>
+</html>

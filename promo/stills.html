@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8" /><title>Imágenes fijas</title>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }</script>
+<style>html,body{margin:0;background:transparent}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+import { createProduct, FIL } from './product.js';
+const COLORS = { Base: FIL.negroMate, Columna: FIL.negroMate, Placa: FIL.oroSilk, Texto: FIL.oroSilk, Copa: FIL.oroSilk };
+// devuelve un PNG (data URL) del trofeo con fondo transparente
+window.still = async ({ w, h, explode = 0, cam = {} }) => {
+  const c = document.getElementById('c');
+  const P = await createProduct(c, { dataUrl: 'assets/trofeo.json', width: w, height: h, pixelRatio: 1, transparent: true });
+  P.setColors(COLORS);
+  P.setDowelColor(FIL.naranja);
+  P.setExplode(explode);
+  P.setTurn(cam.turn || 0);
+  P.setCamera(cam);
+  P.render();
+  return c.toDataURL('image/png');
+};
+window.ready = true;
+</script></body></html>

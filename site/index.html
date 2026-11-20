@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Filament Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<meta name="description" content="Personaliza piezas impresas en 3D en directo con tu cliente: colores reales de 87 marcas, presupuesto al instante, corte con anclajes automáticos y envío directo a Bambu Studio." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400;600&display=swap" />
+<link rel="stylesheet" href="style.css" />
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+</script>
+</head>
+<body>
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#inicio" aria-label="Filament Studio"><span class="logo" aria-hidden="true"></span>Filament Studio</a>
+    <nav class="links" aria-label="Secciones">
+      <a href="#color">Color</a>
+      <a href="#cortar">Cortar</a>
+      <a href="#texto">Texto 3D</a>
+      <a href="#funciones">Funciones</a>
+      <a href="#especificaciones">Especificaciones</a>
+    </nav>
+    <a class="pill small" href="#descargar">Descargar</a>
+  </div>
+</header>
+
+<main id="inicio">
+  <!-- ============ portada: el producto, en vivo -->
+  <section class="hero">
+    <div class="wrap hero-copy">
+      <p class="eyebrow">Para talleres de impresión 3D</p>
+      <h1>Personaliza<br />en directo.</h1>
+      <p class="lede">Abre la pieza, elige con tu cliente colores reales en la videollamada, dale el precio al momento y mándala a Bambu Studio. Todo en una pantalla.</p>
+      <div class="ctas">
+        <a class="pill" href="#descargar">Descargar para Windows</a>
+        <a class="textlink" href="#video">Ver el vídeo <span aria-hidden="true">›</span></a>
+      </div>
+    </div>
+    <div class="wrap">
+      <figure class="stage" id="color">
+        <div class="stage-canvas">
+          <img class="still" src="assets/trofeo.png" alt="Trofeo impreso en 3D con la copa dorada y la peana negra" />
+          <canvas id="heroCanvas" aria-label="Trofeo en 3D: arrástralo para girarlo"></canvas>
+          <span class="drag-hint" aria-hidden="true">Arrastra para girar</span>
+        </div>
+        <figcaption class="config">
+          <div class="seg" role="tablist" aria-label="Parte de la pieza" id="partTabs"></div>
+          <div class="swatches" id="swatches" role="listbox" aria-label="Filamentos"></div>
+          <p class="readout" id="readout" aria-live="polite"></p>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ cifras -->
+  <section class="stats wrap" aria-label="En cifras">
+    <div><b>87</b><span>marcas de filamento</span></div>
+    <div><b>6.663</b><span>colores con su HEX real</span></div>
+    <div><b>ΔE 2000</b><span>para encontrar el equivalente</span></div>
+    <div><b>1 clic</b><span>de la llamada a Bambu Studio</span></div>
+  </section>
+
+  <!-- ============ cortar: el momento de scroll -->
+  <section class="dark band" id="cortar">
+    <div class="wrap story">
+      <div class="steps">
+        <p class="eyebrow on-dark">Cortar en piezas</p>
+        <article class="step" data-step="0">
+          <h2>Córtalo por donde quieras.</h2>
+          <p>Justo donde la copa se une a la columna, en horizontal, en vertical o inclinado. Las tapas quedan cerradas y cada trozo, listo para imprimir.</p>
+        </article>
+        <article class="step" data-step="1">
+          <h2>Los anclajes se colocan solos.</h2>
+          <p>La app mide el grosor de la sección y cuánto material hay detrás: elige pasadores de Ø3 a Ø12&nbsp;mm, cuántos y dónde, sin tocar paredes ni escalones. Si un lado es fino, usa espigas.</p>
+          <ul class="specs-inline">
+            <li><span class="mono">4 × Ø8 mm</span> 6 mm arriba · 9 mm abajo</li>
+            <li><span class="mono">2 × Ø4 mm</span> 3 mm arriba · 6 mm abajo</li>
+            <li><span class="mono">holgura 0,15 mm</span> ajustable</li>
+          </ul>
+        </article>
+        <article class="step" data-step="2">
+          <h2>Para que quepa. O por colores, sin AMS.</h2>
+          <p>Cada pieza se tumba por su cara plana y se reparte en la cama. El 3MF lleva una pieza por objeto y el ZIP de STL incluye los pasadores y cómo montarlo.</p>
+        </article>
+      </div>
+      <div class="sticky">
+        <div class="sticky-canvas">
+          <img class="still" src="assets/despiece.png" alt="El trofeo separado en tres piezas con seis pasadores naranjas entre ellas" />
+          <canvas id="cutCanvas" aria-label="El trofeo se separa en piezas al hacer scroll"></canvas>
+          <div class="callouts" id="callouts" aria-hidden="true">
+            <span class="callout c1">2 × Ø4 mm</span>
+            <span class="callout c2">4 × Ø8 mm</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ texto 3D -->
+  <section class="band" id="texto">
+    <div class="wrap split">
+      <div class="split-copy">
+        <p class="eyebrow">Texto 3D</p>
+        <h2>Su nombre.<br />En relieve.</h2>
+        <p>Escribe un nombre, una fecha o una dedicatoria y haz clic en la pieza: aparece en relieve sobre esa cara, derecho según la vista, como una parte nueva lista para su color. Con tildes y eñes.</p>
+        <label class="field" for="nameInput">Pruébalo
+          <input id="nameInput" type="text" value="MARÍA" maxlength="14" autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="seg small" role="group" aria-label="Tipo de letra" id="fontTabs">
+          <button type="button" data-font="gruesa" aria-pressed="true">Gruesa</button>
+          <button type="button" data-font="clasica" aria-pressed="false">Clásica</button>
+        </div>
+      </div>
+      <div class="split-media">
+        <canvas id="textCanvas" aria-label="Peana del trofeo con el nombre en relieve"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ funciones -->
+  <section class="band soft" id="funciones">
+    <div class="wrap">
+      <h2 class="section-title">Hecha para la llamada con tu cliente.</h2>
+      <div class="bento">
+        <article class="card wide">
+          <div class="card-copy">
+            <h3>Todo en una pantalla.</h3>
+            <p>Partes detectadas solas (base, copa, columna, texto), catálogo de filamentos a la derecha y la pieza en el centro. Con el modo cliente, solo la pieza y sus colores para compartir pantalla.</p>
+          </div>
+          <img src="assets/app.jpg" alt="Filament Studio con el trofeo coloreado en dorado y negro" loading="lazy" />
+        </article>
+        <article class="card tall">
+          <div class="card-copy">
+            <h3>Presupuesto al instante.</h3>
+            <p>Peso de cada color, purga de los cambios de color capa a capa, tiempo y tu margen. El mensaje, listo para WhatsApp.</p>
+          </div>
+          <img src="assets/quote.jpg" alt="Panel de presupuesto: 13,00 €, 102 g y 3 h 56 min" loading="lazy" />
+        </article>
+        <article class="card">
+          <h3>Tu asistente IA.</h3>
+          <div class="chat" aria-label="Ejemplo de conversación">
+            <p class="me">La base en negro mate y el texto dorado silk</p>
+            <p class="bot">Hecho: base en PLA Matte Carbón y texto en PLA Silk Dorado.</p>
+          </div>
+          <p>También corta en piezas y escribe nombres: «córtala para que quepa en mi A1 mini».</p>
+        </article>
+        <article class="card">
+          <h3>Directo a Bambu Studio.</h3>
+          <ol class="slots">
+            <li><i style="--c:#000000"></i>Carbón <small>PLA Matte · 11101</small></li>
+            <li><i style="--c:#E5B03D"></i>Dorado <small>PLA Silk · 13401</small></li>
+          </ol>
+          <p>Un clic crea el 3MF con los colores exactos y lo abre. También OrcaSlicer, OBJ con colores y STL.</p>
+        </article>
+        <article class="card">
+          <h3>Propuestas A · B · C.</h3>
+          <div class="abc" aria-hidden="true"><span>A</span><span>B</span><span>C</span></div>
+          <p>Guarda varias combinaciones y cambia entre ellas con un clic. O mándale una imagen con todas lado a lado.</p>
+        </article>
+        <article class="card">
+          <h3>Mis bobinas.</h3>
+          <p class="big-note"><span class="mono">ΔE 1,8</span> idéntico a la vista</p>
+          <p>Marca las bobinas que tienes y la app te avisa si el cliente elige una que te falta, con la más parecida de tu taller.</p>
+        </article>
+        <article class="card">
+          <h3>Vídeo 360°.</h3>
+          <div class="ratios" aria-hidden="true"><span class="r11">1:1</span><span class="r916">9:16</span><span class="r169">16:9</span></div>
+          <p>La pieza girando con sus colores, con rótulo y el nombre de tu taller. En MP4, listo para WhatsApp.</p>
+        </article>
+        <article class="card wide full">
+          <div class="card-copy">
+            <h3>Su pieza, en su móvil.</h3>
+            <p>Mándale un visor 3D en un solo archivo: gira la pieza con sus colores, compara las propuestas A·B·C y ve el precio. Si su móvil no lo abre en 3D, ve igualmente la imagen y la leyenda.</p>
+          </div>
+          <img src="assets/visor.jpg" alt="Visor 3D para el cliente con el trofeo, las propuestas A y B, la leyenda de colores y el precio" loading="lazy" />
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ vídeo -->
+  <section class="dark band" id="video">
+    <div class="wrap center-col">
+      <p class="eyebrow on-dark">Presentación</p>
+      <h2>Míralo en 78 segundos.</h2>
+      <div class="video-frame">
+        <video id="promo" controls playsinline preload="metadata" poster="media/poster.jpg" src="media/filament-studio.mp4"></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ comparación -->
+  <section class="band" id="laminador">
+    <div class="wrap">
+      <h2 class="section-title">No sustituye a tu laminador. Va antes.</h2>
+      <div class="table-scroll">
+        <table class="compare">
+          <thead><tr><th scope="col"></th><th scope="col">Bambu Studio · OrcaSlicer</th><th scope="col">Filament Studio</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Para qué</th><td>Preparar la impresión: capas, soportes y G-code</td><td>Decidir el diseño y el precio con el cliente</td></tr>
+            <tr><th scope="row">Colores</th><td>Filamento 1, 2, 3…</td><td>Catálogo real por marca, tipo y acabado, con tus bobinas</td></tr>
+            <tr><th scope="row">Cortar</th><td>Conectores puestos a mano</td><td>Anclajes calculados según el grosor de la pieza</td></tr>
+            <tr><th scope="row">Precio</th><td>Peso y tiempo tras laminar</td><td>Presupuesto al momento, con purga y margen</td></tr>
+            <tr><th scope="row">Para el cliente</th><td>—</td><td>Modo cliente, propuestas A·B·C, imagen, vídeo 360° y visor 3D</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ especificaciones -->
+  <section class="band soft" id="especificaciones">
+    <div class="wrap">
+      <h2 class="section-title">Especificaciones.</h2>
+      <dl class="specs">
+        <div><dt>Abre</dt><dd>STL, 3MF (Bambu Studio, OrcaSlicer, PrusaSlicer), OBJ, PLY y GLB</dd></div>
+        <div><dt>Catálogo</dt><dd>Bambu Lab (archivo oficial de colores) y más de 85 marcas de SpoolmanDB, en vivo y con copia sin conexión</dd></div>
+        <div><dt>Exporta</dt><dd>3MF con colores automáticos, 3MF pintado, OBJ con colores, STL por color y por pieza, PNG, MP4, visor 3D en HTML y ficha</dd></div>
+        <div><dt>Cortar</dt><dd>Plano libre, pasadores de Ø3 a Ø12 mm, espigas, imanes de 3 a 12 mm y holgura justa, normal u holgada</dd></div>
+        <div><dt>Texto 3D</dt><dd>Cuatro tipos de letra, altura de 2 a 40 mm y relieve de 0,4 a 6 mm</dd></div>
+        <div><dt>Equipo</dt><dd>Windows 10 u 11. Un solo .exe, sin instalar nada. La IA es opcional y usa tu propia clave</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============ preguntas -->
+  <section class="band" id="preguntas">
+    <div class="wrap narrow">
+      <h2 class="section-title">Preguntas.</h2>
+      <details><summary>¿Necesito una impresora con AMS?</summary><p>No. Con AMS, el 3MF ya lleva cada color en su zona. Sin AMS, puedes cambiar de filamento por capa o cortar la pieza para imprimir cada parte de un color y pegarla.</p></details>
+      <details><summary>¿Funciona sin internet?</summary><p>Sí. El catálogo se actualiza cuando hay conexión y, si no la hay, usa la copia incluida. Solo la IA necesita internet.</p></details>
+      <details><summary>¿Los colores de la pantalla son exactos?</summary><p>Son los HEX que publican las marcas. Cada pantalla los muestra un poco distinto, así que son orientativos, igual que en la web del fabricante.</p></details>
+      <details><summary>¿Qué pasa con mis archivos?</summary><p>Todo se queda en tu ordenador: la app funciona en local y solo se conecta para leer el catálogo y, si la activas, para la IA.</p></details>
+    </div>
+  </section>
+
+  <!-- ============ descarga -->
+  <section class="band cta" id="descargar">
+    <div class="wrap center-col">
+      <span class="logo big" aria-hidden="true"></span>
+      <h2>Filament Studio</h2>
+      <p class="lede">Personaliza. Imprime. Entrega.</p>
+      <a class="pill" href="#descargar" aria-disabled="true">Descargar beta para Windows</a>
+      <p class="fine">Beta para Windows 10 y 11. El enlace de descarga estará aquí muy pronto.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <span>Filament Studio</span>
+    <span>Colores de Bambu Lab y SpoolmanDB · Bambu Studio y OrcaSlicer son marcas de sus dueños.</span>
+  </div>
+</footer>
+<script type="module" src="main.js"></script>
+</body>
+</html>
