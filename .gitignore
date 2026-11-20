@@ -9,3 +9,5 @@ dist/
 data/prefs.json
 data/prefs.json.tmp
 data/exportados/
+promo/out/
+site/artifact.html

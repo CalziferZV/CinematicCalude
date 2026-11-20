@@ -632,7 +632,7 @@ export function toggleAutoRotate() {
 // ---------------------------------------------------------------- capturas
 let captureOutput = null;
 // Renderiza la escena con la vista pedida y devuelve un canvas (opcionalmente con etiquetas de partes).
-export function capture({ view = 'current', mode = 'real', width = 1280, height = 960, labels = false, transparent = false } = {}) {
+export function capture({ view = 'current', mode = 'real', width = 1280, height = 960, labels = false, transparent = false, grid: showGrid = true } = {}) {
   const cam = camera.clone();
   cam.aspect = width / height;
   cam.updateProjectionMatrix();
@@ -653,6 +653,8 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   if (cutPlane) cutPlane.visible = false;
   const splitVis = split ? split.group.visible : false;
   if (splitVis) setSplitVisible(false);
+  const gridVis = grid ? grid.visible : false;
+  if (grid && !showGrid) grid.visible = false;
   const prevBg = scene.background;
   if (transparent) scene.background = null;
   // Mismo proceso que la pantalla (escena en lineal -> tono y sRGB con OutputPass), para que la
@@ -675,6 +677,7 @@ export function capture({ view = 'current', mode = 'real', width = 1280, height 
   rt.dispose();
   out.dispose();
   scene.background = prevBg;
+  if (grid) grid.visible = gridVis;
   if (brushRing) brushRing.visible = brushVis;
   if (cutPlane) cutPlane.visible = cutVis;
   if (splitVis) setSplitVisible(true);

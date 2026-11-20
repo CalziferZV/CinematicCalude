@@ -4,7 +4,7 @@ import * as CUT from './cut.js';
 import { capture, fitView, raycastWorld } from './viewer.js';
 import * as TXT from './text3d.js';
 import { searchFilaments, resolveFilament, currentBrand, escapeHtml, ownedSpools } from './catalog.js';
-import { computeQuote } from './quote.js';
+import { computeQuote, setQty } from './quote.js';
 import { falseColor } from './materials.js';
 
 let messages = [];
@@ -144,6 +144,7 @@ const TOOL_LABEL = {
   set_part_color: 'Aplicando color…', rename_parts: 'Nombrando partes…', split_by_height: 'Cortando por altura…',
   auto_segment: 'Detectando partes…', merge_parts: 'Uniendo partes…', select_parts: 'Seleccionando…',
   cut_into_pieces: 'Cortando en piezas…', arrange_pieces: 'Colocando las piezas…', add_text: 'Escribiendo el texto…',
+  set_quantity: 'Calculando el pedido…',
 };
 
 async function runTool(name, input) {
@@ -160,6 +161,7 @@ async function runTool(name, input) {
           sum.estimate = {
             filament_g: Math.round(q.grams + q.purgeGrams), purge_g: Math.round(q.purgeGrams), color_changes: q.changes,
             print_time_h: +q.hours.toFixed(2), price_eur: q.price, price_includes_vat: q.settings.vat > 0,
+            units: q.qty, unit_price_eur: +q.unit.toFixed(2), copies_per_plate: q.onPlate, plates: q.plates,
           };
         }
       } catch { /* sin presupuesto */ }
@@ -290,6 +292,12 @@ async function runTool(name, input) {
       const ok = input.mode === 'explode' ? ST.explodePieces() : input.mode === 'assemble' ? ST.assemblePieces() : ST.layoutPieces();
       fitView('iso');
       return ok ? `Piezas: ${input.mode} hecho.` : 'No había nada que cambiar.';
+    }
+    case 'set_quantity': {
+      setQty(input.units);
+      const q = computeQuote();
+      if (!q) return 'Unidades cambiadas.';
+      return JSON.stringify({ units: q.qty, total_eur: +q.price.toFixed(2), unit_price_eur: +q.unit.toFixed(2), copies_per_plate: q.onPlate, plates: q.plates, filament_g: Math.round(q.grams + q.purgeGrams), print_time_h: +q.hours.toFixed(1) });
     }
     case 'select_parts': {
       ST.select(input.part_ids || []);

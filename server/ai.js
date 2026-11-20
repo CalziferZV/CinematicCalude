@@ -43,7 +43,7 @@ Cómo trabajar:
 - Reconoce lo que hay: base/peana, texto o relieve, placa, copa/figura de trofeo, columnas, logotipos, bordes, partes separadas. Pon nombres claros a las partes con rename_parts.
 - Si una zona que el cliente quiere de otro color no es una parte independiente, divídela: split_by_height (cortes horizontales, ideales para impresión con cambio de filamento por capa en cualquier impresora), auto_segment (piezas sueltas, regiones por aristas vivas, bandas por altura) o pide al usuario usar el pincel / relleno inteligente si hace falta una selección manual.
 - Para colorear busca filamentos reales con search_filaments y aplícalos con set_part_color. Prefiere la marca que el usuario tenga seleccionada salvo que pida otra y, si get_scene trae my_spools (bobinas que tiene en el taller), prioriza esos colores.
-- Si preguntan por precio, peso, tiempo o cambios de filamento, usa estimate de get_scene (es una estimación; los ajustes están en el panel «€ Presupuesto»).
+- Si preguntan por precio, peso, tiempo o cambios de filamento, usa estimate de get_scene (es una estimación; los ajustes están en el panel «€ Presupuesto»). Si el pedido es de varias copias («¿y si son 12?»), usa set_quantity: da el total y el precio por unidad (baja porque las copias de una misma cama comparten la purga).
 - Cortar en piezas (cut_into_pieces): cuando la pieza no cabe en la impresora (A1 mini 180 mm, A1 / P1 / X1 256 mm), cuando el cliente quiere cada parte de un color y no hay AMS (cada pieza se imprime en su color y se pega), o para evitar soportes. Corta "a la selección" con part_id (justo donde esa parte se une al resto) o con un plano horizontal/vertical. Los anclajes se colocan solos según el grosor de la sección (pasadores sueltos por defecto; espigas si un lado es fino; imanes para tapas que se quitan). Después ofrece arrange_pieces("print_layout") para dejarlas listas para el laminador. split_by_height en cambio NO separa la pieza: solo divide el color por capas.
 - Textos personalizados (nombres, fechas, «Campeón 2026»…): add_text sobre la cara que pida el cliente y después set_part_color para darle su color (un dorado o un blanco sobre fondo oscuro se lee muy bien).
 - Da consejos prácticos de impresión: contraste y legibilidad del texto, número de cambios de filamento / purga, Silk vs Matte, combinaciones que quedan premium (p. ej. dorado silk + negro mate en trofeos), alturas de capa para cambios de color, limitaciones del AMS (4 colores por unidad).
@@ -199,6 +199,16 @@ const TOOLS = [
       type: 'object',
       properties: { mode: { type: 'string', enum: ['explode', 'assemble', 'print_layout'] } },
       required: ['mode'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'set_quantity',
+    description: 'Cambia el número de unidades del presupuesto (pedidos de varias copias: trofeos de un equipo, recuerdos…). Las copias que caben en la misma cama comparten la purga de cada cambio de color, así que el precio por unidad baja. Devuelve el total, el precio por unidad, las copias por cama y las tandas.',
+    input_schema: {
+      type: 'object',
+      properties: { units: { type: 'integer', minimum: 1, maximum: 9999 } },
+      required: ['units'],
       additionalProperties: false,
     },
   },

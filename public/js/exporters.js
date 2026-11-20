@@ -5,6 +5,7 @@ import { capture } from './viewer.js';
 import { swatchCss } from './materials.js';
 import { filamentKey } from './catalog.js';
 import { computeQuote, settings as quoteSettings, sheetLines, eur, grams as fmtGrams, duration } from './quote.js';
+import { buildClientViewer } from './share.js';
 
 function download(blob, name) {
   const a = document.createElement('a');
@@ -347,6 +348,22 @@ export function exportPiecesZip() {
   return { pieces: n, dowels: [...doneDowels.values()].reduce((s, d) => s + d.count, 0) };
 }
 
+// ---------------------------------------------------------------- visor 3D para el cliente (HTML)
+export function exportClientViewer() {
+  const qs = quoteSettings();
+  let price = null;
+  let priceNote = '';
+  if (qs.showClient) {
+    try {
+      const q = computeQuote();
+      if (q) { price = eur(q.price); priceNote = q.qty > 1 ? `${q.qty} unidades × ${eur(q.unit)}` : qs.vat > 0 ? 'IVA incluido' : 'precio estimado'; }
+    } catch { /* sin precio */ }
+  }
+  const r = buildClientViewer({ shopName: qs.shopName || '', price, priceNote });
+  download(r.blob, r.name);
+  return r;
+}
+
 // ---------------------------------------------------------------- ficha de texto
 // quote = true solo en la ficha que descargas tú: el precio no va dentro de los archivos del modelo
 export function sheetText({ quote = false } = {}) {
@@ -431,7 +448,7 @@ export function clientImage() {
     ctx.font = '16px system-ui, sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(`${fmtGrams(q.grams + q.purgeGrams)} · ${duration(q.hours)}`, x0 + side - 96, 158);
-    ctx.fillText(qs.vat > 0 ? 'IVA incluido' : 'precio estimado', x0 + side - 96, 182);
+    ctx.fillText(q.qty > 1 ? `${q.qty} unidades × ${eur(q.unit)}` : qs.vat > 0 ? 'IVA incluido' : 'precio estimado', x0 + side - 96, 182);
     ctx.textAlign = 'left';
     y = 236;
   }

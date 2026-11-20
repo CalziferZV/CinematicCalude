@@ -62,7 +62,7 @@ const STEPS = [
   {
     target: '[data-dd="exportMenu"]',
     title: 'Directo a Bambu Studio',
-    text: '<b>Abrir en Bambu Studio</b> crea el 3MF con los colores exactos y lo abre. También imagen y vídeo 360° para el cliente, STL por pieza, ficha…',
+    text: '<b>Abrir en Bambu Studio</b> crea el 3MF con los colores exactos y lo abre. Para el cliente: imagen, vídeo 360° y un <b>visor 3D</b> para que gire su pieza y compare propuestas.',
   },
   {
     target: '#btnAI',

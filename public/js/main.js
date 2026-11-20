@@ -988,6 +988,11 @@ function bind() {
       try {
         if (kind === 'openbambu' || kind === 'openorca') await openInSlicer(kind === 'openbambu' ? 'bambu' : 'orca');
         else if (kind === 'video') openVideoDialog();
+        else if (kind === 'viewer') {
+          const r = EX.exportClientViewer();
+          const mb = r.size / 1048576;
+          toast(`Visor 3D guardado (${mb < 1 ? Math.max(1, Math.round(mb * 1024)) + ' KB' : mb.toFixed(1) + ' MB'}): mándaselo al cliente y lo abre en el navegador para girar la pieza${S.variants.length ? ' y comparar las propuestas' : ''}.${r.triangles > 400000 ? ' Ojo: la pieza es muy detallada y el archivo pesa.' : ''}`, 6500);
+        }
         else if (kind === 'png') EX.exportPNG();
         else if (kind === 'copy') { await EX.copyPNG(); toast('Imagen copiada: pégala en el chat de la videollamada'); }
         else if (kind === 'compare') EX.exportCompare();
@@ -1223,7 +1228,8 @@ function setScaleFactors(f, skip) {
     let html = '';
     try {
       const q = Q.computeQuote({ scale: f });
-      if (q) html = `Con este tamaño: <b>${Q.eur(q.price)}</b> · ${Q.grams(q.grams + q.purgeGrams)} · ${Q.duration(q.hours)}${lastQuote && Math.abs(q.price - lastQuote.price) > 0.001 ? ` <span class="muted">(ahora ${Q.eur(lastQuote.price)})</span>` : ''}`;
+      const money = (x) => (x.qty > 1 ? `${x.qty} × ${Q.eur(x.unit)}` : Q.eur(x.price));
+      if (q) html = `Con este tamaño: <b>${money(q)}</b> · ${Q.grams(q.grams + q.purgeGrams)} · ${Q.duration(q.hours)}${lastQuote && Math.abs(q.price - lastQuote.price) > 0.001 ? ` <span class="muted">(ahora ${money(lastQuote)})</span>` : ''}`;
     } catch (e) { console.error(e); }
     if (max > 256) html += '<br>⚠ Más de 256 mm: no cabe en la cama de una Bambu Lab X1, P1 o A1. Pártela con ✂ Cortar (tecla X): pone los anclajes sola.';
     else if (max > 180) html += '<br>Ojo: más de 180 mm no cabe en una A1 mini (se puede partir con ✂ Cortar, tecla X).';
@@ -1482,6 +1488,7 @@ loadPrefs().then(() => {
 });
 ST.on('parts', scheduleQuote);
 ST.on('mesh', scheduleQuote);
+Q.onQty(() => { clearTimeout(quoteTimer); updateQuote(); });
 onPrefChange((k) => {
   if (k === 'quote' || k === 'spools') scheduleQuote();
   // favorito / bobina cambiados desde el catálogo (clic derecho): refrescar el color activo y la paleta
