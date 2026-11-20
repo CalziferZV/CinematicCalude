@@ -257,7 +257,7 @@ async function addShop() {
     await selectBrand(id);
   } catch (e) {
     setStatus({ origin: 'error', error: e.message });
-    alert(`No se pudo leer la tienda: ${e.message}`);
+    notify(`No se pudo leer la tienda: ${e.message}`);
   }
 }
 
@@ -291,8 +291,10 @@ function setStatus(d) {
   const el = els.catStatus;
   el.className = 'cat-status ' + (d.origin || '');
   const txt = el.querySelector('.txt');
+  // en la versión web el catálogo es una copia incluida, no un fallo de conexión
+  const webCopy = d.at ? `Catálogo del ${new Date(d.at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}` : 'Catálogo incluido';
   const map = {
-    live: 'En vivo', cache: `Actualizado ${ago(d.at)}`, snapshot: 'Sin conexión (copia local)', loading: 'Conectando…', error: 'Error de conexión', local: 'En este ordenador', all: 'Todas las marcas',
+    live: 'En vivo', cache: `Actualizado ${ago(d.at)}`, snapshot: window.FS_WEB ? webCopy : 'Sin conexión (copia local)', loading: 'Conectando…', error: 'Error de conexión', local: 'En este ordenador', all: 'Todas las marcas',
   };
   txt.textContent = map[d.origin] || '';
   el.title = d.source ? `Fuente: ${d.source}${d.error ? `\nAviso: ${d.error}` : ''}` : d.error || '';

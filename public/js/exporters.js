@@ -7,14 +7,29 @@ import { filamentKey } from './catalog.js';
 import { computeQuote, settings as quoteSettings, sheetLines, eur, grams as fmtGrams, duration } from './quote.js';
 import { buildClientViewer } from './share.js';
 
-function download(blob, name) {
+// Guarda un archivo generado. En la versión web (el enlace) la página no puede descargar por su
+// cuenta: se lo ofrece al visor, y los formatos que el visor no admite viajan como .json (el
+// proyecto, que se abre igual) o dentro de un ZIP (el 3MF).
+export async function saveFile(blob, name) {
+  const web = window.FS_WEB;
+  if (web) {
+    if (/\.fsproj$/i.test(name)) name += '.json';
+    else if (!web.canSave(name)) {
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      blob = new Blob([fflate.zipSync({ [name]: [buf, { level: 0 }] })], { type: 'application/zip' });
+      name += '.zip';
+    }
+    return web.save(blob, name);
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = name;
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  return true;
 }
+const download = saveFile;
 const baseName = () => (S.modelName || 'modelo').replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_');
 const filLabel = (f) => (f.blank ? 'Sin asignar (blanco)' : `${f.brandName ? f.brandName + ' · ' : ''}${f.line ? f.line + ' · ' : ''}${f.name}`);
 
@@ -197,6 +212,11 @@ export function build3MF(mode = 'bambu') {
 // Guarda el 3MF en Documentos\Filament Studio y lo abre en el laminador instalado
 export async function openInSlicer(slicer = 'bambu') {
   const r = build3MF(slicer === 'bambu' ? 'bambu' : 'paint');
+  if (window.FS_WEB) {
+    // desde el navegador no se puede abrir un programa: se descarga el 3MF para abrirlo a mano
+    const saved = await saveFile(r.blob, r.name);
+    return { launched: 'web', saved, list: r.list };
+  }
   const res = await fetch(`/api/open-in-slicer?slicer=${encodeURIComponent(slicer)}&name=${encodeURIComponent(r.name)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/octet-stream' },

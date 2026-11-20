@@ -10,7 +10,8 @@
     "snapshot": "node scripts/snapshot.js",
     "samples": "node scripts/make-samples.js",
     "test": "node scripts/tests/t1.mjs && node scripts/tests/t4.mjs && node scripts/tests/t5.mjs",
-    "build:exe": "node scripts/build-exe.mjs"
+    "build:exe": "node scripts/build-exe.mjs",
+    "build:web": "node scripts/build-web.mjs"
   },
   "repository": {
     "type": "git",

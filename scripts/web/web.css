@@ -1,0 +1,12 @@
+/* Solo en la versión web (el enlace). Lo que necesita la app instalada en Windows no se enseña:
+   el asistente IA (va con tu clave en tu ordenador), leer tiendas en vivo y actualizar el catálogo. */
+html.web #btnAI,
+html.web details.shop,
+html.web #btnRefreshCat { display: none !important; }
+
+html.web .cat-status.snapshot .dot { background: #2f9e55; }
+
+.web-pill {
+  font-size: 11px; font-weight: 650; letter-spacing: 0.02em; color: var(--accent); background: var(--accent-soft);
+  border: 1px solid #ffd3b8; border-radius: 999px; padding: 2px 9px; white-space: nowrap; cursor: help;
+}

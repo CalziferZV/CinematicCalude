@@ -1124,7 +1124,10 @@ async function openInSlicer(slicer) {
   await busy(`Abriendo ${name}…`, async () => {
     const r = await EX.openInSlicer(slicer);
     const where = r.file ? `Guardado en: ${r.file}` : '';
-    if (r.launched === 'slicer') toast(`Abriendo ${name}… ${where}`, 6000);
+    if (r.launched === 'web') {
+      if (!r.saved) return;
+      toast(`Versión web: ábrelo tú en ${name} (el 3MF va dentro del ZIP). En la versión de Windows se abre solo.`, 8000);
+    } else if (r.launched === 'slicer') toast(`Abriendo ${name}… ${where}`, 6000);
     else if (r.launched === 'default') toast(`No encuentro ${name} instalado: lo abro con el programa predeterminado. ${where}`, 8000);
     else toast(`No encuentro ${name}: te abro la carpeta con el archivo. ${where}`, 8000);
     showSlotGuide(r.list, slicer === 'bambu' ? '3mf' : '3mfpaint', r);
@@ -1156,12 +1159,7 @@ async function startVideo() {
     });
     if (!r) { toast('Vídeo cancelado'); return; }
     const base = (S.modelName || 'modelo').replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(r.blob);
-    a.download = `${base}_360.${r.ext}`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    if (!(await EX.saveFile(r.blob, `${base}_360.${r.ext}`))) return;
     toast(r.ext === 'mp4' ? `Vídeo listo (${(r.blob.size / 1048576).toFixed(1)} MB): envíalo por WhatsApp` : 'Vídeo listo en WebM. Si WhatsApp no lo acepta como vídeo, envíalo como documento.', 6000);
   } catch (e) {
     console.error(e);
@@ -1505,4 +1503,4 @@ onPrefChange((k) => {
 });
 initAI();
 setTool('select');
-window.FS = { S, ST, V, EX, Q, CUT, SPL, VID: { recordTurntable, videoSupport } }; // para depurar desde la consola
+window.FS = { S, ST, V, EX, Q, CUT, SPL, VID: { recordTurntable, videoSupport }, toast }; // para depurar desde la consola (y avisos de la versión web)

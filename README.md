@@ -48,6 +48,18 @@ La clave de la IA se puede pegar directamente en el panel **✦ IA**. Los datos 
 
 Para generarlo tú mismo: `npm run build:exe` (crea `dist/FilamentStudio-Windows.zip`; funciona desde Windows, Mac o Linux).
 
+## Versión web (con un enlace, sin instalar)
+
+La misma app funcionando en el navegador, sin servidor: `npm run build:web` la monta en `dist/web` y se publica como artifact de claude.ai (privado hasta que lo compartas desde su menú *Compartir*). Funciona igual: abrir piezas, detectar partes, colores reales de las 87 marcas (copia del catálogo del día en que se montó), presupuesto, cortar con anclajes, texto 3D, propuestas, modo cliente, vídeo 360° y todas las exportaciones. También se adapta al móvil.
+
+Diferencias con la de Windows:
+- **Abrir en Bambu Studio / OrcaSlicer** descarga el 3MF para abrirlo a mano (el navegador no puede abrir programas).
+- Las descargas las confirma el visor de claude.ai. El 3MF va dentro de un ZIP y el proyecto se guarda como `.fsproj.json` (se abre igual).
+- Favoritos, bobinas y ajustes del presupuesto se guardan en ese navegador.
+- Sin asistente IA ni lectura de tiendas Shopify en vivo.
+
+El adaptador está en `scripts/web/shim.js`. three.js se carga de cdn.jsdelivr.net con la versión exacta instalada; con `node scripts/build-web.mjs --vendor` se copia al lado para alojar la web sin depender del CDN. `dist/web/preview.html` sirve para probarla en local con cualquier servidor de archivos.
+
 ## Instalación desde el código (alternativa)
 
 1. Instala **Node.js 20.12 o superior**: <https://nodejs.org>

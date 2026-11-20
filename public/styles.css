@@ -444,3 +444,25 @@ label.mini select { flex: 1; min-width: 0; }
 .tour-x { position: absolute; top: 10px; right: 10px; border: none; background: none; color: #9aa0ab; cursor: pointer; font-size: 14px; }
 .tour-x:hover { color: #1d2129; }
 .help-tour { margin-left: auto; margin-right: 8px; }
+
+/* ----------------------------------------------------------- móvil (al final: manda sobre lo anterior) */
+/* Pantallas estrechas: la pieza arriba y los paneles debajo, todo en una columna */
+@media (max-width: 760px) {
+  .topbar {
+    position: relative; z-index: 40; height: auto; flex-wrap: wrap; gap: 8px 12px;
+    padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px));
+  }
+  .top-actions { width: 100%; flex-wrap: wrap; }
+  .top-actions .sep { display: none; }
+  .dropdown { position: static; }
+  .menu, .menu.right { left: 12px; right: 12px; min-width: 0; max-height: 70vh; overflow-y: auto; }
+  .layout { display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+  .viewport-wrap { order: -1; flex: none; height: 50vh; height: 50svh; }
+  .panel, .panel.left, .panel.right { flex: none; overflow: visible; border: none; border-top: 1px solid var(--border); }
+  .panel section.grow { flex: none; }
+  .panel section.scroll { max-height: 60vh; }
+  .quote-panel, .ai-panel { left: 12px; right: 12px; width: auto; }
+  .quote-panel { top: auto; bottom: 12px; max-height: 72vh; }
+  .view-bar { left: 8px; right: 8px; bottom: 8px; transform: none; overflow-x: auto; scrollbar-width: none; }
+  .price-chip { left: 8px; bottom: 54px; }
+}
