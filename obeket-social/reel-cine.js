@@ -34,7 +34,7 @@ export async function init() {
     <div id="s1" class="abs center cine-sub" style="top:1430px">Cada capa mide 0,2 milímetros.</div>
     <div id="s2" class="abs center cine-sub" style="top:1430px">Miles de capas…</div>
     <div id="s3" class="abs center cine-sub" style="top:1430px">…para una sola idea.</div>
-    <div id="s4" class="abs center cine-sub" style="top:1430px">Su nombre. Su Navidad.</div>
+    <div id="s4" class="abs center cine-sub" style="top:1580px">Su nombre. Su Navidad.</div>
     <div id="card" class="abs" style="inset:0;background:#000"></div>
     <div id="t_brand" class="abs center cine-title" style="top:800px">${CONFIG.marca}</div>
     <div id="t_line" class="abs" style="left:440px;width:200px;top:990px;height:2px;background:#ff6a13"></div>
@@ -60,7 +60,7 @@ export async function init() {
   tw('bk', 0, 1.5, { o: 0 }, { o: 0.35 }, 'out');
   tw('bk', 11.6, 1.2, { o: 0.35 }, { o: 1 }, 'io');
   tw('barT', 0, 0.01, { o: 1 }, { o: 1 });
-  sub('s1', 0.9, 3.5); sub('s2', 4.4, 5.9); sub('s3', 6.1, 7.7); sub('s4', 9.2, 11.6);
+  sub('s1', 0.9, 3.5); sub('s2', 4.4, 5.9); sub('s3', 6.1, 7.7); sub('s4', 9.9, 11.7);
   tw('card', 0, 0.01, { o: 1 }, { o: 1 }); tw('card', 0.0, 0.9, { o: 1 }, { o: 0 }, 'io');
   tw('card', 15.3, 0.5, { o: 0 }, { o: 1 }, 'in');
   tw('t_brand', 15.7, 1.4, { o: 0, ls: 0.6, blur: 20 }, { o: 1, ls: 0.32, blur: 0 }, 'outQ');

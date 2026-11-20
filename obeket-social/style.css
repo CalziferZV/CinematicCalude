@@ -51,7 +51,7 @@ body { font-family: 'Inter Display', 'Inter', system-ui, sans-serif; -webkit-fon
 @font-face { font-family: 'Cormorant'; font-weight: 500; font-style: normal; src: url(/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-normal.woff2) format('woff2'); }
 @font-face { font-family: 'Cormorant'; font-weight: 600; font-style: normal; src: url(/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff2) format('woff2'); }
 @font-face { font-family: 'Caveat'; font-weight: 700; src: url(/node_modules/@fontsource/caveat/files/caveat-latin-700-normal.woff2) format('woff2'); }
-.cine-sub { font-family: 'Cormorant', serif; font-style: italic; font-weight: 500; font-size: 64px; color: #f3ece2; letter-spacing: 0.01em; text-shadow: 0 2px 30px rgba(0,0,0,.6); }
+.cine-sub { font-family: 'Cormorant', serif; font-style: italic; font-weight: 500; font-size: 64px; color: #f3ece2; letter-spacing: 0.01em; text-shadow: 0 0 6px rgba(0,0,0,.85), 0 2px 26px rgba(0,0,0,.9), 0 0 60px rgba(0,0,0,.6); }
 .cine-title { font-family: 'Cormorant', serif; font-weight: 600; font-size: 150px; letter-spacing: 0.32em; padding-left: 0.32em; color: #f3ece2; }
 .cine-small { font-family: 'Cormorant', serif; font-style: italic; font-weight: 300; font-size: 50px; color: rgba(243,236,226,.75); }
 .bar { position: absolute; left: 0; right: 0; height: 190px; background: #000; }
