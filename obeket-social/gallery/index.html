@@ -1,0 +1,191 @@
+<title>OBEKET Instagram Navidad</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: una tira de producción de estudio — negro de cámara de impresión, naranja de boquilla; cada pieza con su caption al lado, lista para copiar */
+:root {
+  --bg: #0c0b0a; --panel: #171513; --line: #2a2622; --fg: #f4efe9; --muted: #a59d94;
+  --accent: #ff6a13; --gold: #f2c14e; --red: #d4213d; --pine: #1f7a4d;
+  --display: 'Space Grotesk', 'Inter', system-ui, sans-serif; --body: 'Inter', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5; margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; }
+header { display: grid; gap: 14px; padding-block: 12px 36px; border-bottom: 1px solid var(--line); }
+.mark { display: inline-flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .26em; font-size: 15px; }
+.mark b { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); position: relative; }
+.mark b::after { content: ''; position: absolute; left: 6px; right: 6px; top: 7px; height: 2.5px; background: #fff; border-radius: 2px; box-shadow: 0 4.5px 0 #fff, 0 9px 0 #fff; }
+h1 { font-family: var(--display); font-size: clamp(36px, 6vw, 64px); line-height: 1.02; letter-spacing: -.03em; margin: 0; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--accent); }
+.lead { color: var(--muted); max-width: 62ch; margin: 0; }
+.note { display: inline-flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); padding: 8px 14px; border-radius: 10px; width: fit-content; max-width: 100%; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+nav a { color: var(--fg); text-decoration: none; font-size: 14px; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); }
+nav a:hover, nav a:focus-visible { border-color: var(--accent); outline: none; }
+section { padding-block: 48px 8px; }
+h2 { font-family: var(--display); font-size: 30px; letter-spacing: -.02em; margin: 0 0 6px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2 small { font-family: var(--body); font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.sub { color: var(--muted); margin: 0 0 24px; max-width: 70ch; }
+.item { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 28px; padding-block: 24px; border-top: 1px solid var(--line); }
+.item.wide { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) { .item { grid-template-columns: minmax(0, 1fr); } }
+.media video, .media img { display: block; width: 100%; max-width: 100%; border-radius: 14px; background: #000; }
+.strip { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
+.strip img { flex: 0 0 auto; width: min(300px, 78vw); max-width: none; border-radius: 12px; scroll-snap-align: start; }
+.stories { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .stories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stories figure { margin: 0; display: grid; gap: 10px; }
+.stories img { width: 100%; border-radius: 14px; }
+figcaption { font-size: 13px; color: var(--muted); }
+.meta { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.tagrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: var(--panel); color: var(--muted); }
+.tag.n { color: var(--gold); } .tag.m { color: var(--accent); }
+h3 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.file { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.cap { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 14px; white-space: pre-wrap; font-size: 15px; overflow-wrap: anywhere; }
+.copy { font: 600 13px var(--body); color: var(--bg); background: var(--accent); border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; width: fit-content; }
+.copy:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.tip { font-size: 14px; color: var(--muted); margin: 0; }
+.cal { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 15px; }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+td:first-child { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+tr.hl td { background: color-mix(in srgb, var(--red) 14%, transparent); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--accent); }
+.dot.n { background: var(--gold); }
+.hash { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="mark"><b></b>OBEKET</div>
+    <h1>Contenido para Instagram: <em>marca y Navidad</em></h1>
+    <p class="lead">3 reels con música original, 2 carruseles, 3 posts sueltos y 3 historias, todo hecho con piezas impresas en 3D que se ven nacer capa a capa. Cada pieza lleva su texto listo para copiar y pegar.</p>
+    <div class="note">Revisa antes de publicar: el usuario <strong>@obeket</strong> y la fecha límite <strong>14 de diciembre</strong> son provisionales.</div>
+    <nav><a href="#reels">Reels</a><a href="#feed">Feed</a><a href="#historias">Historias</a><a href="#calendario">Calendario</a><a href="#hashtags">Hashtags</a></nav>
+  </header>
+
+  <section id="reels">
+    <h2>Reels <small>1080 × 1920 · 30 fps · con música</small></h2>
+    <p class="sub">Toca para reproducir con sonido. La música es original y no tiene derechos de autor, así que Instagram no la silenciará.</p>
+    <div id="reelList"></div>
+  </section>
+
+  <section id="feed">
+    <h2>Feed <small>1080 × 1350 · formato 4:5</small></h2>
+    <p class="sub">Los carruseles se deslizan de lado. Súbelos en este orden.</p>
+    <div id="feedList"></div>
+  </section>
+
+  <section id="historias">
+    <h2>Historias <small>1080 × 1920</small></h2>
+    <p class="sub">Añade los stickers de Instagram encima: enlace o mensaje en el botón, caja de preguntas en el recuadro punteado y cuenta atrás con la fecha límite.</p>
+    <div class="stories" id="storyList"></div>
+  </section>
+
+  <section id="calendario">
+    <h2>Calendario <small>21 nov → 24 dic</small></h2>
+    <p class="sub">Primero se presenta la marca, después la campaña, y la última semana se insiste en la fecha límite.</p>
+    <div class="cal"><table>
+      <thead><tr><th>Fecha</th><th>Formato</th><th>Pieza</th><th>Objetivo</th></tr></thead>
+      <tbody id="calBody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="hashtags">
+    <h2>Hashtags <small>usa 8–12 por publicación</small></h2>
+    <div class="hash" id="hashList"></div>
+  </section>
+
+  <footer>Los archivos originales en máxima calidad (MP4 y PNG) están en la carpeta <span class="file">obeket-social/out/</span> del repositorio. Para cambiar textos o fecha, edita <span class="file">config.js</span> y vuelve a generar.</footer>
+</div>
+
+<script>
+const H = {
+  marca: '#impresion3d #3dprinting #regalospersonalizados #hechoamano #diseño3d #obeket',
+  nav: '#navidad #regalosdenavidad #adornosnavideños #regalospersonalizados #impresion3d #navidad2026 #obeket',
+};
+const REELS = [
+  { file: 'reel-marca.mp4', kind: 'm', title: 'Reel de marca', len: '20 s', when: 'Sáb 21 nov',
+    tip: 'Portada sugerida: el segundo 5 ("Lo imaginas. Lo imprimimos.").',
+    cap: `Capa a capa, así nace tu idea. 🧡\nEn OBEKET diseñamos e imprimimos en 3D lo que imagines: regalos personalizados, decoración, repuestos o prototipos. Desde 1 unidad y en el color que quieras.\n¿Tienes una idea? Escríbenos por mensaje directo y te damos presupuesto. 👇\n\n${H.marca}` },
+  { file: 'reel-navidad.mp4', kind: 'n', title: 'Reel de Navidad', len: '22 s', when: 'Mar 1 dic',
+    tip: 'Portada sugerida: el segundo 4 (bola roja con "regala algo único"). Fíjalo en tu perfil.',
+    cap: `Esta Navidad, regala algo que nadie más tiene. 🎄\nAdornos con nombre, árboles, estrellas y regalos personalizados impresos en 3D por OBEKET.\n📅 Pide antes del 14 de diciembre y llega a tiempo para Navidad.\nEscríbenos por mensaje directo. 🎁\n\n${H.nav}` },
+  { file: 'reel-ultimo-dia.mp4', kind: 'n', title: 'Reel "Últimos días"', len: '12 s', when: 'Jue 10 dic',
+    tip: 'Vuelve a subirlo a historias el 13 y el 14 de diciembre.',
+    cap: `⏰ Últimos días para pedir tus regalos impresos en 3D.\nSi nos escribes antes del 14 de diciembre, llega antes de Navidad. Después… ¡ya no podemos prometerlo! 🎅\n\n#navidad #ultimosdias #regalosdenavidad #impresion3d #obeket` },
+];
+const FEED = [
+  { imgs: ['marca-01-lema'], kind: 'm', title: 'Post de marca', when: 'Mié 25 nov',
+    cap: `Lo imaginas. Lo imprimimos. 🖨️✨\nImpresión 3D a medida, sin pedido mínimo. Cuéntanos tu idea por DM.\n\n#impresion3d #3dprinting #obeket` },
+  { imgs: [1, 2, 3, 4, 5].map((i) => 'marca-02-como-' + i), kind: 'm', title: 'Carrusel "Cómo funciona"', when: 'Lun 23 nov',
+    cap: `De una idea a un objeto real, en 4 pasos 👉\n1️⃣ Nos cuentas tu idea (foto, boceto, STL o descripción)\n2️⃣ La diseñamos y te damos precio\n3️⃣ La imprimimos capa a capa\n4️⃣ La recibes en casa\nGuárdalo para cuando lo necesites y escríbenos por DM. 💬\n\n#impresion3d #personalizado #regalosoriginales #diseño3d #obeket` },
+  { imgs: ['navidad-01-portada'], kind: 'n', title: 'Portada de la campaña', when: 'Jue 3 dic',
+    cap: `La Navidad de este año, impresa en 3D. ❤️💚\nAdornos y regalos personalizados, hechos uno a uno. Pedidos hasta el 14 de diciembre.\n\n#navidad #decoracionnavideña #impresion3d #obeket` },
+  { imgs: [1, 2, 3, 4, 5].map((i) => 'navidad-02-ideas-' + i), kind: 'n', title: 'Carrusel "4 regalos que no verás en tiendas"', when: 'Sáb 5 dic',
+    cap: `4 regalos que no encontrarás en ninguna tienda 🎁👉\n01 · Adornos con el nombre de cada uno\n02 · Decoración diferente para tu árbol\n03 · Regalos a medida (llaveros, figuras, lámparas…)\n04 · Regalos de empresa con tu logo\n¿Cuál regalarías? Cuéntanoslo en comentarios. Y guárdalo para no olvidarte 😉\n\n#ideasderegalo #regalosnavidad #regalosoriginales #regalosempresa #impresion3d #obeket` },
+  { imgs: ['navidad-03-ultimos-dias'], kind: 'n', title: 'Post "Últimos días"', when: 'Sáb 12 dic',
+    cap: `Se acaba el plazo 🎄 Hasta el 14 de diciembre puedes pedir tu regalo personalizado y recibirlo a tiempo. Escríbenos por DM.\n\n#navidad #regalosdenavidad #impresion3d #obeket` },
+];
+const STORIES = [
+  ['historia-navidad-abierta', 'Lanzamiento de la campaña · Mar 1 dic'],
+  ['historia-encuesta-nombre', 'Encuesta con caja de preguntas · Lun 7 dic'],
+  ['historia-presupuesto', 'Presupuestos por DM · Vie 27 nov'],
+];
+const CAL = [
+  ['Sáb 21 nov', 'Reel', 'Reel de marca', 'Presentar OBEKET', 'm'],
+  ['Lun 23 nov', 'Carrusel', 'Cómo funciona', 'Explicar cómo pedir', 'm'],
+  ['Mié 25 nov', 'Post', 'Lo imaginas. Lo imprimimos.', 'Imagen de marca', 'm'],
+  ['Vie 27 nov', 'Historia', '¿Tienes una idea?', 'Conseguir mensajes', 'm'],
+  ['Mar 1 dic', 'Reel + historia', 'Reel de Navidad + "Ya está aquí la Navidad"', 'Lanzar la campaña', 'n'],
+  ['Jue 3 dic', 'Post', 'Navidad impresa en 3D', 'Fijar en el perfil', 'n'],
+  ['Sáb 5 dic', 'Carrusel', '4 regalos que no verás en tiendas', 'Guardados y compartidos', 'n'],
+  ['Lun 7 dic', 'Historia', '¿Qué nombre pondrías en tu adorno?', 'Interacción', 'n'],
+  ['Jue 10 dic', 'Reel', 'Últimos días', 'Urgencia', 'n'],
+  ['Sáb 12 dic', 'Post', 'Últimos días', 'Urgencia', 'n'],
+  ['13–14 dic', 'Historias', 'Reel "Últimos días" + cuenta atrás', 'Último empujón', 'n', 1],
+  ['Jue 24 dic', 'Historia', 'Foto real de pedidos entregados + "Feliz Navidad"', 'Cierre y agradecimiento', 'n'],
+];
+const HASH = [
+  ['Marca', '#impresion3d #3dprinting #impresora3d #diseño3d #hechoamano #personalizado #obeket'],
+  ['Regalo', '#regalospersonalizados #regalosoriginales #ideasderegalo #regalounico #regalosempresa'],
+  ['Navidad', '#navidad #navidad2026 #regalosdenavidad #adornosnavideños #decoracionnavideña #arboldenavidad'],
+];
+
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const tags = (kind, when, extra) => `<div class="tagrow"><span class="tag ${kind}">${kind === 'n' ? 'Navidad' : 'Marca'}</span><span class="tag">${when}</span>${extra ? `<span class="tag">${extra}</span>` : ''}</div>`;
+const capBlock = (id, text) => `<div class="cap" id="${id}">${esc(text)}</div><button class="copy" type="button" data-copy="${id}">Copiar texto</button>`;
+
+document.getElementById('reelList').innerHTML = REELS.map((r, i) => `
+  <article class="item">
+    <div class="media"><video src="videos/${r.file}" controls playsinline preload="metadata" poster="img/poster-${r.file.replace('.mp4', '')}.jpg"></video></div>
+    <div class="meta">${tags(r.kind, r.when, r.len)}<h3>${r.title}</h3><div class="file">${r.file}</div>${capBlock('rc' + i, r.cap)}<p class="tip">${r.tip}</p></div>
+  </article>`).join('');
+
+document.getElementById('feedList').innerHTML = FEED.map((p, i) => `
+  <article class="item ${p.imgs.length > 1 ? 'wide' : ''}">
+    <div class="media">${p.imgs.length > 1
+      ? `<div class="strip">${p.imgs.map((s, k) => `<img src="img/${s}.jpg" alt="${esc(p.title)}, imagen ${k + 1} de ${p.imgs.length}" loading="lazy">`).join('')}</div>`
+      : `<img src="img/${p.imgs[0]}.jpg" alt="${esc(p.title)}" loading="lazy">`}</div>
+    <div class="meta">${tags(p.kind, p.when, p.imgs.length > 1 ? p.imgs.length + ' imágenes' : '')}<h3>${p.title}</h3><div class="file">${p.imgs.length > 1 ? p.imgs[0].replace(/-1$/, '-1…' + p.imgs.length) : p.imgs[0]}.png</div>${capBlock('fc' + i, p.cap)}</div>
+  </article>`).join('');
+
+document.getElementById('storyList').innerHTML = STORIES.map(([s, c]) => `<figure><img src="img/${s}.jpg" alt="${esc(c)}" loading="lazy"><figcaption>${c}</figcaption></figure>`).join('');
+document.getElementById('calBody').innerHTML = CAL.map(([d, f, p, o, k, hl]) => `<tr class="${hl ? 'hl' : ''}"><td>${d}</td><td>${f}</td><td><span class="dot ${k}"></span>${esc(p)}</td><td>${o}</td></tr>`).join('');
+document.getElementById('hashList').innerHTML = HASH.map(([n, h], i) => `<div class="meta"><h3 style="font-size:17px">${n}</h3>${capBlock('hc' + i, h)}</div>`).join('');
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  const el = document.getElementById(b.dataset.copy);
+  try { await navigator.clipboard.writeText(el.textContent); b.textContent = 'Copiado'; }
+  catch { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Seleccionado: copia con el menú'; }
+  setTimeout(() => (b.textContent = 'Copiar texto'), 2200);
+});
+</script>

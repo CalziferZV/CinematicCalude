@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>OBEKET · composición</title>
+<script type="importmap">
+  { "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }
+</script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="stage"><div id="bgs"></div><canvas id="gl"></canvas><div id="fg"></div></div>
+<script type="module">
+  import { wavBase64 } from './timeline.js';
+  import { renderMusic } from './audio.js';
+  const q = new URLSearchParams(location.search);
+  try {
+    const mod = await import(`./${q.get('c')}.js`);
+    const [w, h] = mod.SIZE(q);
+    const st = document.getElementById('stage');
+    document.documentElement.style.setProperty('--w', w + 'px');
+    document.documentElement.style.setProperty('--h', h + 'px');
+    await mod.init(q, w, h);
+    await document.fonts.ready;
+    window.DURATION = mod.DURATION || 0;
+    window.renderAt = async (t) => { mod.renderAt(t); await new Promise((r) => requestAnimationFrame(() => r())); };
+    window.music = async () => (mod.MUSIC ? wavBase64(await renderMusic(mod.MUSIC, mod.DURATION)) : null);
+    await window.renderAt(+(q.get('t') || 0));
+    window.ready = true;
+  } catch (e) { console.error(e); window.failed = String(e && e.stack || e); }
+</script>
+</body>
+</html>
