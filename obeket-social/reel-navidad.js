@@ -92,7 +92,7 @@ export function renderAt(t) {
   } else if (t < 10) {
     const i = Math.min(2, Math.floor((t - 6) / 1.333)), t0 = 6 + i * 1.333;
     const g = TAGS[i]; g.visible = true;
-    const p = clamp((t - t0 - 0.03) / 0.85);
+    const p = clamp((t - t0 - 0.03) / 0.5);
     g.scale.setScalar(0.62);
     g.rotation.y = Math.sin((t - t0) * 1.6 - 0.6) * 0.3;
     const { cut, box } = setPrint(g, p);

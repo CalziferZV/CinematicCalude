@@ -2,3 +2,4 @@ node_modules/
 out/preview/
 out/*.wav
 out/render-log.txt
+gallery/videos/
