@@ -16,7 +16,7 @@ const args = process.argv.slice(2);
 const pos = args.filter((a, i) => !a.startsWith('--') && !(args[i - 1] || '').startsWith('--'));
 const opt = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 const FPS = +(opt('--fps') || 30);
-const REELS = ['reel-marca', 'reel-navidad', 'reel-ultimo-dia'];
+const REELS = ['reel-marca', 'reel-navidad', 'reel-ultimo-dia', 'reel-cine', 'reel-viral', 'reel-top3'];
 const { POSTS } = await import('./posts-list.mjs');
 const targets = pos.length ? pos : [...REELS, 'posts'];
 fs.mkdirSync(OUT, { recursive: true });

@@ -16,10 +16,13 @@ posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha lími
 | Lun 23 nov | Carrusel | `marca-02-como-1…5` | Explicar cómo pedir |
 | Mié 25 nov | Post | `marca-01-lema` | Imagen de marca |
 | Vie 27 nov | Historia | `historia-presupuesto` | Mensajes directos |
-| Mar 1 dic | Reel | `reel-navidad.mp4` | Lanzar la campaña |
+| Mar 1 dic | Reel | `reel-cine.mp4` | Lanzar la campaña (tono premium) |
+| Jue 3 dic | Reel | `reel-navidad.mp4` | Explicar la campaña |
 | Mar 1 dic | Historia | `historia-navidad-abierta` | Anunciar campaña |
 | Jue 3 dic | Post | `navidad-01-portada` | Fijar en el perfil |
-| Sáb 5 dic | Carrusel | `navidad-02-ideas-1…5` | Guía de regalos (guardados) |
+| Sáb 5 dic | Reel | `reel-viral.mp4` | Alcance y comentarios |
+| Dom 6 dic | Carrusel | `navidad-02-ideas-1…5` | Guía de regalos (guardados) |
+| Mar 8 dic | Reel | `reel-top3.mp4` | Comentarios (votar 3, 2 o 1) |
 | Lun 7 dic | Historia | `historia-encuesta-nombre` + caja de preguntas | Interacción |
 | Jue 10 dic | Reel | `reel-ultimo-dia.mp4` | Urgencia |
 | Sáb 12 dic | Post | `navidad-03-ultimos-dias` | Urgencia |
@@ -32,6 +35,31 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 ---
 
 ## Captions
+
+### NUEVO · Reel cinematográfico — `reel-cine.mp4`
+> Cada capa mide 0,2 milímetros. Miles de capas para una sola idea. ✨
+> Esta Navidad, regala algo hecho solo para esa persona.
+> Adornos y regalos personalizados impresos en 3D. Pedidos hasta el 14 de diciembre, por mensaje directo.
+>
+> #navidad #regalosdenavidad #adornosnavideños #regalospersonalizados #impresion3d #navidad2026 #obeket
+
+### NUEVO · Reel viral "POV" — `reel-viral.mp4`
+> POV: es 24 de diciembre y aún no tienes regalo 😰
+> Tranqui 😎 Lo imprimimos en 3D con su nombre, en su color favorito y para nadie más.
+> Comenta 🎄 y te decimos cómo pedirlo (pedidos hasta el 14 de diciembre).
+>
+> #pov #navidad #regalosdenavidad #regalospersonalizados #impresion3d #humor #obeket
+
+Responde por DM a cada persona que comente 🎄: así el reel gana alcance.
+
+### NUEVO · Reel "Top 3" del boceto a la pieza — `reel-top3.mp4`
+> TOP 3 regalos impresos en 3D que van a triunfar esta Navidad 🎄
+> #3 Estrella para el árbol, en tu color favorito
+> #2 Bola de Navidad de diseño
+> #1 Adorno con su nombre ❤️
+> De tu boceto a tu árbol. ¿Cuál es tu favorito? Comenta 3, 2 o 1 👇
+>
+> #top3 #ideasderegalo #navidad #regalosoriginales #impresion3d #obeket
 
 ### Reel de marca — `reel-marca.mp4`
 > Capa a capa, así nace tu idea. 🧡

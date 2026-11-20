@@ -163,8 +163,76 @@ function navidad(ctx, D) {
   k.pad(D - 2, D, ['C4', 'E4', 'G4'].map(N), 0.04, 1500);
 }
 
+// ── Cinemático: ambiente lento, latidos graves, campanas sueltas y subida final ────────────
+function cine(ctx, D) {
+  const k = kit(ctx);
+  const prog = [['C3', ['G3', 'C4', 'E4', 'B4']], ['A2', ['E3', 'A3', 'C4', 'G4']], ['F2', ['C3', 'F3', 'A3', 'E4']], ['G2', ['D3', 'G3', 'B3', 'D4']]];
+  for (let i = 0; i < Math.ceil(D / 4); i++) {
+    const t = i * 4, [b, ch] = prog[i % 4];
+    if (t >= D - 2.5) break;
+    k.pad(t, Math.min(t + 4, D - 2.5), ch.map(N), 0.03 + i * 0.006, 700 + i * 250);
+    k.bass(t, N(b) / 2, 3.5, 0.18);
+    for (let j = 0; j < 4; j++) k.kick(t + j, 0.32);   // latido
+  }
+  // notas sueltas de campana / piano
+  [[1.0, 'E5'], [2.5, 'G5'], [4.5, 'C6'], [6.0, 'B5'], [8.2, 'A5'], [9.6, 'E5'], [11.0, 'G5'], [12.4, 'C6'], [13.4, 'D6'], [14.2, 'E6']]
+    .forEach(([t, n]) => k.bell(t, N(n), 0.07, 3));
+  k.whoosh(12, 3.3, 0.16);                 // subida hacia la revelación
+  for (let i = 0; i < 12; i++) k.hat(14 + i * 0.125, 0.04 + i * 0.01, 0.04);
+  k.impact(15.5, 0.75);
+  ['C4', 'G4', 'C5', 'E5', 'G5', 'C6'].forEach((n, i) => k.bell(15.5 + i * 0.09, N(n), 0.08, 3));
+  k.pad(15.5, D, ['C3', 'G3', 'E4', 'C5'].map(N), 0.05, 1800);
+}
+
+// ── Viral: caja de música triste → rayado de disco → drop con 808 ─────────────────────────
+function viral(ctx, D) {
+  const k = kit(ctx);
+  // intro triste (Do menor, lento y desafinado)
+  [['C5', 0], ['Eb5', 0.5], ['G5', 1], ['Eb5', 1.5], ['D5', 2.0]].forEach(([n, t]) => k.bell(t, N(n) * 0.995, 0.09, 1.5));
+  k.pad(0, 2.4, ['C4', 'Eb4', 'G4'].map(N), 0.03, 600);
+  // rayado de disco
+  { const t = 2.4; for (let i = 0; i < 3; i++) k.whoosh(t + i * 0.035, 0.035, 0.25, i % 2 === 0); }
+  k.impact(2.5, 0.7);
+  const ch = [['F2', ['F4', 'A4', 'C5']], ['G2', ['G4', 'B4', 'D5']], ['E2', ['E4', 'G4', 'B4']], ['A2', ['A4', 'C5', 'E5']]];
+  for (let bar = 0; bar < 7; bar++) {
+    const t = 3 + bar * 2;
+    if (t >= D - 0.3) break;
+    const [b, c] = ch[bar % 4];
+    const end = t >= 11 ? 2 : 2;
+    k.kick(t, 1); k.kick(t + 0.75, 0.8); k.kick(t + 1.25, 0.7);
+    k.clap(t + 0.5, 0.42); k.clap(t + 1.5, 0.42);
+    for (let i = 0; i < 16; i++) if (i % 2 || i > 11) k.hat(t + i * 0.125, 0.12 + (i % 4 === 3 ? 0.06 : 0), 0.03);
+    k.bass(t, N(b), 0.7, 0.4); k.bass(t + 0.75, N(b), 0.4, 0.34); k.bass(t + 1.25, N(b) * 1.5, 0.6, 0.3);
+    for (let i = 0; i < 4; i++) k.pluck(t + i * 0.5 + 0.25, N(c[i % 3]), 0.2, 0.08, 3800);
+    for (let i = 0; i < 8; i++) k.sleigh(t + i * 0.25, i % 2 ? 0.05 : 0.09);
+  }
+  [4.5, 6, 7.5].forEach((t) => k.whoosh(t - 0.25, 0.25, 0.12));
+  k.whoosh(8.4, 0.6, 0.18); k.impact(9, 0.5);
+  k.impact(12, 0.55);
+  ['C5', 'E5', 'G5', 'C6'].forEach((n, i) => k.bell(12 + i * 0.05, N(n), 0.08, 2));
+}
+
+// ── Top 3: pop alegre con palmas y un "whoosh" por número ─────────────────────────────────
+function top3(ctx, D) {
+  const k = kit(ctx);
+  const ch = [['C3', ['E4', 'G4', 'C5']], ['G2', ['D4', 'G4', 'B4']], ['A2', ['C4', 'E4', 'A4']], ['F2', ['C4', 'F4', 'A4']]];
+  for (let bar = 0; bar < Math.ceil(D / 2); bar++) {
+    const t = bar * 2, [b, c] = ch[bar % 4];
+    if (t >= D - 2) break;
+    for (let i = 0; i < 4; i++) { k.kick(t + i * 0.5, 0.8); k.hat(t + i * 0.5 + 0.25, 0.18); }
+    if (bar >= 1) { k.clap(t + 0.5, 0.35); k.clap(t + 1.5, 0.35); }
+    for (let i = 0; i < 4; i++) k.bass(t + i * 0.5, N(b), 0.3, 0.28);
+    for (let i = 0; i < 8; i++) k.pluck(t + i * 0.25, N(c[[0, 1, 2, 1][i % 4]]), 0.16, 0.08, 3000);
+    k.pad(t, t + 2, c.map(N), 0.03, 1400);
+  }
+  [2.5, 7, 11.5, 16].forEach((t) => { k.whoosh(t - 0.4, 0.4, 0.16); k.impact(t, 0.35); });
+  [[11.5, ['C6', 'E6', 'G6']]].forEach(([t, ns]) => ns.forEach((n, i) => k.bell(t + 0.1 + i * 0.07, N(n), 0.06, 1.2)));
+  ['C5', 'E5', 'G5', 'C6'].forEach((n, i) => k.bell(D - 2 + i * 0.07, N(n), 0.09, 2));
+  k.pad(D - 2, D, ['C4', 'E4', 'G4'].map(N), 0.04, 1500);
+}
+
 export async function renderMusic(kind, D) {
   const ctx = new OfflineAudioContext(2, Math.ceil(SR * D), SR);
-  ({ marca, navidad })[kind](ctx, D);
+  ({ marca, navidad, cine, viral, top3 })[kind](ctx, D);
   return ctx.startRendering();
 }

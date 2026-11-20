@@ -65,7 +65,7 @@ footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line);
   <header>
     <div class="mark"><b></b>OBEKET</div>
     <h1>Contenido para Instagram: <em>marca y Navidad</em></h1>
-    <p class="lead">3 reels con música original, 2 carruseles, 3 posts sueltos y 3 historias, todo hecho con piezas impresas en 3D que se ven nacer capa a capa. Cada pieza lleva su texto listo para copiar y pegar.</p>
+    <p class="lead">6 reels en 4 estilos distintos (cinematográfico, viral, top 3 y de marca), con música original, 2 carruseles, 3 posts sueltos y 3 historias, todo hecho con piezas impresas en 3D que se ven nacer capa a capa. Cada pieza lleva su texto listo para copiar y pegar.</p>
     <div class="note">Revisa antes de publicar: el usuario <strong>@obeket</strong> y la fecha límite <strong>14 de diciembre</strong> son provisionales.</div>
     <nav><a href="#reels">Reels</a><a href="#feed">Feed</a><a href="#historias">Historias</a><a href="#calendario">Calendario</a><a href="#hashtags">Hashtags</a></nav>
   </header>
@@ -111,6 +111,15 @@ const H = {
   nav: '#navidad #regalosdenavidad #adornosnavideños #regalospersonalizados #impresion3d #navidad2026 #obeket',
 };
 const REELS = [
+  { file: 'reel-cine.mp4', kind: 'n', title: 'Reel cinematográfico', len: '18 s', when: 'Mar 1 dic', fresh: 'Nuevo',
+    tip: 'Macros de la boquilla y de las capas, casi sin texto. Ideal para abrir la campaña con un tono premium. Portada sugerida: el segundo 14 (árbol entre luces).',
+    cap: `Cada capa mide 0,2 milímetros. Miles de capas para una sola idea. ✨\nEsta Navidad, regala algo hecho solo para esa persona.\nAdornos y regalos personalizados impresos en 3D. Pedidos hasta el 14 de diciembre, por mensaje directo.\n\n${H.nav}` },
+  { file: 'reel-viral.mp4', kind: 'n', title: 'Reel viral "POV"', len: '15 s', when: 'Sáb 5 dic', fresh: 'Nuevo',
+    tip: 'Formato de humor con rótulos tipo TikTok. Responde a cada comentario con 🎄 por DM: así el reel gana alcance.',
+    cap: `POV: es 24 de diciembre y aún no tienes regalo 😰\nTranqui 😎 Lo imprimimos en 3D con su nombre, en su color favorito y para nadie más.\nComenta 🎄 y te decimos cómo pedirlo (pedidos hasta el 14 de diciembre).\n\n#pov #navidad #regalosdenavidad #regalospersonalizados #impresion3d #humor #obeket` },
+  { file: 'reel-top3.mp4', kind: 'n', title: 'Reel "Top 3" del boceto a la pieza', len: '18 s', when: 'Mar 8 dic', fresh: 'Nuevo',
+    tip: 'Cada regalo empieza como un dibujo a mano y se convierte en la pieza impresa. Termina pidiendo que comenten su número favorito.',
+    cap: `TOP 3 regalos impresos en 3D que van a triunfar esta Navidad 🎄\n#3 Estrella para el árbol, en tu color favorito\n#2 Bola de Navidad de diseño\n#1 Adorno con su nombre ❤️\nDe tu boceto a tu árbol. ¿Cuál es tu favorito? Comenta 3, 2 o 1 👇\n\n#top3 #ideasderegalo #navidad #regalosoriginales #impresion3d #obeket` },
   { file: 'reel-marca.mp4', kind: 'm', title: 'Reel de marca', len: '20 s', when: 'Sáb 21 nov',
     tip: 'Portada sugerida: el segundo 5 ("Lo imaginas. Lo imprimimos.").',
     cap: `Capa a capa, así nace tu idea. 🧡\nEn OBEKET diseñamos e imprimimos en 3D lo que imagines: regalos personalizados, decoración, repuestos o prototipos. Desde 1 unidad y en el color que quieras.\n¿Tienes una idea? Escríbenos por mensaje directo y te damos presupuesto. 👇\n\n${H.marca}` },
@@ -143,10 +152,12 @@ const CAL = [
   ['Lun 23 nov', 'Carrusel', 'Cómo funciona', 'Explicar cómo pedir', 'm'],
   ['Mié 25 nov', 'Post', 'Lo imaginas. Lo imprimimos.', 'Imagen de marca', 'm'],
   ['Vie 27 nov', 'Historia', '¿Tienes una idea?', 'Conseguir mensajes', 'm'],
-  ['Mar 1 dic', 'Reel + historia', 'Reel de Navidad + "Ya está aquí la Navidad"', 'Lanzar la campaña', 'n'],
-  ['Jue 3 dic', 'Post', 'Navidad impresa en 3D', 'Fijar en el perfil', 'n'],
-  ['Sáb 5 dic', 'Carrusel', '4 regalos que no verás en tiendas', 'Guardados y compartidos', 'n'],
+  ['Mar 1 dic', 'Reel + historia', 'Reel cinematográfico + "Ya está aquí la Navidad"', 'Lanzar la campaña', 'n'],
+  ['Jue 3 dic', 'Reel + post', 'Reel de Navidad + "Navidad impresa en 3D"', 'Explicar la campaña y fijar en el perfil', 'n'],
+  ['Sáb 5 dic', 'Reel', 'Viral "POV: no tienes regalo"', 'Alcance y comentarios', 'n'],
+  ['Dom 6 dic', 'Carrusel', '4 regalos que no verás en tiendas', 'Guardados y compartidos', 'n'],
   ['Lun 7 dic', 'Historia', '¿Qué nombre pondrías en tu adorno?', 'Interacción', 'n'],
+  ['Mar 8 dic', 'Reel', 'Top 3: del boceto a la pieza', 'Comentarios (votar 3, 2 o 1)', 'n'],
   ['Jue 10 dic', 'Reel', 'Últimos días', 'Urgencia', 'n'],
   ['Sáb 12 dic', 'Post', 'Últimos días', 'Urgencia', 'n'],
   ['13–14 dic', 'Historias', 'Reel "Últimos días" + cuenta atrás', 'Último empujón', 'n', 1],
@@ -165,7 +176,7 @@ const capBlock = (id, text) => `<div class="cap" id="${id}">${esc(text)}</div><b
 document.getElementById('reelList').innerHTML = REELS.map((r, i) => `
   <article class="item">
     <div class="media"><video src="videos/${r.file}" controls playsinline preload="metadata" poster="img/poster-${r.file.replace('.mp4', '')}.jpg"></video></div>
-    <div class="meta">${tags(r.kind, r.when, r.len)}<h3>${r.title}</h3><div class="file">${r.file}</div>${capBlock('rc' + i, r.cap)}<p class="tip">${r.tip}</p></div>
+    <div class="meta">${tags(r.kind, r.when, r.len + (r.fresh ? '</span><span class="tag m">' + r.fresh : ''))}<h3>${r.title}</h3><div class="file">${r.file}</div>${capBlock('rc' + i, r.cap)}<p class="tip">${r.tip}</p></div>
   </article>`).join('');
 
 document.getElementById('feedList').innerHTML = FEED.map((p, i) => `
