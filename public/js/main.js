@@ -11,6 +11,8 @@ import { swatchCss } from './materials.js';
 import * as Q from './quote.js';
 import { recordTurntable, videoSupport } from './video.js';
 import { onPrefChange, loadPrefs, getPref, setPref } from './prefs.js';
+import { startTour, maybeStartTour, tourOpen } from './tour.js';
+import * as TXT from './text3d.js';
 
 const { S } = ST;
 const $ = (id) => document.getElementById(id);
@@ -259,7 +261,9 @@ function setTool(tool) {
   else V.stopMove();
   if (tool === 'split') enterSplit();
   else leaveSplit();
-  const msg = { select: 'Clic para seleccionar una parte', brush: 'Arrastra sobre la pieza para pintar · botón derecho para girar', fill: 'Clic en una zona para rellenarla', cut: 'Capas: mueve el plano y pulsa «Cortar aquí» para dividir el color por altura', move: S.selected.size ? 'Arrastra las flechas para mover o los aros para girar' : 'Haz clic en la parte que quieras mover', split: 'Coloca el plano (flecha, aros o botones) y pulsa «✂ Cortar aquí»' };
+  if (tool === 'text') refreshTextPreview();
+  else V.setTextPreview(null);
+  const msg = { select: 'Clic para seleccionar una parte', brush: 'Arrastra sobre la pieza para pintar · botón derecho para girar', fill: 'Clic en una zona para rellenarla', cut: 'Capas: mueve el plano y pulsa «Cortar aquí» para dividir el color por altura', move: S.selected.size ? 'Arrastra las flechas para mover o los aros para girar' : 'Haz clic en la parte que quieras mover', split: 'Coloca el plano (flecha, aros o botones) y pulsa «✂ Cortar aquí»', text: 'Escribe el texto y haz clic en la pieza donde quieras ponerlo' };
   hint(msg[tool], 3500);
 }
 
@@ -378,6 +382,10 @@ function onPointerMove(e) {
       const hit = V.pick(e.clientX, e.clientY);
       V.showBrush(hit?.point, hit?.normal, S.brushRadius);
       if (painting && hit) paintAt(hit);
+    } else if (S.tool === 'text' && !eyedrop) {
+      if (e.buttons) { V.moveTextPreview(null); return; }
+      const hit = V.pick(e.clientX, e.clientY);
+      V.moveTextPreview(hit && TXTS.local ? TXT.textMatrix([hit.point.x, hit.point.y, hit.point.z], [hit.normal.x, hit.normal.y, hit.normal.z], V.viewUp()) : null);
     } else if (eyedrop || S.tool === 'select' || S.tool === 'fill' || S.tool === 'move' || S.tool === 'split') {
       if (e.buttons) return;
       const hit = V.pick(e.clientX, e.clientY);
@@ -398,6 +406,7 @@ function onPointerUp(e) {
   if (moved || V.isGizmoBusy()) return;
   if (S.tool === 'split' && !eyedrop && splitClick(e)) return;
   const hit = V.pick(e.clientX, e.clientY);
+  if (S.tool === 'text' && !eyedrop) { placeTextAt(hit); return; }
   if (eyedrop) { eyedropAt(hit); return; }
   if (S.tool === 'select' || S.tool === 'move' || S.tool === 'split') {
     if (!hit) { if (!e.shiftKey) ST.select([]); return; }
@@ -744,8 +753,52 @@ function renderPieces() {
   $('btnPiecesAssemble').disabled = ST.piecesAssembled();
 }
 
+// ---------------------------------------------------------------- texto 3D
+const TXTS = { local: null, token: 0 };
+function textOpts() {
+  return { font: $('txtFont').value || 'moderna', size: parseFloat($('txtSize').value) || 8, depth: parseFloat($('txtDepth').value) || 1.2 };
+}
+async function refreshTextPreview() {
+  const token = ++TXTS.token;
+  const text = $('txtValue').value.trim();
+  if (!text) { TXTS.local = null; V.setTextPreview(null); return; }
+  try {
+    const local = await TXT.textLocal(text, textOpts());
+    if (token !== TXTS.token) return;
+    TXTS.local = local;
+    V.setTextPreview(local ? local.pos : null);
+    if (!local) hint('Esa fuente no tiene esas letras');
+  } catch (e) { console.error(e); toast('No se pudo preparar el texto'); }
+}
+function placeTextAt(hit) {
+  const text = $('txtValue').value.trim();
+  if (!text) { $('txtValue').focus(); return hint('Escribe primero el texto'); }
+  if (!hit) return hint('Haz clic sobre la pieza');
+  if (!TXTS.local) return;
+  const m = TXT.textMatrix([hit.point.x, hit.point.y, hit.point.z], [hit.normal.x, hit.normal.y, hit.normal.z], V.viewUp());
+  const pos = TXT.placeText(TXTS.local, m);
+  const part = ST.addGeometryPart(pos, { name: `Texto «${text.length > 18 ? text.slice(0, 17) + '…' : text}»`, role: 'texto', filament: S.activeFilament, piece: S.mesh.facePiece[hit.face] });
+  if (!part) return;
+  setTool('select');
+  if (S.activeFilament) V.settleSelection();
+  toast(`Texto añadido (${fmtMM(TXTS.local.w)} × ${fmtMM(TXTS.local.h)} mm)${S.activeFilament ? '' : ': elige su color a la derecha'} · Ctrl+Z para quitarlo`, 4000);
+}
+
+// ---------------------------------------------------------------- tutorial
+const tourOpts = { ensureModel: () => { if (!S.mesh) openSample('trofeo.stl'); } };
+
 // ---------------------------------------------------------------- eventos
 function bind() {
+  $('btnTour').addEventListener('click', () => { $('helpModal').hidden = true; startTour(tourOpts); });
+  $('txtFont').innerHTML = TXT.TEXT_FONTS.map((f) => `<option value="${f.id}">${f.label}</option>`).join('');
+  const onTxt = () => {
+    $('txtSizeOut').textContent = `${fmtMM(+$('txtSize').value)} mm`;
+    $('txtDepthOut').textContent = `${fmtMM(+$('txtDepth').value)} mm`;
+    if (S.tool === 'text') refreshTextPreview();
+  };
+  ['txtValue', 'txtSize', 'txtDepth'].forEach((id) => $(id).addEventListener('input', onTxt));
+  $('txtFont').addEventListener('change', onTxt);
+  $('txtValue').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('txtValue').blur(); hint('Ahora haz clic en la pieza donde quieras el texto'); } });
   $('btnOpen').addEventListener('click', () => $('fileInput').click());
   $('btnOpen2').addEventListener('click', () => $('fileInput').click());
   $('fileInput').addEventListener('change', (e) => { if (e.target.files[0]) openFile(e.target.files[0]); e.target.value = ''; });
@@ -1015,6 +1068,7 @@ function bind() {
 
   // teclado
   window.addEventListener('keydown', (e) => {
+    if (tourOpen()) return;
     if (e.key === 'Escape') {
       const open = [...document.querySelectorAll('.modal')].reverse().find((m) => !m.hidden);
       if (open) { if (open.id !== 'videoModal') open.hidden = true; return; }
@@ -1038,6 +1092,7 @@ function bind() {
     else if (k === 'x') setTool('split');
     else if (k === 'm') setTool('move');
     else if (k === 't' && S.tool === 'move') setMoveMode('translate');
+    else if (k === 't') { setTool('text'); setTimeout(() => $('txtValue').select(), 30); }
     else if (k === 'r' && S.tool === 'move') setMoveMode('rotate');
     else if (k === 'p') togglePresent();
     else if (k === 'l') toggleLayers();
@@ -1422,6 +1477,8 @@ loadPrefs().then(() => {
   fillConnSizes();
   V.setLayerLines($('layerLines').checked, S.layerHeight);
   updateQuote();
+  // tutorial la primera vez (con el trofeo de ejemplo para verlo en acción)
+  setTimeout(() => maybeStartTour(tourOpts), 700);
 });
 ST.on('parts', scheduleQuote);
 ST.on('mesh', scheduleQuote);

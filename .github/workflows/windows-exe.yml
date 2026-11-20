@@ -80,6 +80,9 @@ jobs:
           $all = Invoke-RestMethod http://127.0.0.1:5173/api/catalog/all
           Write-Host "Catálogo completo: $($all.brands.Count) marcas"
           if ($all.brands.Count -lt 50) { throw 'El catálogo completo no ha cargado' }
+          $font = Invoke-RestMethod http://127.0.0.1:5173/fonts/moderna.typeface.json
+          if (-not $font.glyphs.'ñ') { throw 'Faltan las fuentes del texto 3D' }
+          Write-Host "Fuente del texto 3D: $($font.familyName)"
           $sl = Invoke-RestMethod http://127.0.0.1:5173/api/slicers
           Write-Host "Laminadores instalados: Bambu Studio=$($sl.bambu.found) OrcaSlicer=$($sl.orca.found) PrusaSlicer=$($sl.prusa.found)"
           Get-ChildItem "$env:LOCALAPPDATA\FilamentStudio" -Recurse | Select-Object -First 5 | ForEach-Object { Write-Host "  datos: $($_.FullName)" }

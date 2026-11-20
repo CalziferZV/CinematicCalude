@@ -1,0 +1,6 @@
+Fuentes del texto 3D (convertidas al formato typeface de three.js con scripts/make-fonts.mjs)
+
+moderna, gruesa, deportiva: Inter Display — Copyright (c) 2016 The Inter Project Authors.
+  Licencia SIL Open Font License 1.1 (https://openfontlicense.org).
+clasica: DejaVu Serif Bold — Copyright (c) 2003 Bitstream, Inc. (Bitstream Vera) y cambios de DejaVu (dominio público).
+  Licencia libre de Bitstream Vera / DejaVu (https://dejavu-fonts.github.io/License.html).

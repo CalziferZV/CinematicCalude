@@ -1,7 +1,8 @@
 // Asistente IA: chat + ejecución local de las herramientas que pide Claude.
 import * as ST from './state.js';
 import * as CUT from './cut.js';
-import { capture, fitView } from './viewer.js';
+import { capture, fitView, raycastWorld } from './viewer.js';
+import * as TXT from './text3d.js';
 import { searchFilaments, resolveFilament, currentBrand, escapeHtml, ownedSpools } from './catalog.js';
 import { computeQuote } from './quote.js';
 import { falseColor } from './materials.js';
@@ -142,7 +143,7 @@ const TOOL_LABEL = {
   get_scene: 'Revisando la escena…', capture_view: 'Mirando la pieza…', search_filaments: 'Buscando filamentos…',
   set_part_color: 'Aplicando color…', rename_parts: 'Nombrando partes…', split_by_height: 'Cortando por altura…',
   auto_segment: 'Detectando partes…', merge_parts: 'Uniendo partes…', select_parts: 'Seleccionando…',
-  cut_into_pieces: 'Cortando en piezas…', arrange_pieces: 'Colocando las piezas…',
+  cut_into_pieces: 'Cortando en piezas…', arrange_pieces: 'Colocando las piezas…', add_text: 'Escribiendo el texto…',
 };
 
 async function runTool(name, input) {
@@ -243,6 +244,46 @@ async function runTool(name, input) {
         ok: true, moved_mm: Math.round(moved * 10) / 10, connectors_placed: kinds, warnings: [...auto.warnings, ...r.warnings],
         pieces: ST.piecesSummary().map((p) => ({ id: p.id, name: p.name, kind: p.kind, parts: p.parts, size_mm: p.size.map((v) => Math.round(v * 10) / 10) })),
       });
+    }
+    case 'add_text': {
+      const text = String(input.text || '').trim();
+      if (!text) throw new Error('Falta el texto.');
+      const DIR = { front: [0, -1, 0], back: [0, 1, 0], left: [-1, 0, 0], right: [1, 0, 0], top: [0, 0, 1] };
+      const dir = DIR[input.side || 'front'] || DIR.front;
+      const t = ST.topo();
+      const part = input.part_id != null ? ST.partById(input.part_id) : null;
+      // centro de las caras de esa parte (o de todo) que miran hacia ese lado
+      let cx = 0, cy = 0, cz = 0, A = 0;
+      const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+      for (let f = 0; f < t.nF; f++) {
+        if (part && S.mesh.faceParts[f] !== part.id) continue;
+        const nd = t.fn[f * 3] * dir[0] + t.fn[f * 3 + 1] * dir[1] + t.fn[f * 3 + 2] * dir[2];
+        if (nd < 0.9) continue;
+        const a = t.area[f];
+        cx += t.cen[f * 3] * a; cy += t.cen[f * 3 + 1] * a; cz += t.cen[f * 3 + 2] * a; A += a;
+        for (let k = 0; k < 9; k += 3) for (let c = 0; c < 3; c++) { const v = S.mesh.pos[f * 9 + k + c]; if (v < b[c]) b[c] = v; if (v > b[c + 3]) b[c + 3] = v; }
+      }
+      if (!A) throw new Error('No encuentro una cara que mire hacia ese lado en esa parte.');
+      const c = [cx / A, cy / A, cz / A];
+      const hit = raycastWorld([c[0] + dir[0] * 500, c[1] + dir[1] * 500, c[2] + dir[2] * 500], [-dir[0], -dir[1], -dir[2]]);
+      if (!hit) throw new Error('No he podido apoyar el texto en la pieza.');
+      const up = input.side === 'top' ? [0, 1, 0] : [0, 0, 1];
+      const font = TXT.TEXT_FONTS.some((f) => f.id === input.font) ? input.font : 'moderna';
+      const depth = Math.min(6, Math.max(0.4, Number(input.depth_mm) || 1.2));
+      let size = Number(input.size_mm);
+      if (!(size > 0)) {
+        // que ocupe como mucho el 80 % del ancho y el 70 % del alto de esa cara
+        const probe = await TXT.textLocal(text, { font, size: 10, depth });
+        if (!probe) throw new Error('Esa fuente no tiene esas letras.');
+        const across = input.side === 'left' || input.side === 'right' ? b[4] - b[1] : b[3] - b[0];
+        const tall = input.side === 'top' ? b[4] - b[1] : b[5] - b[2];
+        size = Math.max(2, Math.min(12, (10 * 0.8 * across) / probe.w, (10 * 0.7 * tall) / probe.h));
+      }
+      const local = await TXT.textLocal(text, { font, size, depth });
+      if (!local) throw new Error('Esa fuente no tiene esas letras.');
+      const m = TXT.textMatrix(hit.point, hit.normal, up);
+      const np = ST.addGeometryPart(TXT.placeText(local, m), { name: `Texto «${text.slice(0, 18)}»`, role: 'texto', piece: S.mesh.facePiece[hit.face] });
+      return JSON.stringify({ ok: true, part_id: np.id, name: np.name, size_mm: [Math.round(local.w * 10) / 10, Math.round(local.h * 10) / 10], letter_height_mm: Math.round(size * 10) / 10 });
     }
     case 'arrange_pieces': {
       if (ST.pieceCount() < 2) throw new Error('Todavía no hay piezas: corta primero con cut_into_pieces.');

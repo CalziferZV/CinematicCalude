@@ -12,6 +12,7 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Detección automática de partes** | ✨ *Inteligente*: piezas sueltas, **base**, **texto / relieve** (también cuando el texto está fundido en la misma malla), placas y **escalones de altura** (p. ej. copa sobre columna). Pone nombres claros según la forma: *Base, Copa, Columna, Placa, Tapa, Pomo, Texto…* También *Piezas sueltas*, *Por caras* (aristas vivas) y *Por capas*. |
 | **Partes como capas** | Lista de partes con color, % de superficie, ocultar/mostrar, renombrar (doble clic, se puede deshacer), unir, quitar y **Aislar** (ver solo la selección, tecla **H**). **Tab** salta a la siguiente parte sin color. |
 | **Herramientas** | **Seleccionar** · **Pincel** (pinta zonas libres) · **Relleno inteligente** (una cara plana, una letra, un borde…) · **Capas** (franjas de color por altura, con ajuste a altura de capa) · **Mover / Girar** cada parte por separado con flechas y aros, como en Bambu Studio (con *Apoyar en la cama* y *Separar partes*). **Subdividir** la malla para pintar con más detalle. Deshacer/rehacer ilimitado. |
+| **Texto 3D** | Tecla **T**. Escribe un nombre, una fecha o una dedicatoria (con tildes, ñ, ¿¡ y €), elige letra (Moderna, Gruesa, Deportiva o Clásica), altura y relieve, y haz clic en la pieza: el texto aparece en relieve sobre esa cara, derecho según la vista, como una parte nueva lista para darle su color. La IA también sabe ponerlo («pon MARÍA en el frente de la base»). |
 | **✂ Cortar en piezas con anclajes automáticos** | Tecla **X**. Corta la pieza por donde quieras para imprimirla por partes: porque **no cabe en la impresora**, para **imprimir cada parte de su color sin AMS** (y sin purga) o para evitar soportes. El plano se coloca **a la selección** (justo donde la parte elegida se une al resto: la copa, la tapa, el texto…), horizontal, vertical o como quieras (flecha para moverlo, aros para inclinarlo). La app cierra los cortes y **calcula sola los anclajes según la forma de la sección**: tamaño (~30 % del grosor), cuántos (dos para que no gire, más en secciones grandes) y dónde (lo más separados posible, con pared suficiente y sin tocar escalones, huecos ni otros cuerpos). Tipos: **pasadores sueltos** (recomendado: las dos piezas se imprimen apoyadas en el corte), **espigas** (si un lado es demasiado fino, salen de ese lado solas), **imanes** (huecos para imanes de 3 a 12 mm, para tapas) o ninguno. Holgura justa / normal / holgada. Puedes añadir o quitar anclajes con un clic, y **🔎 Mejor sitio** busca cerca una zona más gruesa si en el corte no caben. Después: **Separar** (ver cómo encaja), **Montar** y **Colocar para imprimir** (cada pieza tumbada por su cara plana y repartidas en la cama). Se puede cortar varias veces y deshacer. |
 | **Catálogo de filamentos en vivo** | **Bambu Lab** (base oficial de colores de Bambu Studio, con HEX y código de cada bobina) + **más de 85 marcas** (Sunlu, eSun, Polymaker, Elegoo, Prusament, Overture, Jayo, Eryone, Creality, Anycubic…). Categorías: PLA Básico, PLA Matte, **PLA Silk**, PLA+/Tough, Translúcido, Especial (marble, sparkle, galaxy, bicolor…), Glow, Wood, Fibra, **PETG**, **ASA**, ABS, TPU, PC, PA/Nylon… Buscador en español/inglés («dorado», «negro mate», «silk rojo»). |
 | **Favoritos, recientes y Mis bobinas** | Los colores que usas aparecen a mano encima del catálogo. Clic derecho en un color = favorito ★. Marca **🧵 La tengo** en los colores que tienes en el taller: la lista **Mis bobinas** (en el selector de marcas) reúne tus bobinas de todas las marcas, y la app avisa ⚠ si el cliente elige un color que no tienes. Se guarda en el ordenador (`prefs.json`). |
@@ -30,6 +31,8 @@ Personalizador de color **en tiempo real** para piezas de impresión 3D. Subes e
 | **Vídeo 360°** | **Exportar → Vídeo 360°**: la pieza da una vuelta con los colores elegidos (cuadrado, vertical u horizontal, con rótulo y el nombre de tu taller) y se guarda en MP4 para enviarla por WhatsApp. |
 | **Exportar** | Imagen de propuesta para el cliente (PNG o copiar al portapapeles) · **3MF para Bambu Studio** (al abrirlo, Bambu Studio 2.5+ crea los filamentos con los colores exactos) · **3MF pintado** (cada zona con su número de filamento, para OrcaSlicer, PrusaSlicer y Bambu Studio antiguo) · **OBJ con colores** (Bambu Studio y OrcaSlicer convierten sus colores en filamentos) · **STL por color** (ZIP) · **STL por pieza** (cada pieza cortada ya tumbada para imprimir, los pasadores y un LÉEME para montarla) · Ficha de filamentos · Proyecto `.fsproj`. Si la pieza está cortada, el 3MF lleva **cada pieza como un objeto** separado y ya colocadas para imprimir. Al exportar, la app muestra **qué color va en cada número de filamento** y los pasos a seguir en el laminador. |
 | **Limpieza automática** | Al abrir un archivo se quitan los trocitos sueltos minúsculos que estén fuera de la pieza (errores del archivo que hacen que el laminador diga que «supera el límite de la placa»). |
+
+**Tutorial para empezar**: la primera vez que abres la app aparece un recorrido de un minuto por todo lo importante (se puede repetir desde **?** → *Ver el tutorial*).
 
 ## Programa para Windows (.exe) — lo más fácil
 
@@ -93,9 +96,10 @@ Se abre el navegador en <http://localhost:5173>.
 | Tecla | Acción |
 |---|---|
 | V / B / F / M | Seleccionar / Pincel / Relleno / Mover |
+| T | Texto 3D (con Mover: mover) |
 | X | Cortar en piezas (con anclajes) |
 | C | Capas: dividir el color por altura |
-| T / R | (con Mover) mover / girar |
+| R | (con Mover) girar |
 | [ y ] | Tamaño del pincel |
 | 1 – 7 | Vistas: 3D, frente, detrás, izquierda, derecha, arriba, abajo |
 | P | Modo cliente |
@@ -130,6 +134,8 @@ server/          servidor local (catálogo en vivo, preferencias, abrir en el la
 public/          la aplicación (three.js)
   js/meshcore.js   geometría: topología, detección de partes, cortes por altura, subdivisión
   js/cut.js        corte en piezas: plano libre, tapas cerradas, anclajes automáticos, colocar para imprimir
+  js/text3d.js     texto 3D en relieve (fuentes en public/fonts, generadas con scripts/make-fonts.mjs)
+  js/tour.js       tutorial para la gente nueva
   js/state.js      partes, piezas, colores, historial
   js/viewer.js     visor 3D, selección, pincel, capturas, vídeo 360°
   js/catalog.js    panel de filamentos, favoritos, mis bobinas, equivalencias

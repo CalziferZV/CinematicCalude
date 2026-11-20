@@ -57,6 +57,11 @@ fs.copyFileSync(path.join(ROOT, 'public/styles.css'), path.join(ASSETS, 'public/
 for (const f of fs.readdirSync(path.join(ROOT, 'public/samples'))) {
   fs.copyFileSync(path.join(ROOT, 'public/samples', f), path.join(ASSETS, 'public/samples', f));
 }
+// fuentes del texto 3D
+fs.mkdirSync(path.join(ASSETS, 'public/fonts'), { recursive: true });
+for (const f of fs.readdirSync(path.join(ROOT, 'public/fonts'))) {
+  fs.copyFileSync(path.join(ROOT, 'public/fonts', f), path.join(ASSETS, 'public/fonts', f));
+}
 fs.copyFileSync(path.join(ROOT, 'data/snapshot/catalog.json.gz'), path.join(ASSETS, 'data/snapshot/catalog.json.gz'));
 fs.writeFileSync(path.join(ASSETS, 'public/favicon.ico'), makeIco([16, 32, 48]));
 

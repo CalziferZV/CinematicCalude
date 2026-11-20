@@ -765,6 +765,34 @@ export function explodeParts(factor = 0.6) {
   return true;
 }
 
+// ---------------------------------------------------------------- añadir geometría (texto 3D)
+// Añade triángulos como una parte nueva (en la pieza indicada) y la deja seleccionada.
+export function addGeometryPart(add, { name = 'Texto', role = 'texto', filament = null, piece = 0 } = {}) {
+  if (!S.mesh || !add || !add.length) return null;
+  checkpoint();
+  const n0 = S.mesh.pos.length / 9, n1 = add.length / 9;
+  const P = new Float32Array((n0 + n1) * 9);
+  P.set(S.mesh.pos);
+  P.set(add, n0 * 9);
+  const part = makePart(name, role, filament ? { ...filament } : null);
+  S.parts.push(part);
+  const FP = new Uint16Array(n0 + n1);
+  FP.set(S.mesh.faceParts);
+  FP.fill(part.id, n0);
+  const FPC = new Uint16Array(n0 + n1);
+  FPC.set(S.mesh.facePiece);
+  FPC.fill(piece, n0);
+  S.mesh.pos = P;
+  S.mesh.faceParts = FP;
+  S.mesh.facePiece = FPC;
+  S.mesh.topo = null;
+  S.mesh.normals = null;
+  S.selected = new Set([part.id]);
+  emit('mesh');
+  emit('selection');
+  return part;
+}
+
 // ---------------------------------------------------------------- piezas (cortar para imprimir por separado)
 export const pieceById = (id) => S.pieces.find((p) => p.id === id);
 export const pieceCount = () => S.pieces.length;
@@ -840,9 +868,10 @@ export function cutPieces(plane, connectors = [], { targetPieces = null } = {}) 
 }
 
 // Mueve piezas enteras (y apunta el movimiento para poder volver a montarlas)
-export function transformPieces(mats) {
+export function transformPieces(mats, { animate = true } = {}) {
   if (!S.mesh || !mats.size) return;
   checkpoint();
+  if (animate) emit('pieceAnim', { from: S.mesh.pos, facePiece: S.mesh.facePiece, deltas: mats });
   const P = S.mesh.pos.slice();
   applyPieceMatrices(P, mats);
   S.mesh.pos = P;
@@ -903,6 +932,9 @@ export function explodePieces() {
   for (const [id, { b }] of st) minZ = Math.min(minZ, b[2] + E.get(id)[14]);
   checkpoint();
   for (const [id, m] of E) m[14] -= minZ - all[2];
+  const deltas = new Map();
+  for (const [id, m] of E) { const pc = pieceById(id); deltas.set(id, pc && pc.M ? CUT.mat4Mul(m, CUT.mat4RigidInverse(pc.M)) : m); }
+  emit('pieceAnim', { from: S.mesh.pos, facePiece: S.mesh.facePiece, deltas });
   applyPieceMatrices(P, E);
   S.mesh.pos = P;
   for (const pc of S.pieces) { const m = E.get(pc.id); pc.M = m && !CUT.isIdentity(m) ? m : null; }
@@ -917,6 +949,7 @@ export function assemblePieces() {
   for (const pc of S.pieces) if (pc.M && !CUT.isIdentity(pc.M)) mats.set(pc.id, CUT.mat4RigidInverse(pc.M));
   if (!mats.size) return false;
   checkpoint();
+  emit('pieceAnim', { from: S.mesh.pos, facePiece: S.mesh.facePiece, deltas: mats });
   const P = S.mesh.pos.slice();
   applyPieceMatrices(P, mats);
   S.mesh.pos = P;

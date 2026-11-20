@@ -115,7 +115,9 @@ details[open] summary { margin-bottom: 6px; }
 .part.hidden-part .sw, .part.hidden-part .info { opacity: 0.4; }
 .part input.rename { width: 100%; padding: 2px 6px; }
 
-.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.tool .t-ico { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 16px; }
+#txtValue { width: 100%; font-size: 14px; font-weight: 600; }
 .tool {
   border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 7px 2px 5px; cursor: pointer; font-size: 11px;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -407,3 +409,29 @@ label.mini select { flex: 1; min-width: 0; }
 .piece-row .pr-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .warn-t { color: #b4540a; font-weight: 600; }
+
+/* ----------------------------------------------------------- tutorial */
+.tour-block { position: fixed; inset: 0; z-index: 990; cursor: pointer; }
+.tour-spot {
+  position: fixed; z-index: 991; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(14, 17, 24, 0.6), 0 0 0 2px rgba(255, 106, 19, 0.95), 0 0 24px 4px rgba(255, 106, 19, 0.35);
+  transition: left 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.38s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tour-spot.none { left: 50% !important; top: 50% !important; width: 0 !important; height: 0 !important; box-shadow: 0 0 0 9999px rgba(14, 17, 24, 0.66); }
+.tour-card {
+  position: fixed; z-index: 992; width: 340px; background: #fff; border-radius: 16px; padding: 18px 18px 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: left 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.38s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: tourIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes tourIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.tour-card h4 { margin: 2px 0 6px; font-size: 16.5px; letter-spacing: -0.01em; }
+.tour-card p { margin: 0 0 14px; color: #4a505c; line-height: 1.55; font-size: 13.5px; }
+.tour-step { font-size: 11px; font-weight: 650; letter-spacing: 0.06em; color: var(--accent); text-transform: uppercase; }
+.tour-foot { display: flex; align-items: center; gap: 8px; }
+.tour-dots { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 3px; background: #d5d9e0; transition: width 0.25s, background 0.25s; }
+.tour-dots i.on { width: 16px; background: var(--accent); }
+.tour-x { position: absolute; top: 10px; right: 10px; border: none; background: none; color: #9aa0ab; cursor: pointer; font-size: 14px; }
+.tour-x:hover { color: #1d2129; }
+.help-tour { margin-left: auto; margin-right: 8px; }

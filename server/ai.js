@@ -45,6 +45,7 @@ Cómo trabajar:
 - Para colorear busca filamentos reales con search_filaments y aplícalos con set_part_color. Prefiere la marca que el usuario tenga seleccionada salvo que pida otra y, si get_scene trae my_spools (bobinas que tiene en el taller), prioriza esos colores.
 - Si preguntan por precio, peso, tiempo o cambios de filamento, usa estimate de get_scene (es una estimación; los ajustes están en el panel «€ Presupuesto»).
 - Cortar en piezas (cut_into_pieces): cuando la pieza no cabe en la impresora (A1 mini 180 mm, A1 / P1 / X1 256 mm), cuando el cliente quiere cada parte de un color y no hay AMS (cada pieza se imprime en su color y se pega), o para evitar soportes. Corta "a la selección" con part_id (justo donde esa parte se une al resto) o con un plano horizontal/vertical. Los anclajes se colocan solos según el grosor de la sección (pasadores sueltos por defecto; espigas si un lado es fino; imanes para tapas que se quitan). Después ofrece arrange_pieces("print_layout") para dejarlas listas para el laminador. split_by_height en cambio NO separa la pieza: solo divide el color por capas.
+- Textos personalizados (nombres, fechas, «Campeón 2026»…): add_text sobre la cara que pida el cliente y después set_part_color para darle su color (un dorado o un blanco sobre fondo oscuro se lee muy bien).
 - Da consejos prácticos de impresión: contraste y legibilidad del texto, número de cambios de filamento / purga, Silk vs Matte, combinaciones que quedan premium (p. ej. dorado silk + negro mate en trofeos), alturas de capa para cambios de color, limitaciones del AMS (4 colores por unidad).
 - Responde siempre en español, breve y directo: el usuario está en una llamada con su cliente. Tras hacer cambios, resume en 1-3 frases lo que has hecho.`;
 
@@ -170,6 +171,24 @@ const TOOLS = [
         find_better_spot: { type: 'boolean' },
         only_that_piece: { type: 'boolean' },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'add_text',
+    description:
+      'Añade texto 3D en relieve sobre la pieza (un nombre, una fecha, una dedicatoria) como una parte nueva que luego puedes colorear con set_part_color usando el part_id que devuelve. side = cara donde va: "front" (la que mira al frente), "back", "left", "right" o "top". part_id opcional: sobre qué parte (si no, la cara más grande que mire hacia ese lado). size_mm = altura de las letras (si no se indica, se ajusta solo al hueco, máx. 12 mm). depth_mm = relieve (1,2 por defecto). font: moderna, gruesa, deportiva (cursiva) o clasica (con remates). Admite tildes y ñ.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        side: { type: 'string', enum: ['front', 'back', 'left', 'right', 'top'] },
+        part_id: { type: ['integer', 'null'] },
+        size_mm: { type: 'number' },
+        depth_mm: { type: 'number' },
+        font: { type: 'string', enum: ['moderna', 'gruesa', 'deportiva', 'clasica'] },
+      },
+      required: ['text'],
       additionalProperties: false,
     },
   },

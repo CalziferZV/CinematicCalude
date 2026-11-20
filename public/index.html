@@ -95,6 +95,7 @@
           <button class="tool active" data-tool="select" title="Seleccionar partes (V)"><span>⌖</span>Seleccionar</button>
           <button class="tool" data-tool="brush" title="Pincel (B)"><span>✎</span>Pincel</button>
           <button class="tool" data-tool="fill" title="Relleno inteligente (F)"><span>◧</span>Relleno</button>
+          <button class="tool" data-tool="text" title="Texto 3D en relieve: un nombre, una fecha… (T)"><span class="t-ico">T</span>Texto</button>
           <button class="tool" data-tool="split" title="Cortar en piezas para imprimir por separado, con anclajes automáticos (X)"><span>✂</span>Cortar</button>
           <button class="tool" data-tool="cut" title="Capas: franjas de color por altura (C)"><span>⫶</span>Capas</button>
           <button class="tool" data-tool="move" title="Mover y girar partes (M)"><span>✥</span>Mover</button>
@@ -114,6 +115,17 @@
             <input type="range" id="fillAngle" min="1" max="90" step="1" value="20" />
             <label class="check"><input type="checkbox" id="fillSamePart" checked /> Solo dentro de la misma parte</label>
             <div class="hint-text">Clic en una cara: rellena la zona continua (una cara plana, una letra, un borde…).</div>
+          </div>
+          <div data-opts="text" hidden>
+            <input type="text" id="txtValue" maxlength="60" placeholder="Escribe el texto (p. ej. un nombre)" value="CAMPEÓN" />
+            <div class="row gap mt6">
+              <select id="txtFont" class="grow" title="Tipo de letra"></select>
+            </div>
+            <label>Altura de las letras <output id="txtSizeOut">8 mm</output></label>
+            <input type="range" id="txtSize" min="2" max="40" step="0.5" value="8" />
+            <label>Relieve <output id="txtDepthOut">1,2 mm</output></label>
+            <input type="range" id="txtDepth" min="0.4" max="6" step="0.2" value="1.2" />
+            <div class="hint-text">Pasa el ratón por la pieza y haz clic donde quieras el texto: queda derecho según la vista. Se crea como una parte nueva para darle su color. Mejor en caras planas · Ctrl+Z lo quita.</div>
           </div>
           <div data-opts="cut" hidden>
             <label>Altura de corte</label>
@@ -343,12 +355,12 @@
   <!-- ======================= AYUDA: ATAJOS -->
   <div class="modal" id="helpModal" hidden>
     <div class="modal-card wide">
-      <div class="row between"><h2>Atajos de teclado</h2><button class="btn icon tiny" data-close="helpModal" title="Cerrar">✕</button></div>
+      <div class="row between"><h2>Atajos de teclado</h2><button class="btn small help-tour" id="btnTour" title="Repasa la app paso a paso">▶ Ver el tutorial</button><button class="btn icon tiny" data-close="helpModal" title="Cerrar">✕</button></div>
       <div class="help-grid">
         <div>
           <h4>Herramientas</h4>
           <p><kbd>V</kbd> Seleccionar</p><p><kbd>B</kbd> Pincel · <kbd>[</kbd> <kbd>]</kbd> tamaño</p><p><kbd>F</kbd> Relleno inteligente</p>
-          <p><kbd>X</kbd> Cortar en piezas (con anclajes)</p><p><kbd>C</kbd> Capas: color por altura</p><p><kbd>M</kbd> Mover · <kbd>T</kbd> mover · <kbd>R</kbd> girar</p><p><kbd>I</kbd> Cuentagotas (copiar el color de una parte)</p>
+          <p><kbd>T</kbd> Texto 3D en relieve</p><p><kbd>X</kbd> Cortar en piezas (con anclajes)</p><p><kbd>C</kbd> Capas: color por altura</p><p><kbd>M</kbd> Mover · <kbd>T</kbd> mover · <kbd>R</kbd> girar</p><p><kbd>I</kbd> Cuentagotas (copiar el color de una parte)</p>
         </div>
         <div>
           <h4>Partes y colores</h4>

@@ -36,6 +36,8 @@ let clipActive = false; // vista por capas activa
 // seleccionada solo con el contorno, para ver el color real.
 let settled = false;
 let pulseMats = [];
+let pieceAnim = null; // movimiento de piezas pendiente de animar { from, facePiece, deltas }
+let animRun = null;
 
 export function init(el) {
   container = el;
@@ -84,6 +86,7 @@ export function init(el) {
   const ro = new ResizeObserver(resize);
   ro.observe(el);
   resize();
+  on('pieceAnim', (d) => { pieceAnim = d; });
   on('mesh', rebuild);
   on('parts', scheduleRefresh);
   on('selection', (info) => {
@@ -294,12 +297,95 @@ function rebuild() {
   if (!rebuild.keepCamera) fitView('iso', false);
   rebuild.keepCamera = true;
   refreshParts();
+  startPieceAnim(posAttr, norAttr);
   if (restartMove) {
     const alive = restartMove.filter((id) => S.parts.some((p) => p.id === id));
     if (alive.length) startMove(alive);
   }
 }
 export function resetCameraOnNextLoad() { rebuild.keepCamera = false; }
+
+// Animación al separar / montar / colocar piezas: cada pieza va de su posición anterior a la nueva
+// girando sobre su centro (interpolación de su matriz) en ~0,6 s.
+function startPieceAnim(posAttr, norAttr) {
+  if (animRun) { cancelAnimationFrame(animRun.raf); animRun = null; }
+  const d = pieceAnim;
+  pieceAnim = null;
+  if (!d || !S.mesh || d.from.length !== S.mesh.pos.length) return;
+  const P0 = d.from, fpc = d.facePiece, N1 = norAttr.array;
+  // centro de cada pieza (antes) y su movimiento: giro (cuaternión) + desplazamiento del centro
+  const acc = new Map();
+  for (let f = 0; f < fpc.length; f++) {
+    let a = acc.get(fpc[f]);
+    if (!a) acc.set(fpc[f], (a = [0, 0, 0, 0]));
+    for (let k = 0; k < 9; k += 3) { a[0] += P0[f * 9 + k]; a[1] += P0[f * 9 + k + 1]; a[2] += P0[f * 9 + k + 2]; a[3]++; }
+  }
+  const info = new Map();
+  for (const [id, a] of acc) {
+    const m = d.deltas.get(id);
+    if (!m) continue;
+    const c = new THREE.Vector3(a[0] / a[3], a[1] / a[3], a[2] / a[3]);
+    const M = new THREE.Matrix4().fromArray(m);
+    const q = new THREE.Quaternion().setFromRotationMatrix(M);
+    const c1 = c.clone().applyMatrix4(M);
+    info.set(id, { c, c1, q, qInv: q.clone().invert() });
+  }
+  if (!info.size) return;
+  const P = new Float32Array(S.mesh.pos.length), N = new Float32Array(N1.length);
+  posAttr.array = P;
+  norAttr.array = N;
+  if (boundary) boundary.visible = false;
+  const t0 = performance.now(), dur = 620;
+  const qi = new THREE.Quaternion(), ident = new THREE.Quaternion();
+  const m = new THREE.Matrix4(), mn = new THREE.Matrix3(), back = new THREE.Matrix4();
+  const frame = () => {
+    const raw = Math.min(1, (performance.now() - t0) / dur);
+    const k = raw < 0.5 ? 4 * raw * raw * raw : 1 - Math.pow(-2 * raw + 2, 3) / 2;
+    const mats = new Map();
+    for (const [id, it] of info) {
+      qi.slerpQuaternions(ident, it.q, k);
+      const c = it.c.clone().lerp(it.c1, k);
+      // p(k) = c(k) + R(k)·(p0 − c0) ; normales: R(k)·R⁻¹·n final
+      m.makeRotationFromQuaternion(qi);
+      m.setPosition(c.clone().sub(it.c.clone().applyQuaternion(qi)));
+      back.makeRotationFromQuaternion(qi.clone().multiply(it.qInv));
+      mats.set(id, [m.clone(), mn.setFromMatrix4(back).clone()]);
+    }
+    for (let f = 0; f < fpc.length; f++) {
+      const e = mats.get(fpc[f]);
+      const o = f * 9;
+      if (!e) { P.set(S.mesh.pos.subarray(o, o + 9), o); N.set(N1.subarray(o, o + 9), o); continue; }
+      const a = e[0].elements, b = e[1].elements;
+      for (let j = 0; j < 9; j += 3) {
+        const x = P0[o + j], y = P0[o + j + 1], z = P0[o + j + 2];
+        P[o + j] = a[0] * x + a[4] * y + a[8] * z + a[12];
+        P[o + j + 1] = a[1] * x + a[5] * y + a[9] * z + a[13];
+        P[o + j + 2] = a[2] * x + a[6] * y + a[10] * z + a[14];
+        const nx = N1[o + j], ny = N1[o + j + 1], nz = N1[o + j + 2];
+        N[o + j] = b[0] * nx + b[3] * ny + b[6] * nz;
+        N[o + j + 1] = b[1] * nx + b[4] * ny + b[7] * nz;
+        N[o + j + 2] = b[2] * nx + b[5] * ny + b[8] * nz;
+      }
+    }
+    posAttr.needsUpdate = true;
+    norAttr.needsUpdate = true;
+    for (const mm of [model, selModel, hoverModel]) if (mm) mm.geometry.computeBoundingSphere();
+    needsRender = true;
+    if (raw < 1) { animRun.raf = requestAnimationFrame(frame); return; }
+    // final: los datos reales de la pieza
+    posAttr.array = S.mesh.pos;
+    norAttr.array = N1;
+    posAttr.needsUpdate = true;
+    norAttr.needsUpdate = true;
+    for (const mm of [model, selModel, hoverModel]) if (mm) mm.geometry.computeBoundingSphere();
+    if (boundary) boundary.visible = true;
+    animRun = null;
+    needsRender = true;
+  };
+  animRun = { raf: requestAnimationFrame(frame) };
+  frame();
+}
+export const isAnimating = () => !!animRun;
 
 // Agrupa varios cambios en un solo refresco por fotograma (pincel fluido en mallas grandes).
 let refreshQueued = false;
@@ -1095,4 +1181,42 @@ export function pickSplitPlane(clientX, clientY) {
     if (h && h.distance < dPlane - 0.3) blocked = true;
   }
   return { point: [hit.x, hit.y, hit.z], blocked };
+}
+
+// ---------------------------------------------------------------- texto 3D: vista previa que sigue al ratón
+let textPrev = null;
+export function setTextPreview(localPos) {
+  if (textPrev) { scene.remove(textPrev); textPrev.geometry.dispose(); textPrev = null; }
+  if (localPos && localPos.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(localPos, 3));
+    g.computeVertexNormals();
+    textPrev = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xff6a13, roughness: 0.5, transparent: true, opacity: 0.78 }));
+    textPrev.matrixAutoUpdate = false;
+    textPrev.visible = false;
+    textPrev.renderOrder = 8;
+    scene.add(textPrev);
+  }
+  needsRender = true;
+}
+export function moveTextPreview(matrix) {
+  if (!textPrev) return;
+  textPrev.visible = !!matrix;
+  if (matrix) { textPrev.matrix.copy(matrix); textPrev.matrixWorldNeedsUpdate = true; }
+  needsRender = true;
+}
+// "Arriba" de la pantalla en coordenadas del mundo (para poner el texto derecho según la vista)
+export function viewUp() {
+  camera.updateMatrixWorld();
+  const e = camera.matrixWorld.elements;
+  return [e[4], e[5], e[6]];
+}
+
+// Rayo en coordenadas del mundo contra la pieza: { point, normal, face } o null
+export function raycastWorld(origin, dir) {
+  if (!pickMesh) return null;
+  const rc = new THREE.Raycaster(new THREE.Vector3(...origin), new THREE.Vector3(...dir).normalize());
+  const h = rc.intersectObject(pickMesh, false)[0];
+  if (!h) return null;
+  return { point: [h.point.x, h.point.y, h.point.z], normal: [h.face.normal.x, h.face.normal.y, h.face.normal.z], face: h.faceIndex };
 }
