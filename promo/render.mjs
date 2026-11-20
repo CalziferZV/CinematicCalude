@@ -5,6 +5,7 @@
 //   node promo/render.mjs --preview        -> promo/out/preview/*.png (fotogramas clave para revisar)
 //   node promo/render.mjs --from 35 --to 47 -> solo ese tramo (para probar una escena)
 //   node promo/render.mjs --comp reel      -> promo/out/filament-studio-reel.mp4 (vertical 1080×1920 para redes)
+//   node promo/render.mjs --comp explica   -> promo/out/filament-studio-explica.mp4 (qué es, con la app real; antes: node promo/capture-app.mjs)
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,8 +27,10 @@ const COMPS = {
   reel: { page: 'reel.html', module: './reel.js', w: 1080, h: 1920, name: 'filament-studio-reel', wav: 'banda-sonora-reel.wav', preview: 'preview-reel', lufs: -14,
     at: [0.35, 0.9, 1.5, 2.5, 3.1, 3.6, 4.6, 5.8, 6.8, 7.4, 8.8, 10.6, 12.7, 13.4, 14.8, 16.6, 17.8, 19.9, 20.8, 22.5, 23.2, 24.2, 25.8] },
 };
+COMPS.explica = { page: 'explica.html', module: './explica.js', w: 1080, h: 1920, name: 'filament-studio-explica', wav: 'banda-sonora-explica.wav', preview: 'preview-explica', lufs: -14,
+  at: [1.0, 3.5, 5.4, 6.2, 6.8, 8.0, 10.0, 11.0, 12.2, 13.8, 15.2, 16.5, 17.2, 19.0, 20.0, 21.0, 22.4, 23.9, 24.8, 26.5, 28.0, 28.8, 30.2, 32.0, 34.5] };
 const C = COMPS[str('--comp', 'video')];
-if (!C) { console.error('Composición desconocida. Usa --comp video o --comp reel'); process.exit(1); }
+if (!C) { console.error(`Composición desconocida. Usa --comp ${Object.keys(COMPS).join(' | ')}`); process.exit(1); }
 fs.mkdirSync(OUT, { recursive: true });
 
 // servidor de archivos del proyecto (three.js sale de node_modules)
