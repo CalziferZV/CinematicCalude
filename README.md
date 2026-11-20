@@ -130,7 +130,7 @@ La app consulta estas fuentes en vivo y guarda una copia durante 6 horas (botón
 ## Vídeo de presentación y web
 
 - **Vídeo** (`promo/`): composición HTML + 3D animada por tiempo y grabada fotograma a fotograma, sin tirones, con banda sonora sintetizada en el navegador. `node promo/make-assets.mjs` prepara el trofeo cortado, `node promo/render.mjs` graba `promo/out/filament-studio.mp4` (1080p, 30 fps; `--preview --at 12,40` saca fotogramas sueltos y `--from 35 --to 47` graba un tramo).
-- **Reel para redes** (`promo/reel.html`): versión vertical de 24 s (1080×1920) para Instagram, TikTok y YouTube Shorts, con la música cuadrada con los cortes y lo importante dentro de la zona segura de cada red. `node promo/render.mjs --comp reel` → `promo/out/filament-studio-reel.mp4`.
+- **Reel para redes** (`promo/reel.html`): anuncio vertical de 26 s (1080×1920) para Instagram, TikTok y YouTube Shorts: «OBEKET presenta», el programa, sus funciones y «Próximamente». Música cuadrada con los cortes, volumen normalizado para redes (-14 LUFS) y lo importante dentro de la zona segura. Para usar el logo de Obeket en lugar del nombre en letra, deja `promo/assets/obeket-logo.svg` (o `.png`, con fondo transparente y en claro). `node promo/render.mjs --comp reel` → `promo/out/filament-studio-reel.mp4`.
 - **Web** (`site/`): página estática; se abre con cualquier servidor de archivos (por ejemplo `npx serve site`). La portada deja colorear el trofeo con colores reales, el despiece se mueve con el scroll y el nombre en relieve se escribe en vivo. `node promo/stills.mjs` regenera las imágenes de respaldo y `node site/build-artifact.mjs` crea la versión para publicarla como artifact de claude.ai.
 
 ## Estructura

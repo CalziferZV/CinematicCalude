@@ -24,7 +24,7 @@ const COMPS = {
   video: { page: 'video.html', module: './video.js', w: 1920, h: 1080, name: 'filament-studio', wav: 'banda-sonora.wav', preview: 'preview',
     at: [1.2, 2.6, 4.0, 7.2, 9.4, 13.0, 15.0, 17.5, 22.5, 25.5, 30.5, 33.0, 36.8, 38.2, 41.0, 44.0, 49.0, 51.5, 56.0, 59.0, 63.4, 65.5, 70.0, 74.5, 76.5] },
   reel: { page: 'reel.html', module: './reel.js', w: 1080, h: 1920, name: 'filament-studio-reel', wav: 'banda-sonora-reel.wav', preview: 'preview-reel', lufs: -14,
-    at: [0.3, 1.4, 2.6, 3.8, 4.7, 5.6, 6.6, 7.6, 8.6, 9.5, 10.7, 11.4, 12.6, 13.5, 14.6, 15.8, 16.5, 17.9, 18.6, 19.5, 20.6, 21.5, 23.5] },
+    at: [0.35, 0.9, 1.5, 2.5, 3.1, 3.6, 4.6, 5.8, 6.8, 7.4, 8.8, 10.6, 12.7, 13.4, 14.8, 16.6, 17.8, 19.9, 20.8, 22.5, 23.2, 24.2, 25.8] },
 };
 const C = COMPS[str('--comp', 'video')];
 if (!C) { console.error('Composición desconocida. Usa --comp video o --comp reel'); process.exit(1); }

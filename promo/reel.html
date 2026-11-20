@@ -51,6 +51,15 @@
   .slot small { display: block; font-size: 30px; color: var(--muted); font-weight: 500; margin-top: 4px; letter-spacing: 0; }
   .cursor { width: 70px; height: 70px; }
   .foot { font-size: 30px; font-weight: 500; color: var(--muted); }
+  /* Obeket presenta */
+  .brand { font-size: 140px; font-weight: 800; letter-spacing: 0.3em; color: #f5f5f7; line-height: 1; padding-left: 0.3em; }
+  .brand-img { left: 50%; width: 640px; height: 300px; margin-left: -320px; object-fit: contain; }
+  .presenta { font-size: 46px; font-weight: 500; letter-spacing: 0.42em; text-transform: uppercase; color: #8e8e93; padding-left: 0.42em; }
+  .glow { left: 50%; top: 960px; width: 1000px; height: 1000px; margin: -500px 0 0 -500px; border-radius: 50%; background: radial-gradient(circle, rgba(255,106,19,0.28) 0%, rgba(255,106,19,0.08) 35%, rgba(255,106,19,0) 68%); }
+  .soon { display: inline-flex; align-items: center; gap: 16px; padding: 18px 40px; border-radius: 999px; border: 2.5px solid var(--orange); color: var(--orange); font-size: 42px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; background: rgba(255,106,19,0.06); }
+  .soon i { width: 16px; height: 16px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 16px rgba(255,106,19,0.8); }
+  .by { font-size: 38px; font-weight: 500; color: var(--muted); }
+  .by b { color: var(--ink); font-weight: 800; letter-spacing: 0.2em; margin-left: 6px; }
 </style>
 </head>
 <body>
@@ -67,10 +76,21 @@
   <!-- 3D -->
   <canvas id="gl" width="1080" height="1920"></canvas>
 
-  <!-- 1 · gancho -->
-  <div id="h1" class="abs center h-xxl white" style="top: 640px">¿Tu cliente</div>
-  <div id="h2" class="abs center h-xxl grad" style="top: 790px">no se decide?</div>
-  <div id="h3" class="abs center sub white" style="top: 1010px">Enséñaselo en 3D. En directo.</div>
+  <!-- 0 · Obeket presenta -->
+  <div id="ob_glow" class="abs glow"></div>
+  <img id="ob_img" class="abs brand-img" style="top: 720px" alt="" hidden />
+  <div id="ob_word" class="abs center brand" style="top: 806px">OBEKET</div>
+  <div id="ob_pres" class="abs center presenta" style="top: 1010px">presenta</div>
+
+  <!-- 1 · el programa -->
+  <svg id="r_logo" class="abs" style="left: 440px; top: 560px; width: 200px; height: 200px" viewBox="0 0 100 100">
+    <defs><filter id="rglow"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <circle id="r_ring" cx="50" cy="50" r="42" fill="none" stroke="#ff6a13" stroke-width="9" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="264" transform="rotate(-90 50 50)" filter="url(#rglow)"/>
+    <circle id="r_fill" cx="50" cy="50" r="46" fill="#ff6a13" opacity="0"/>
+    <circle id="r_dot" cx="50" cy="50" r="15" fill="#fff" transform="scale(0)" transform-origin="50 50"/>
+  </svg>
+  <div id="r_title" class="abs center h-l white" style="top: 830px"></div>
+  <div id="r_tag" class="abs center sub white" style="top: 1010px">Personaliza piezas 3D en directo,<br />con tu cliente.</div>
 
   <!-- 2 · colores reales -->
   <div id="c_t" class="abs center h-l" style="top: 250px">Colores reales.</div>
@@ -118,9 +138,10 @@
     <circle id="o_fill" cx="50" cy="50" r="46" fill="#ff6a13" opacity="0"/>
     <circle id="o_dot" cx="50" cy="50" r="15" fill="#fff" transform="scale(0)" transform-origin="50 50"/>
   </svg>
-  <div id="o_t" class="abs center h-l" style="top: 440px">Filament Studio</div>
-  <div id="o_s" class="abs center sub" style="top: 572px; color: var(--ink)">Personaliza. Imprime. Entrega.</div>
-  <div id="o_f" class="abs center foot" style="top: 1410px">Para Windows · Con Bambu Studio y OrcaSlicer</div>
+  <div id="o_t" class="abs center h-l" style="top: 430px">Filament Studio</div>
+  <div id="o_soon" class="abs row" style="top: 572px"><div class="soon"><i></i>Próximamente</div></div>
+  <div id="o_by" class="abs center by" style="top: 1372px">Un producto de <b>OBEKET</b></div>
+  <div id="o_f" class="abs center foot" style="top: 1432px">Para Windows · Con Bambu Studio y OrcaSlicer</div>
 </div>
 <script type="module" src="reel.js"></script>
 </body>
