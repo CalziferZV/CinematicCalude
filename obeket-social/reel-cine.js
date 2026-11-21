@@ -86,15 +86,14 @@ export function renderAt(t) {
 
   if (t < 4) { // macro: la boquilla deposita la capa
     BALL.rotation.y = 0;
-    const p = lerp(0.40, 0.56, t / 4);
-    const { cut, box } = setPrint(BALL, p, 0.75);
-    placeNozzle(NZ, cut, box, 0.6 + t * 0.09, { speed: 1, show: 1, size: 0.38 });
-    const a = Math.atan2(NZ.position.z, NZ.position.x);
-    const r = 2.5 - t * 0.12;
+    const p = lerp(0.16, 0.66, t / 4);
+    const { cut, box } = setPrint(BALL, p, 0.9);
+    placeNozzle(NZ, cut, box, t + 0.45, { speed: 3.2, show: 1, size: 0.5, piece: BALL });
+    const k = EASE.io(t / 4);
     cam.fov = 30; cam.updateProjectionMatrix();
-    cam.position.set(Math.cos(a + 0.3) * r, cut + 0.75 - t * 0.05, Math.sin(a + 0.3) * r);
-    cam.lookAt(NZ.position.x * 0.6, cut - 0.05, NZ.position.z * 0.6);
-    blur = lerp(14, 0, EASE.io(clamp((t - 0.2) / 1.6)));
+    cam.position.set(lerp(1.2, 0.7, k), lerp(2.4, 2.35, k), lerp(4.0, 3.65, k));
+    cam.lookAt(0, lerp(0.42, 0.62, k), 0);
+    blur = lerp(12, 0, EASE.io(clamp((t - 0.1) / 1.3)));
   } else if (t < 8) { // macro rasante sobre las capas terminadas
     setPrint(BALL, 1);
     BALL.rotation.y = 0;

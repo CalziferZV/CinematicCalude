@@ -43,7 +43,7 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 >
 > #navidad #regalosdenavidad #adornosnavideños #regalospersonalizados #impresion3d #navidad2026 #obeket
 >
-> Música: "The Snow Queen" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+> Música: "It Came Upon a Midnight Clear" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 
 ### NUEVO · Reel viral "POV" — `reel-viral.mp4`
 > POV: es 24 de diciembre y aún no tienes regalo 😰
@@ -52,7 +52,7 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 >
 > #pov #navidad #regalosdenavidad #regalospersonalizados #impresion3d #humor #obeket
 >
-> Música: "Christmas Rap" y "Jingle Bells (Calm)" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+> Música: "Oh, Christmas Tree" y "Jingle Bells (Calm)" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 
 Responde por DM a cada persona que comente 🎄: así el reel gana alcance.
 
@@ -60,7 +60,7 @@ Responde por DM a cada persona que comente 🎄: así el reel gana alcance.
 > TOP 3 regalos impresos en 3D que van a triunfar esta Navidad 🎄
 > #3 Estrella para el árbol, en tu color favorito
 >
-> Música: "Deck the Halls B" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+> Música: "We Wish You a Merry Christmas" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 > #2 Bola de Navidad de diseño
 > #1 Adorno con su nombre ❤️
 > De tu boceto a tu árbol. ¿Cuál es tu favorito? Comenta 3, 2 o 1 👇
@@ -74,7 +74,7 @@ Responde por DM a cada persona que comente 🎄: así el reel gana alcance.
 >
 > #impresion3d #3dprinting #regalospersonalizados #hechoamano #diseño3d #obeket
 >
-> Música: "Exit the Premises" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+> Música: "Inspired" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 
 **Portada sugerida:** fotograma del segundo 5 ("Lo imaginas. Lo imprimimos.").
 
@@ -107,7 +107,7 @@ Añade el sticker de enlace o "Enviar mensaje" sobre el botón.
 >
 > #navidad #regalosdenavidad #adornosnavideños #regalospersonalizados #impresion3d #navidad2026 #obeket
 >
-> Música: "Nouvelle Noel" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+> Música: "Wish Background" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 
 **Portada sugerida:** fotograma del segundo 4 (bola roja con "regala algo único").
 
@@ -133,7 +133,7 @@ Añade el sticker de enlace o "Enviar mensaje" sobre el botón.
 >
 > #navidad #ultimosdias #regalosdenavidad #impresion3d #obeket
 >
-> Música: "Jingle Bells" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+> Música: "Adeste Fideles Waltz" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 
 ### Post "Últimos días" — `navidad-03-ultimos-dias`
 > Se acaba el plazo 🎄 Hasta el 14 de diciembre puedes pedir tu regalo personalizado y recibirlo a tiempo. Escríbenos por DM.

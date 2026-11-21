@@ -83,7 +83,7 @@ async function reel(name) {
 }
 
 // Mezcla la banda sonora real (soundtracks.mjs) y la une al vídeo: música + efectos, normalizado
-// para redes (-14 LUFS, pico -1,5 dBTP), AAC 320k.
+// para redes sin resultar estridente (-16 LUFS, agudos suavizados, pico -2 dBTP), AAC 320k.
 function mux(name, video, D) {
   const st = SOUNDTRACKS[name];
   if (!st) throw new Error(`No hay banda sonora para ${name} en soundtracks.mjs`);
@@ -93,13 +93,16 @@ function mux(name, video, D) {
   items.forEach((it, i) => {
     args.push('-i', path.join(ROOT, it.f));
     const from = it.from || 0, dur = it.dur ?? 30, at = Math.max(0, it.at), ms = Math.round(at * 1000);
-    let c = `[${i + 1}:a]atrim=start=${from}:duration=${dur},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo,volume=${it.gain ?? 1}`;
+    let c = `[${i + 1}:a]aformat=sample_rates=48000:channel_layouts=stereo`;
+    if (it.pitch) c += `,asetrate=${Math.round(48000 * it.pitch)},aresample=48000`;
+    c += `,atrim=start=${from}:duration=${dur},asetpts=PTS-STARTPTS,volume=${it.gain ?? 1}`;
+    if (it.lp) c += `,lowpass=f=${it.lp}`;
     if (it.fin) c += `,afade=t=in:st=0:d=${it.fin}`;
     if (it.fout) c += `,afade=t=out:st=${Math.max(0, dur - it.fout)}:d=${it.fout}`;
     c += `,adelay=${ms}|${ms}[a${i}]`;
     chains.push(c);
   });
-  const mix = `${items.map((_, i) => `[a${i}]`).join('')}amix=inputs=${items.length}:normalize=0:dropout_transition=0,atrim=duration=${D},alimiter=limit=0.9,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000[out]`;
+  const mix = `${items.map((_, i) => `[a${i}]`).join('')}amix=inputs=${items.length}:normalize=0:dropout_transition=0,atrim=duration=${D},highshelf=f=6500:g=-4,alimiter=limit=0.85,loudnorm=I=-16:TP=-2:LRA=11,aresample=48000[out]`;
   const tmp = path.join(OUT, `${name}-mix.mp4`);
   const r = spawnSync('ffmpeg', [...args, '-filter_complex', [...chains, mix].join(';'), '-map', '0:v', '-map', '[out]',
     '-c:v', 'copy', '-c:a', 'aac', '-b:a', '320k', '-t', String(D), '-movflags', '+faststart', tmp], { stdio: 'inherit' });

@@ -21,6 +21,11 @@
     document.documentElement.style.setProperty('--w', w + 'px');
     document.documentElement.style.setProperty('--h', h + 'px');
     await mod.init(q, w, h);
+    if (/^reel-/.test(q.get('c')) && q.get('c') !== 'reel-cine') {
+      const v = document.createElement('div');
+      v.style.cssText = 'position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 85% at 50% 48%, transparent 58%, rgba(0,0,0,.22) 100%)';
+      document.getElementById('fg').prepend(v);
+    }
     await document.fonts.ready;
     window.DURATION = mod.DURATION || 0;
     window.renderAt = async (t) => { mod.renderAt(t); await new Promise((r) => requestAnimationFrame(() => r())); };
