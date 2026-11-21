@@ -205,12 +205,19 @@ function setActive(fil, applyToSelection = true) {
   setActiveKey(filamentKey(fil));
   renderActiveExtras(fil);
   $('activeFil').innerHTML = `<div class="big" style="background:${swatchCss(fil)}"></div><div><div class="t1">${escapeHtml(fil.name)}</div><div class="t2">${escapeHtml(`${fil.brandName} · ${fil.line}`)}<br>${fil.hexes ? fil.hexes.join(' · ') : fil.hex}${fil.code ? ` · ${fil.code}` : ''}</div></div>`;
-  if (applyToSelection && S.mesh) {
-    if (S.selected.size) {
-      ST.setPartFilament([...S.selected], fil);
-      toast(`${fil.name} aplicado a ${S.selected.size === 1 ? ST.partById([...S.selected][0])?.name : S.selected.size + ' partes'}`);
-    } else hint('Color activo listo: haz clic en una parte para aplicarlo, o usa el pincel / relleno', 3000);
+  if (!applyToSelection || !S.mesh) return;
+  if (S.tool === 'brush' || S.tool === 'fill') {
+    // pintando, elegir otro color es cambiar de pincel: lo ya pintado se queda como está
+    hint(`Pintando en ${fil.name}: va a su propia capa · «Aplicar a selección» cambia la parte seleccionada`, 3500);
+    return;
   }
+  applyToSelection_(fil);
+}
+function applyToSelection_(fil) {
+  if (S.selected.size) {
+    ST.setPartFilament([...S.selected], fil);
+    toast(`${fil.name} aplicado a ${S.selected.size === 1 ? ST.partById([...S.selected][0])?.name : S.selected.size + ' partes'}`);
+  } else hint('Color activo listo: haz clic en una parte para aplicarlo, o usa el pincel / relleno', 3000);
 }
 
 // Debajo del color activo: favorito, "la tengo" y colores equivalentes de otras marcas / tus bobinas
@@ -340,10 +347,33 @@ function selectNextUncolored(dir = 1) {
   }
 }
 
+// A qué parte van las caras que se pintan con el pincel o el relleno: a la capa del color activo.
+//  - si la parte seleccionada ya es de ese color (o no hay color activo), se sigue pintando en ella
+//  - una parte vacía recién creada con «+ Nueva parte» se queda con el color activo
+//  - si no, va a la capa que ya se pintó antes con ese color o a una parte nueva con él
+// Así, pintar en negro después de pintar el collar en rosa crea otra capa y el collar sigue rosa.
+const paintLayers = new Map(); // color -> parte que se creó al pintar con él
+const sameColor = (a, b) => filamentKey(a) === filamentKey(b);
 function paintTarget() {
-  if (S.selected.size === 1) return [...S.selected][0];
   const fil = S.activeFilament;
+  const sel = S.selected.size === 1 ? ST.partById([...S.selected][0]) : null;
+  if (sel && (!fil || sameColor(sel.filament, fil))) return sel.id;
+  if (sel && !sel.filament && !ST.partFaceCounts().get(sel.id)) {
+    sel.filament = { ...fil };
+    ST.emit('parts');
+    ST.emit('filament', [sel.id]);
+    paintLayers.set(filamentKey(fil), sel.id);
+    return sel.id;
+  }
+  if (fil) {
+    const prev = ST.partById(paintLayers.get(filamentKey(fil)));
+    if (prev && prev.visible && sameColor(prev.filament, fil)) {
+      ST.select([prev.id]);
+      return prev.id;
+    }
+  }
   const p = ST.newPart(fil ? `${fil.name}` : `Parte ${S.nextId}`, fil);
+  if (fil) paintLayers.set(filamentKey(fil), p.id);
   ST.select([p.id]);
   if (fil) V.settleSelection(); // ya pinta con su color: que se vea el color real
   return p.id;
@@ -976,7 +1006,7 @@ function bind() {
   $('btnApplyActive').addEventListener('click', () => {
     if (!S.activeFilament) return toast('Primero elige un color');
     if (!S.selected.size) return toast('Selecciona una o más partes');
-    setActive(S.activeFilament, true);
+    applyToSelection_(S.activeFilament);
   });
 
   // exportar
