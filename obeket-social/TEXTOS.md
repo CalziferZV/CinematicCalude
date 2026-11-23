@@ -8,26 +8,24 @@ posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha lími
 
 ---
 
-## Calendario (21 nov → 24 dic)
+## Calendario (24 nov → 24 dic, hora peninsular)
 
-| Fecha | Formato | Pieza | Objetivo |
-|---|---|---|---|
-| Sáb 21 nov | Reel | `reel-marca.mp4` | Presentar OBEKET |
-| Lun 23 nov | Carrusel | `marca-02-como-1…5` | Explicar cómo pedir |
-| Mié 25 nov | Post | `marca-01-lema` | Imagen de marca |
-| Vie 27 nov | Historia | `historia-presupuesto` | Mensajes directos |
-| Mar 1 dic | Reel | `reel-cine.mp4` | Lanzar la campaña (tono premium) |
-| Jue 3 dic | Reel | `reel-navidad.mp4` | Explicar la campaña |
-| Mar 1 dic | Historia | `historia-navidad-abierta` | Anunciar campaña |
-| Jue 3 dic | Post | `navidad-01-portada` | Fijar en el perfil |
-| Sáb 5 dic | Reel | `reel-viral.mp4` | Alcance y comentarios |
-| Dom 6 dic | Carrusel | `navidad-02-ideas-1…5` | Guía de regalos (guardados) |
-| Mar 8 dic | Reel | `reel-top3.mp4` | Comentarios (votar 3, 2 o 1) |
-| Lun 7 dic | Historia | `historia-encuesta-nombre` + caja de preguntas | Interacción |
-| Jue 10 dic | Reel | `reel-ultimo-dia.mp4` | Urgencia |
-| Sáb 12 dic | Post | `navidad-03-ultimos-dias` | Urgencia |
-| 13–14 dic | Historias | resubir `reel-ultimo-dia` + cuenta atrás de Instagram | Último empujón |
-| 24 dic | Historia | foto real de pedidos entregados + "Feliz Navidad" | Cierre |
+| Fecha | Hora | Formato | Pieza | Objetivo |
+|---|---|---|---|---|
+| Mar 24 nov | **21:00** | Reel | `reel-marca.mp4` | Presentar OBEKET |
+| Jue 26 nov | **13:30** | Carrusel | `marca-02-como-1…5` | Explicar cómo pedir |
+| Sáb 28 nov | **12:00** | Post | `marca-01-lema` | Imagen de marca |
+| Dom 29 nov | **10:00 y 20:30** | Historia | `historia-presupuesto` | Conseguir mensajes |
+| Mar 1 dic | **10:00 · 21:00** | Historia + reel | `historia-navidad-abierta + reel-cine.mp4` | Lanzar la campaña |
+| Jue 3 dic | **13:30 · 21:00** | Post + reel | `navidad-01-portada + reel-navidad.mp4` | Explicar la campaña y fijar en el perfil |
+| Sáb 5 dic | **20:30** | Reel | `reel-viral.mp4` | Alcance y comentarios |
+| Dom 6 dic | **20:00** | Carrusel | `navidad-02-ideas-1…5` | Guardados y compartidos |
+| Lun 7 dic | **10:00 y 21:00** | Historia | `historia-encuesta-nombre` | Interacción |
+| Mar 8 dic | **21:00** | Reel | `reel-top3.mp4` | Comentarios (votar 3, 2 o 1) |
+| Jue 10 dic | **20:30** | Reel | `reel-ultimo-dia.mp4` | Urgencia |
+| Sáb 12 dic | **12:00** | Post | `navidad-03-ultimos-dias` | Urgencia |
+| 13–14 dic | **13:00 y 21:00** | Historias | `reel-ultimo-dia.mp4` | Último empujón |
+| Jue 24 dic | **11:00** | Historia | `—` | Cierre y agradecimiento |
 
 Consejos: fija en el perfil el reel de Navidad y el carrusel de ideas; responde a todos los DM en menos de 24 h;
 en historias usa el sticker "Cuenta atrás" con la fecha límite.
