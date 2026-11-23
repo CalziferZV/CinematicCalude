@@ -5,7 +5,7 @@ import { CONFIG } from './config.js';
 
 let P, S, render;
 export const SIZE = (q) => { P = POSTS.find((x) => x.id === q.get('id')); return [P.w, P.h]; };
-const fill = (s) => s.replace(/\{fecha\}/g, CONFIG.fechaLimite).replace(/\{usuario\}/g, CONFIG.usuario).replace(/\{marca\}/g, CONFIG.marca).replace(/\{contacto\}/g, CONFIG.contacto);
+const fill = (s) => s.replace(/\{fecha\}/g, CONFIG.fechaLimite).replace(/\{reyes\}/g, CONFIG.fechaReyes).replace(/\{usuario\}/g, CONFIG.usuario).replace(/\{marca\}/g, CONFIG.marca).replace(/\{contacto\}/g, CONFIG.contacto);
 
 export async function init(q, w, h) {
   const glow = P.glow ? `<div class="abs glow ${P.glow === 'gold' ? 'goldg' : ''}" style="left:${w / 2 - 480}px;top:${h * 0.62 - 480}px;width:960px;height:960px"></div>` : '';

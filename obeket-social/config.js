@@ -5,6 +5,7 @@ export const CONFIG = {
   usuario: '@obeket',                          // ← tu usuario de Instagram
   lema: 'Lo imaginas. Lo imprimimos.',
   fechaLimite: '14 de diciembre',               // ← último día para pedir y recibir antes de Navidad
+  fechaReyes: '30 de diciembre',               // ← último día para pedir y recibir antes de Reyes
   contacto: 'Pide el tuyo por mensaje directo',
   nombres: ['MARTA', 'PABLO', 'LEO'],          // nombres de ejemplo en los adornos (sin tildes: la fuente 3D no las tiene)
 };

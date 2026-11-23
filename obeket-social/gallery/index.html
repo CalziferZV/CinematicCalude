@@ -66,7 +66,7 @@ footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line);
   <header>
     <div class="mark"><b></b>OBEKET</div>
     <h1>Contenido para Instagram: <em>marca y Navidad</em></h1>
-    <p class="lead">6 reels en 4 estilos distintos (cinematográfico, viral, top 3 y de marca), con música original, 2 carruseles, 3 posts sueltos y 3 historias, todo hecho con piezas impresas en 3D que se ven nacer capa a capa. Cada pieza lleva su texto listo para copiar y pegar.</p>
+    <p class="lead">6 reels en 4 estilos distintos (cinematográfico, viral, top 3 y de marca), con música original, 3 carruseles, 5 posts sueltos y 13 historias, todo hecho con piezas impresas en 3D que se ven nacer capa a capa. Cada pieza lleva su texto listo para copiar y pegar.</p>
     <div class="note">Revisa antes de publicar: el usuario <strong>@obeket</strong> y la fecha límite <strong>14 de diciembre</strong> son provisionales.</div>
     <nav><a href="#reels">Reels</a><a href="#feed">Feed</a><a href="#historias">Historias</a><a href="#calendario">Calendario</a><a href="#hashtags">Hashtags</a></nav>
   </header>
@@ -90,8 +90,8 @@ footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line);
   </section>
 
   <section id="calendario">
-    <h2>Calendario <small>24 nov → 24 dic · hora peninsular</small></h2>
-    <p class="sub">Primero se presenta la marca, después la campaña, y la última semana se insiste en la fecha límite. Reels por la noche (más reproducciones), carruseles a mediodía (más guardados). Quédate 15–20 minutos respondiendo comentarios después de publicar. Cuando lleves 2–3 semanas, ajusta las horas con Estadísticas → Seguidores → Momentos de más actividad.</p>
+    <h2>Calendario diario <small>23 nov → 24 dic · hora peninsular</small></h2>
+    <p class="sub">Una publicación cada día. Primero la marca, después Navidad, la cuenta atrás hasta el 14 de diciembre y luego Reyes. Los días con ✋ son para grabar algo real con el móvil. Reels por la noche (más reproducciones), carruseles a mediodía (más guardados). Quédate 15–20 minutos respondiendo comentarios después de publicar. Cuando lleves 2–3 semanas, ajusta las horas con Estadísticas → Seguidores → Momentos de más actividad.</p>
     <div class="cal"><table>
       <thead><tr><th>Fecha</th><th>Hora</th><th>Formato</th><th>Pieza</th><th>Objetivo</th></tr></thead>
       <tbody id="calBody"></tbody>
@@ -121,7 +121,7 @@ const REELS = [
   { file: 'reel-top3.mp4', kind: 'n', title: 'Reel "Top 3" del boceto a la pieza', len: '18 s', when: 'Mar 8 dic · 21:00', fresh: 'Nuevo',
     tip: 'Cada regalo empieza como un dibujo a mano y se convierte en la pieza impresa. Termina pidiendo que comenten su número favorito.',
     cap: `TOP 3 regalos impresos en 3D que van a triunfar esta Navidad 🎄\n#3 Estrella para el árbol, en tu color favorito\n#2 Bola de Navidad de diseño\n#1 Adorno con su nombre ❤️\nDe tu boceto a tu árbol. ¿Cuál es tu favorito? Comenta 3, 2 o 1 👇\n\n#top3 #ideasderegalo #navidad #regalosoriginales #impresion3d #obeket\n\nMúsica: "We Wish You a Merry Christmas" de Kevin MacLeod (incompetech.com) · CC BY 4.0` },
-  { file: 'reel-marca.mp4', kind: 'm', title: 'Reel de marca', len: '20 s', when: 'Mar 24 nov · 21:00',
+  { file: 'reel-marca.mp4', kind: 'm', title: 'Reel de marca', len: '20 s', when: 'Lun 23 nov · 21:00 · HOY',
     tip: 'Portada sugerida: el segundo 5 ("Lo imaginas. Lo imprimimos.").',
     cap: `Capa a capa, así nace tu idea. 🧡\nEn OBEKET diseñamos e imprimimos en 3D lo que imagines: regalos personalizados, decoración, repuestos o prototipos. Desde 1 unidad y en el color que quieras.\n¿Tienes una idea? Escríbenos por mensaje directo y te damos presupuesto. 👇\n\n${H.marca}\n\nMúsica: "Inspired" de Kevin MacLeod (incompetech.com) · CC BY 4.0` },
   { file: 'reel-navidad.mp4', kind: 'n', title: 'Reel de Navidad', len: '22 s', when: 'Jue 3 dic · 21:00',
@@ -132,9 +132,9 @@ const REELS = [
     cap: `⏰ Últimos días para pedir tus regalos impresos en 3D.\nSi nos escribes antes del 14 de diciembre, llega antes de Navidad. Después… ¡ya no podemos prometerlo! 🎅\n\n#navidad #ultimosdias #regalosdenavidad #impresion3d #obeket\n\nMúsica: "Adeste Fideles Waltz" de Kevin MacLeod (incompetech.com) · CC BY 4.0` },
 ];
 const FEED = [
-  { imgs: ['marca-01-lema'], kind: 'm', title: 'Post de marca', when: 'Sáb 28 nov · 12:00',
+  { imgs: ['marca-01-lema'], kind: 'm', title: 'Post de marca', when: 'Vie 27 nov · 13:00',
     cap: `Lo imaginas. Lo imprimimos. 🖨️✨\nImpresión 3D a medida, sin pedido mínimo. Cuéntanos tu idea por DM.\n\n#impresion3d #3dprinting #obeket` },
-  { imgs: [1, 2, 3, 4, 5].map((i) => 'marca-02-como-' + i), kind: 'm', title: 'Carrusel "Cómo funciona"', when: 'Jue 26 nov · 13:30',
+  { imgs: [1, 2, 3, 4, 5].map((i) => 'marca-02-como-' + i), kind: 'm', title: 'Carrusel "Cómo funciona"', when: 'Mar 24 nov · 13:30',
     cap: `De una idea a un objeto real, en 4 pasos 👉\n1️⃣ Nos cuentas tu idea (foto, boceto, STL o descripción)\n2️⃣ La diseñamos y te damos precio\n3️⃣ La imprimimos capa a capa\n4️⃣ La recibes en casa\nGuárdalo para cuando lo necesites y escríbenos por DM. 💬\n\n#impresion3d #personalizado #regalosoriginales #diseño3d #obeket` },
   { imgs: ['navidad-01-portada'], kind: 'n', title: 'Portada de la campaña', when: 'Jue 3 dic · 13:30',
     cap: `La Navidad de este año, impresa en 3D. ❤️💚\nAdornos y regalos personalizados, hechos uno a uno. Pedidos hasta el 14 de diciembre.\n\n#navidad #decoracionnavideña #impresion3d #obeket` },
@@ -142,27 +142,59 @@ const FEED = [
     cap: `4 regalos que no encontrarás en ninguna tienda 🎁👉\n01 · Adornos con el nombre de cada uno\n02 · Decoración diferente para tu árbol\n03 · Regalos a medida (llaveros, figuras, lámparas…)\n04 · Regalos de empresa con tu logo\n¿Cuál regalarías? Cuéntanoslo en comentarios. Y guárdalo para no olvidarte 😉\n\n#ideasderegalo #regalosnavidad #regalosoriginales #regalosempresa #impresion3d #obeket` },
   { imgs: ['navidad-03-ultimos-dias'], kind: 'n', title: 'Post "Últimos días"', when: 'Sáb 12 dic · 12:00',
     cap: `Se acaba el plazo 🎄 Hasta el 14 de diciembre puedes pedir tu regalo personalizado y recibirlo a tiempo. Escríbenos por DM.\n\n#navidad #regalosdenavidad #impresion3d #obeket` },
+  {"imgs": ["marca-03-sabias-que"], "kind": "m", "title": "Post \"¿Sabías que…?\"", "when": "Mié 25 nov · 13:30", "cap": "¿Sabías que esta pieza tiene más de 1.000 capas? 🤯\nCada una mide 0,2 mm, más fina que una tarjeta de crédito. Así, capa a capa, convertimos tu idea en un objeto real.\n¿Qué te gustaría imprimir? Cuéntanoslo por DM.\n\n#impresion3d #3dprinting #diseño3d #personalizado #obeket"},
+  {"imgs": ["marca-04-elige-color"], "kind": "m", "title": "Post \"¿De qué color lo quieres?\"", "when": "Dom 29 nov · 20:00", "cap": "Azul, naranja o verde… ¿De qué color lo quieres tú? 🎨\nImprimimos en el color que elijas. Dinos tu favorito en comentarios 👇\n\n#impresion3d #3dprinting #diseño3d #personalizado #obeket"},
+  {"imgs": ["navidad-04-por-persona-1", "navidad-04-por-persona-2", "navidad-04-por-persona-3", "navidad-04-por-persona-4", "navidad-04-por-persona-5"], "kind": "n", "title": "Carrusel \"Un regalo para cada persona\"", "when": "Mié 2 dic · 13:30", "cap": "Un regalo impreso en 3D para cada persona de tu lista 🎁👉\n👨‍👩‍👧 Familia: un adorno con cada nombre\n🧒 Peques: su estrella, en su color\n🤫 Amigo invisible: algo pequeño, pero suyo\n💼 Empresa: regalos con tu logo\nGuárdalo y escríbenos por DM. Pedidos hasta el 14 de diciembre.\n\n#ideasderegalo #amigoinvisible #regalosempresa #navidad #regalosdenavidad #regalospersonalizados #impresion3d #obeket"},
+  {"imgs": ["reyes-01-campana"], "kind": "n", "title": "Post \"Y ahora… ¡Reyes!\"", "when": "Mar 15 dic · 13:30", "cap": "¡Gracias por todos vuestros pedidos de Navidad! ❤️\nY ahora… ¡Reyes! 👑 Todavía puedes regalar algo único impreso en 3D. Pedidos para Reyes hasta el 30 de diciembre, por mensaje directo.\n\n#reyesmagos #regalosdereyes #regalospersonalizados #impresion3d #obeket"},
+  {"imgs": ["navidad-05-feliz-navidad"], "kind": "n", "title": "Post \"¡Feliz Navidad!\"", "when": "Jue 24 dic · 11:00", "cap": "¡Feliz Navidad de parte de todo el equipo de OBEKET! 🎄✨\nGracias por confiarnos vuestras ideas este año. Nos encanta saber que algo que hemos impreso está hoy bajo vuestro árbol.\n\n#feliznavidad #navidad #impresion3d #obeket"},
 ];
 const STORIES = [
-  ['historia-navidad-abierta', 'Lanzamiento de la campaña · Mar 1 dic, 10:00'],
-  ['historia-encuesta-nombre', 'Encuesta con caja de preguntas · Lun 7 dic, 10:00'],
-  ['historia-presupuesto', 'Presupuestos por DM · Dom 29 nov, 10:00 y 20:30'],
+  ["historia-presupuesto", "Presupuestos por DM · Lun 30 nov, 10:00"],
+  ["historia-encuesta-que-imprimirias", "Encuesta (sticker de encuesta) · Jue 26 nov, 10:00 · y Lun 21 dic con sticker de preguntas"],
+  ["historia-teaser-navidad", "Teaser de la campaña · Lun 30 nov, 20:30"],
+  ["historia-navidad-abierta", "Lanzamiento de la campaña · Mar 1 dic, 10:00"],
+  ["historia-cuenta-atras-10", "Cuenta atrás · Vie 4 dic, 13:00"],
+  ["historia-encuesta-nombre", "Encuesta con caja de preguntas · Lun 7 dic, 10:00"],
+  ["historia-cuenta-atras-7", "Cuenta atrás · Lun 7 dic, 13:00"],
+  ["historia-cuenta-atras-5", "Cuenta atrás · Mié 9 dic, 13:00"],
+  ["historia-cuenta-atras-3", "Cuenta atrás · Vie 11 dic, 13:00"],
+  ["historia-cuenta-atras-1", "Cuenta atrás · Dom 13 dic, 13:00"],
+  ["historia-cuenta-atras-0", "Último día · Lun 14 dic, 13:00 y 21:00"],
+  ["historia-reyes-quedan", "Reyes · Vie 18 dic y Mié 23 dic, 13:00"],
 ];
 const CAL = [
-  ["Mar 24 nov", "21:00", "Reel", "Reel de marca", "Presentar OBEKET", "m"],
-  ["Jue 26 nov", "13:30", "Carrusel", "Cómo funciona", "Explicar cómo pedir", "m"],
-  ["Sáb 28 nov", "12:00", "Post", "Lo imaginas. Lo imprimimos.", "Imagen de marca", "m"],
-  ["Dom 29 nov", "10:00 y 20:30", "Historia", "¿Tienes una idea?", "Conseguir mensajes", "m"],
-  ["Mar 1 dic", "10:00 · 21:00", "Historia + reel", ""Ya está aquí la Navidad" (10:00) + reel cinematográfico (21:00)", "Lanzar la campaña", "n"],
-  ["Jue 3 dic", "13:30 · 21:00", "Post + reel", ""Navidad impresa en 3D" (13:30) + reel de Navidad (21:00)", "Explicar la campaña y fijar en el perfil", "n"],
-  ["Sáb 5 dic", "20:30", "Reel", "Viral "POV: no tienes regalo"", "Alcance y comentarios", "n"],
+  ["Lun 23 nov", "21:00", "Reel", "Reel de marca", "Presentar OBEKET", "m", 1],
+  ["Mar 24 nov", "13:30", "Carrusel", "Cómo funciona", "Explicar cómo pedir", "m"],
+  ["Mié 25 nov", "13:30", "Post", "¿Sabías que…? (1.000 capas)", "Curiosidad y alcance", "m"],
+  ["Jue 26 nov", "10:00", "Historia", "Encuesta \"¿Qué te imprimirías?\"", "Interacción", "m"],
+  ["Vie 27 nov", "13:00", "Post", "Lo imaginas. Lo imprimimos. (es Black Friday: si tenéis oferta, se añade)", "Imagen de marca", "m"],
+  ["Sáb 28 nov", "12:00", "Historia", "✋ Graba tú: 10 s de tu impresora trabajando", "Contenido real, cercanía", "m"],
+  ["Dom 29 nov", "20:00", "Post", "¿De qué color lo quieres?", "Comentarios", "m"],
+  ["Lun 30 nov", "10:00 · 20:30", "Historias", "¿Tienes una idea? · Teaser \"Algo bonito se está imprimiendo…\"", "Mensajes y expectación", "n"],
+  ["Mar 1 dic", "10:00 · 21:00", "Historia + reel", "\"Ya está aquí la Navidad\" · Reel cinematográfico", "Lanzar la campaña", "n", 1],
+  ["Mié 2 dic", "13:30", "Carrusel", "Un regalo para cada persona", "Guardados", "n"],
+  ["Jue 3 dic", "13:30 · 21:00", "Post + reel", "\"Navidad impresa en 3D\" (fíjalo) · Reel de Navidad", "Explicar la campaña", "n"],
+  ["Vie 4 dic", "13:00", "Historia", "Quedan 10 días", "Recordatorio", "n"],
+  ["Sáb 5 dic", "20:30", "Reel", "Viral \"POV: no tienes regalo\"", "Alcance y comentarios", "n"],
   ["Dom 6 dic", "20:00", "Carrusel", "4 regalos que no verás en tiendas", "Guardados y compartidos", "n"],
-  ["Lun 7 dic", "10:00 y 21:00", "Historia", "¿Qué nombre pondrías en tu adorno? (respuestas a las 21:00)", "Interacción", "n"],
+  ["Lun 7 dic", "10:00 · 13:00", "Historias", "¿Qué nombre pondrías en tu adorno? · Quedan 7 días", "Interacción", "n"],
   ["Mar 8 dic", "21:00", "Reel", "Top 3: del boceto a la pieza", "Comentarios (votar 3, 2 o 1)", "n"],
+  ["Mié 9 dic", "13:00 · 20:30", "Historias", "Quedan 5 días · ✋ Graba tú: pedidos preparándose", "Urgencia y confianza", "n"],
   ["Jue 10 dic", "20:30", "Reel", "Últimos días", "Urgencia", "n"],
+  ["Vie 11 dic", "13:00", "Historia", "Quedan 3 días", "Urgencia", "n"],
   ["Sáb 12 dic", "12:00", "Post", "Últimos días", "Urgencia", "n"],
-  ["13–14 dic", "13:00 y 21:00", "Historias", "Reel "Últimos días" + cuenta atrás", "Último empujón", "n", 1],
-  ["Jue 24 dic", "11:00", "Historia", "Foto real de pedidos entregados + "Feliz Navidad"", "Cierre y agradecimiento", "n"],
+  ["Dom 13 dic", "13:00 · 21:00", "Historias", "Mañana es el último día · comparte el reel \"Últimos días\"", "Último empujón", "n", 1],
+  ["Lun 14 dic", "13:00 · 21:00", "Historias", "Hoy es el último día (dos veces)", "Último empujón", "n", 1],
+  ["Mar 15 dic", "13:30", "Post", "Y ahora… ¡Reyes!", "Abrir campaña de Reyes", "n"],
+  ["Mié 16 dic", "21:00", "Historia", "Comparte el reel cinematográfico: \"¿Ya tienes el regalo de Reyes?\"", "Recordatorio", "n"],
+  ["Jue 17 dic", "20:30", "Historia", "✋ Graba tú: pedidos empaquetados o entregados", "Confianza", "n"],
+  ["Vie 18 dic", "13:00", "Historia", "Llegas a tiempo (Reyes)", "Recordatorio", "n"],
+  ["Sáb 19 dic", "12:00", "Historia", "Comparte el carrusel \"Un regalo para cada persona\"", "Ideas", "n"],
+  ["Dom 20 dic", "20:30", "Reel", "✋ Graba tú: timelapse con el móvil de una pieza imprimiéndose", "Contenido real, alcance", "n"],
+  ["Lun 21 dic", "13:00", "Historia", "\"¿Qué vas a pedir a los Reyes?\" (fondo de encuesta + sticker de preguntas)", "Interacción", "n"],
+  ["Mar 22 dic", "21:00", "Historia", "Comparte el reel viral: \"si aún no tienes regalo de Reyes…\"", "Recordatorio", "n"],
+  ["Mié 23 dic", "13:00", "Historia", "Llegas a tiempo (Reyes)", "Recordatorio", "n"],
+  ["Jue 24 dic", "11:00", "Post + historia", "¡Feliz Navidad!", "Cierre y agradecimiento", "n"],
 ];
 const HASH = [
   ['Marca', '#impresion3d #3dprinting #impresora3d #diseño3d #hechoamano #personalizado #obeket'],

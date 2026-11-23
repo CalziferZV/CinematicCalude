@@ -4,28 +4,48 @@ Todo está en `out/`: reels en `out/*.mp4` (1080×1920, música incluida, volume
 posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha límite, nombres) se cambian en
 `config.js` y se vuelve a generar con `node render.mjs`.
 
-> ⚠️ Revisa antes de publicar: **@obeket** (usuario) y **14 de diciembre** (fecha límite) son provisionales.
+> ⚠️ Revisa antes de publicar: **@obeket** (usuario), **14 de diciembre** (fecha límite de Navidad) y **30 de diciembre** (fecha límite de Reyes) son provisionales.
 
 ---
 
-## Calendario (24 nov → 24 dic, hora peninsular)
+## Calendario diario (23 nov → 24 dic, hora peninsular)
 
-| Fecha | Hora | Formato | Pieza | Objetivo |
+Una publicación cada día. Los días con ✋ son para grabar algo real con el móvil.
+
+| Fecha | Hora | Formato | Qué publicar | Objetivo |
 |---|---|---|---|---|
-| Mar 24 nov | **21:00** | Reel | `reel-marca.mp4` | Presentar OBEKET |
-| Jue 26 nov | **13:30** | Carrusel | `marca-02-como-1…5` | Explicar cómo pedir |
-| Sáb 28 nov | **12:00** | Post | `marca-01-lema` | Imagen de marca |
-| Dom 29 nov | **10:00 y 20:30** | Historia | `historia-presupuesto` | Conseguir mensajes |
-| Mar 1 dic | **10:00 · 21:00** | Historia + reel | `historia-navidad-abierta + reel-cine.mp4` | Lanzar la campaña |
-| Jue 3 dic | **13:30 · 21:00** | Post + reel | `navidad-01-portada + reel-navidad.mp4` | Explicar la campaña y fijar en el perfil |
-| Sáb 5 dic | **20:30** | Reel | `reel-viral.mp4` | Alcance y comentarios |
-| Dom 6 dic | **20:00** | Carrusel | `navidad-02-ideas-1…5` | Guardados y compartidos |
-| Lun 7 dic | **10:00 y 21:00** | Historia | `historia-encuesta-nombre` | Interacción |
-| Mar 8 dic | **21:00** | Reel | `reel-top3.mp4` | Comentarios (votar 3, 2 o 1) |
-| Jue 10 dic | **20:30** | Reel | `reel-ultimo-dia.mp4` | Urgencia |
-| Sáb 12 dic | **12:00** | Post | `navidad-03-ultimos-dias` | Urgencia |
-| 13–14 dic | **13:00 y 21:00** | Historias | `reel-ultimo-dia.mp4` | Último empujón |
-| Jue 24 dic | **11:00** | Historia | `—` | Cierre y agradecimiento |
+| Lun 23 nov | **21:00** | Reel | Reel de marca | Presentar OBEKET |
+| Mar 24 nov | **13:30** | Carrusel | Cómo funciona | Explicar cómo pedir |
+| Mié 25 nov | **13:30** | Post | ¿Sabías que…? (1.000 capas) | Curiosidad y alcance |
+| Jue 26 nov | **10:00** | Historia | Encuesta "¿Qué te imprimirías?" | Interacción |
+| Vie 27 nov | **13:00** | Post | Lo imaginas. Lo imprimimos. (es Black Friday: si tenéis oferta, se añade) | Imagen de marca |
+| Sáb 28 nov | **12:00** | Historia | ✋ Graba tú: 10 s de tu impresora trabajando | Contenido real, cercanía |
+| Dom 29 nov | **20:00** | Post | ¿De qué color lo quieres? | Comentarios |
+| Lun 30 nov | **10:00 · 20:30** | Historias | ¿Tienes una idea? · Teaser "Algo bonito se está imprimiendo…" | Mensajes y expectación |
+| Mar 1 dic | **10:00 · 21:00** | Historia + reel | "Ya está aquí la Navidad" · Reel cinematográfico | Lanzar la campaña |
+| Mié 2 dic | **13:30** | Carrusel | Un regalo para cada persona | Guardados |
+| Jue 3 dic | **13:30 · 21:00** | Post + reel | "Navidad impresa en 3D" (fíjalo) · Reel de Navidad | Explicar la campaña |
+| Vie 4 dic | **13:00** | Historia | Quedan 10 días | Recordatorio |
+| Sáb 5 dic | **20:30** | Reel | Viral "POV: no tienes regalo" | Alcance y comentarios |
+| Dom 6 dic | **20:00** | Carrusel | 4 regalos que no verás en tiendas | Guardados y compartidos |
+| Lun 7 dic | **10:00 · 13:00** | Historias | ¿Qué nombre pondrías en tu adorno? · Quedan 7 días | Interacción |
+| Mar 8 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
+| Mié 9 dic | **13:00 · 20:30** | Historias | Quedan 5 días · ✋ Graba tú: pedidos preparándose | Urgencia y confianza |
+| Jue 10 dic | **20:30** | Reel | Últimos días | Urgencia |
+| Vie 11 dic | **13:00** | Historia | Quedan 3 días | Urgencia |
+| Sáb 12 dic | **12:00** | Post | Últimos días | Urgencia |
+| Dom 13 dic | **13:00 · 21:00** | Historias | Mañana es el último día · comparte el reel "Últimos días" | Último empujón |
+| Lun 14 dic | **13:00 · 21:00** | Historias | Hoy es el último día (dos veces) | Último empujón |
+| Mar 15 dic | **13:30** | Post | Y ahora… ¡Reyes! | Abrir campaña de Reyes |
+| Mié 16 dic | **21:00** | Historia | Comparte el reel cinematográfico: "¿Ya tienes el regalo de Reyes?" | Recordatorio |
+| Jue 17 dic | **20:30** | Historia | ✋ Graba tú: pedidos empaquetados o entregados | Confianza |
+| Vie 18 dic | **13:00** | Historia | Llegas a tiempo (Reyes) | Recordatorio |
+| Sáb 19 dic | **12:00** | Historia | Comparte el carrusel "Un regalo para cada persona" | Ideas |
+| Dom 20 dic | **20:30** | Reel | ✋ Graba tú: timelapse con el móvil de una pieza imprimiéndose | Contenido real, alcance |
+| Lun 21 dic | **13:00** | Historia | "¿Qué vas a pedir a los Reyes?" (fondo de encuesta + sticker de preguntas) | Interacción |
+| Mar 22 dic | **21:00** | Historia | Comparte el reel viral: "si aún no tienes regalo de Reyes…" | Recordatorio |
+| Mié 23 dic | **13:00** | Historia | Llegas a tiempo (Reyes) | Recordatorio |
+| Jue 24 dic | **11:00** | Post + historia | ¡Feliz Navidad! | Cierre y agradecimiento |
 
 Consejos: fija en el perfil el reel de Navidad y el carrusel de ideas; responde a todos los DM en menos de 24 h;
 en historias usa el sticker "Cuenta atrás" con la fecha límite.
@@ -33,6 +53,41 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 ---
 
 ## Captions
+
+### NUEVO · Post "¿Sabías que…?" — `marca-03-sabias-que`
+> ¿Sabías que esta pieza tiene más de 1.000 capas? 🤯
+> Cada una mide 0,2 mm, más fina que una tarjeta de crédito. Así, capa a capa, convertimos tu idea en un objeto real.
+> ¿Qué te gustaría imprimir? Cuéntanoslo por DM.
+>
+> #impresion3d #3dprinting #diseño3d #personalizado #obeket
+
+### NUEVO · Post "¿De qué color lo quieres?" — `marca-04-elige-color`
+> Azul, naranja o verde… ¿De qué color lo quieres tú? 🎨
+> Imprimimos en el color que elijas. Dinos tu favorito en comentarios 👇
+>
+> #impresion3d #3dprinting #diseño3d #personalizado #obeket
+
+### NUEVO · Carrusel "Un regalo para cada persona" — `navidad-04-por-persona-1…5`
+> Un regalo impreso en 3D para cada persona de tu lista 🎁👉
+> 👨‍👩‍👧 Familia: un adorno con cada nombre
+> 🧒 Peques: su estrella, en su color
+> 🤫 Amigo invisible: algo pequeño, pero suyo
+> 💼 Empresa: regalos con tu logo
+> Guárdalo y escríbenos por DM. Pedidos hasta el 14 de diciembre.
+>
+> #ideasderegalo #amigoinvisible #regalosempresa #navidad #regalosdenavidad #regalospersonalizados #impresion3d #obeket
+
+### NUEVO · Post "Y ahora… ¡Reyes!" — `reyes-01-campana`
+> ¡Gracias por todos vuestros pedidos de Navidad! ❤️
+> Y ahora… ¡Reyes! 👑 Todavía puedes regalar algo único impreso en 3D. Pedidos para Reyes hasta el 30 de diciembre, por mensaje directo.
+>
+> #reyesmagos #regalosdereyes #regalospersonalizados #impresion3d #obeket
+
+### NUEVO · Post "¡Feliz Navidad!" — `navidad-05-feliz-navidad`
+> ¡Feliz Navidad de parte de todo el equipo de OBEKET! 🎄✨
+> Gracias por confiarnos vuestras ideas este año. Nos encanta saber que algo que hemos impreso está hoy bajo vuestro árbol.
+>
+> #feliznavidad #navidad #impresion3d #obeket
 
 ### NUEVO · Reel cinematográfico — `reel-cine.mp4`
 > Cada capa mide 0,2 milímetros. Miles de capas para una sola idea. ✨
