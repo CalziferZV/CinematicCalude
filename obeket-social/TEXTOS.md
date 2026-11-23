@@ -8,44 +8,46 @@ posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha lími
 
 ---
 
-## Calendario diario (23 nov → 24 dic, hora peninsular)
+## Calendario (23 nov → 24 dic, hora peninsular)
 
-Una publicación cada día. Los días con ✋ son para grabar algo real con el móvil.
+**Estrategia:** la Navidad se lanza hoy, porque los regalos personalizados necesitan días de producción y es la semana del Black Friday. Historias todos los días; feed 4–5 veces por semana, con prioridad para los reels. Fija en el perfil el reel de Navidad, «Cómo funciona» y «4 regalos». Crea destacados «Navidad», «Cómo pedir» y «Pedidos». ✋ = grabar algo real con el móvil.
 
 | Fecha | Hora | Formato | Qué publicar | Objetivo |
 |---|---|---|---|---|
-| Lun 23 nov | **21:00** | Reel | Reel de marca | Presentar OBEKET |
-| Mar 24 nov | **13:30** | Carrusel | Cómo funciona | Explicar cómo pedir |
-| Mié 25 nov | **13:30** | Post | ¿Sabías que…? (1.000 capas) | Curiosidad y alcance |
-| Jue 26 nov | **10:00** | Historia | Encuesta "¿Qué te imprimirías?" | Interacción |
-| Vie 27 nov | **13:00** | Post | Lo imaginas. Lo imprimimos. (es Black Friday: si tenéis oferta, se añade) | Imagen de marca |
-| Sáb 28 nov | **12:00** | Historia | ✋ Graba tú: 10 s de tu impresora trabajando | Contenido real, cercanía |
-| Dom 29 nov | **20:00** | Post | ¿De qué color lo quieres? | Comentarios |
-| Lun 30 nov | **10:00 · 20:30** | Historias | ¿Tienes una idea? · Teaser "Algo bonito se está imprimiendo…" | Mensajes y expectación |
-| Mar 1 dic | **10:00 · 21:00** | Historia + reel | "Ya está aquí la Navidad" · Reel cinematográfico | Lanzar la campaña |
-| Mié 2 dic | **13:30** | Carrusel | Un regalo para cada persona | Guardados |
-| Jue 3 dic | **13:30 · 21:00** | Post + reel | "Navidad impresa en 3D" (fíjalo) · Reel de Navidad | Explicar la campaña |
+| Lun 23 nov | **13:00 · 21:00** | Historia + reel | "Ya está aquí la Navidad" · Reel de Navidad (fíjalo en el perfil) | Lanzar la campaña hoy |
+| Mar 24 nov | **13:30** | Carrusel | Cómo funciona (fíjalo) + historia encuesta "¿Qué te imprimirías?" a las 20:30 | Explicar cómo pedir |
+| Mié 25 nov | **21:00** | Reel | Reel cinematográfico | Imagen premium, alcance |
+| Jue 26 nov | **13:30** | Carrusel | Un regalo para cada persona | Guardados antes del Black Friday |
+| Vie 27 nov | **20:30** | Reel | Viral "POV: no tienes regalo" (Black Friday: humor en vez de descuento) | Alcance y comentarios |
+| Sáb 28 nov | **12:00** | Historia | ✋ Graba tú: 10 s de tu impresora trabajando | Contenido real, confianza |
+| Dom 29 nov | **20:00** | Carrusel | 4 regalos que no verás en tiendas (fíjalo) | Guardados y compartidos |
+| Lun 30 nov | **10:00** | Historia | ¿Tienes una idea? + comparte el reel de Navidad | Mensajes directos |
+| Mar 1 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
+| Mié 2 dic | **13:00** | Historia | Encuesta "¿Qué nombre pondrías en tu adorno?" | Interacción |
+| Jue 3 dic | **21:00** | Reel | Reel de marca: quiénes somos | Presentaros a los seguidores nuevos |
 | Vie 4 dic | **13:00** | Historia | Quedan 10 días | Recordatorio |
-| Sáb 5 dic | **20:30** | Reel | Viral "POV: no tienes regalo" | Alcance y comentarios |
-| Dom 6 dic | **20:00** | Carrusel | 4 regalos que no verás en tiendas | Guardados y compartidos |
-| Lun 7 dic | **10:00 · 13:00** | Historias | ¿Qué nombre pondrías en tu adorno? · Quedan 7 días | Interacción |
-| Mar 8 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
-| Mié 9 dic | **13:00 · 20:30** | Historias | Quedan 5 días · ✋ Graba tú: pedidos preparándose | Urgencia y confianza |
+| Sáb 5 dic | **12:00** | Historia | ✋ Graba tú: pedidos preparándose | Confianza |
+| Dom 6 dic | **20:00** | Post | ¿De qué color lo quieres? | Comentarios |
+| Lun 7 dic | **13:00** | Historia | Quedan 7 días | Recordatorio |
+| Mar 8 dic | **21:00** | Reel | ✋ Graba tú: timelapse con el móvil de una pieza imprimiéndose | Contenido real, alcance |
+| Mié 9 dic | **13:00** | Historia | Quedan 5 días | Urgencia |
 | Jue 10 dic | **20:30** | Reel | Últimos días | Urgencia |
 | Vie 11 dic | **13:00** | Historia | Quedan 3 días | Urgencia |
 | Sáb 12 dic | **12:00** | Post | Últimos días | Urgencia |
 | Dom 13 dic | **13:00 · 21:00** | Historias | Mañana es el último día · comparte el reel "Últimos días" | Último empujón |
-| Lun 14 dic | **13:00 · 21:00** | Historias | Hoy es el último día (dos veces) | Último empujón |
+| Lun 14 dic | **13:00 · 21:00** | Historias | Hoy es el último día · comparte el reel viral | Último empujón |
 | Mar 15 dic | **13:30** | Post | Y ahora… ¡Reyes! | Abrir campaña de Reyes |
 | Mié 16 dic | **21:00** | Historia | Comparte el reel cinematográfico: "¿Ya tienes el regalo de Reyes?" | Recordatorio |
-| Jue 17 dic | **20:30** | Historia | ✋ Graba tú: pedidos empaquetados o entregados | Confianza |
+| Jue 17 dic | **13:30** | Post | ¿Sabías que…? (1.000 capas) | Curiosidad, alcance |
 | Vie 18 dic | **13:00** | Historia | Llegas a tiempo (Reyes) | Recordatorio |
-| Sáb 19 dic | **12:00** | Historia | Comparte el carrusel "Un regalo para cada persona" | Ideas |
-| Dom 20 dic | **20:30** | Reel | ✋ Graba tú: timelapse con el móvil de una pieza imprimiéndose | Contenido real, alcance |
+| Sáb 19 dic | **12:00** | Historia | ✋ Graba tú: pedidos empaquetados o entregados | Confianza |
+| Dom 20 dic | **20:30** | Reel | ✋ Graba tú: abriendo la caja de un pedido (unboxing) | Contenido real, alcance |
 | Lun 21 dic | **13:00** | Historia | "¿Qué vas a pedir a los Reyes?" (fondo de encuesta + sticker de preguntas) | Interacción |
-| Mar 22 dic | **21:00** | Historia | Comparte el reel viral: "si aún no tienes regalo de Reyes…" | Recordatorio |
+| Mar 22 dic | **21:00** | Historia | Comparte el carrusel "Un regalo para cada persona" | Ideas |
 | Mié 23 dic | **13:00** | Historia | Llegas a tiempo (Reyes) | Recordatorio |
 | Jue 24 dic | **11:00** | Post + historia | ¡Feliz Navidad! | Cierre y agradecimiento |
+
+En reserva: post «Lo imaginas. Lo imprimimos.», post «Navidad impresa en 3D» e historia teaser.
 
 Consejos: fija en el perfil el reel de Navidad y el carrusel de ideas; responde a todos los DM en menos de 24 h;
 en historias usa el sticker "Cuenta atrás" con la fecha límite.
