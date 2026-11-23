@@ -8,18 +8,17 @@ posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha lími
 
 ---
 
-## Calendario (23 nov → 24 dic, hora peninsular)
+## Calendario (24 nov → 24 dic, hora peninsular)
 
 **Estrategia:** la Navidad se lanza hoy, porque los regalos personalizados necesitan días de producción y es la semana del Black Friday. Historias todos los días; feed 4–5 veces por semana, con prioridad para los reels. Fija en el perfil el reel de Navidad, «Cómo funciona» y «4 regalos». Crea destacados «Navidad», «Cómo pedir» y «Pedidos». ✋ = grabar algo real con el móvil.
 
 | Fecha | Hora | Formato | Qué publicar | Objetivo |
 |---|---|---|---|---|
-| Lun 23 nov | **13:00 · 21:00** | Historia + reel | "Ya está aquí la Navidad" · Reel de Navidad (fíjalo en el perfil) | Lanzar la campaña hoy |
-| Mar 24 nov | **13:30** | Carrusel | Cómo funciona (fíjalo) + historia encuesta "¿Qué te imprimirías?" a las 20:30 | Explicar cómo pedir |
-| Mié 25 nov | **21:00** | Reel | Reel cinematográfico | Imagen premium, alcance |
-| Jue 26 nov | **13:30** | Carrusel | Un regalo para cada persona | Guardados antes del Black Friday |
+| Mar 24 nov | **13:00 · 21:00** | Historia + reel | "Ya está aquí la Navidad" · Reel de Navidad (fíjalo en el perfil) | Lanzar la campaña |
+| Mié 25 nov | **13:30 · 20:30** | Carrusel + historia | Cómo funciona (fíjalo) · encuesta "¿Qué te imprimirías?" | Explicar cómo pedir |
+| Jue 26 nov | **21:00** | Reel | Reel cinematográfico | Imagen premium, alcance |
 | Vie 27 nov | **20:30** | Reel | Viral "POV: no tienes regalo" (Black Friday: humor en vez de descuento) | Alcance y comentarios |
-| Sáb 28 nov | **12:00** | Historia | ✋ Graba tú: 10 s de tu impresora trabajando | Contenido real, confianza |
+| Sáb 28 nov | **12:00 · 19:00** | Carrusel + historia | Un regalo para cada persona · ✋ Graba tú: 10 s de tu impresora trabajando | Guardados y confianza |
 | Dom 29 nov | **20:00** | Carrusel | 4 regalos que no verás en tiendas (fíjalo) | Guardados y compartidos |
 | Lun 30 nov | **10:00** | Historia | ¿Tienes una idea? + comparte el reel de Navidad | Mensajes directos |
 | Mar 1 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
