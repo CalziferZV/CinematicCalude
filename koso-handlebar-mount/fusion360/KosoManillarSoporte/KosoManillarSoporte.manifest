@@ -1,0 +1,10 @@
+{
+  "autodeskProduct": "Fusion",
+  "type": "script",
+  "author": "",
+  "description": {
+    "": "Soporte de manillar para marcador Koso (bandeja + abrazadera en 2 mitades)"
+  },
+  "supportedOS": "windows|mac",
+  "editEnabled": true
+}
