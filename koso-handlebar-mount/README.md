@@ -6,7 +6,7 @@ Tres piezas, unidas con 2 tornillos M5x30 (allen) y 2 tuercas M5:
 
 | Pieza | Descripción | Orientación de impresión |
 |---|---|---|
-| `Bandeja` | Caja para el marcador con escalón interior y abertura de cable; debajo lleva una silla que abraza el arco y las orejetas para los tornillos | Silla sobre la cama, con soportes bajo las alas del fondo |
+| `Bandeja` | Caja para el marcador con escalón interior y agujero de cable en el fondo; debajo lleva una silla que abraza el arco y las orejetas para los tornillos | Silla sobre la cama, con soportes bajo las alas del fondo |
 | `Abrazadera_Superior` | Arco de 4 mm con patas planas y extremos redondeados | Boca abajo (`stl/clamp_upper.stl` ya viene girada) |
 | `Abrazadera_Inferior` | Arco con patas más gruesas y alojamientos hexagonales para las tuercas | Hexágonos sobre la cama |
 

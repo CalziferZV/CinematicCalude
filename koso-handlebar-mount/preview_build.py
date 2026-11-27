@@ -11,7 +11,7 @@ P = dict(
     bolt_d=5.5, nut_af=8.2, nut_depth=4.5, cbore_d=9.5, cbore_depth=2.0,
     tray_in_x=70.0, tray_in_y=40.0, tray_depth=14.0, tray_wall=2.4, tray_floor=3.0,
     ear_t=5.0, saddle_clear=0.3, floor_gap=1.0,
-    ledge_w=10.0, ledge_h=4.0, door_w=14.0, door_h=8.0,
+    ledge_w=10.0, ledge_h=4.0, hole_x=14.0, hole_y=12.0,
 )
 R = (P['bar_d'] + P['bar_clear']) / 2
 Ro = R + P['arch_t']
@@ -56,7 +56,7 @@ ix, iy = P['tray_in_x']/2, P['tray_in_y']/2
 zf = zt + P['tray_floor']
 tray -= box(-ix, ix, -iy, iy, zf, ztop+1)
 tray += box(-ix, ix, -iy, -iy+P['ledge_w'], zf-0.01, zf+P['ledge_h'])
-tray -= box(-ix+3, -ix+3+P['door_w'], iy-1, toy/2+1, zf, zf+P['door_h'])
+tray -= box(-ix+3, -ix+3+P['hole_x'], iy-P['hole_y'], iy, zt-1, zf+1)   # agujero de cable en el fondo
 tray -= holes
 for s in (1, -1):
     tray -= cyl_z(0, s*yb, P['cbore_d']/2, zt+P['ear_t']-P['cbore_depth'], zt+P['ear_t']+1)

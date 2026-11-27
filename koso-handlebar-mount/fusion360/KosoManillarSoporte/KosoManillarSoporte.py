@@ -25,7 +25,7 @@ P = dict(
     saddle_clear=0.3,  # holgura silla bandeja / arco
     floor_gap=1.0,     # hueco entre arco y fondo bandeja
     ledge_w=10.0, ledge_h=4.0,       # escalon interior
-    door_w=14.0, door_h=8.0,         # abertura de cable en la pared
+    hole_x=14.0, hole_y=12.0,        # agujero de cable en el fondo
 )
 
 app = adsk.core.Application.get()
@@ -182,7 +182,7 @@ def run(context):
         zf = zt + P['tray_floor']
         b.box(-ix, ix, -iy, iy, zf, ztop + 1, CUT, [tray])
         b.box(-ix, ix, -iy, -iy + P['ledge_w'], zf, zf + P['ledge_h'], JOIN, [tray])
-        b.box(-ix + 3, -ix + 3 + P['door_w'], iy - 1, toy / 2 + 1, zf, zf + P['door_h'], CUT, [tray])
+        b.box(-ix + 3, -ix + 3 + P['hole_x'], iy - P['hole_y'], iy, zt - 1, zf + 1, CUT, [tray])
 
         # --- Tornilleria M5 ---
         for s in (1, -1):
