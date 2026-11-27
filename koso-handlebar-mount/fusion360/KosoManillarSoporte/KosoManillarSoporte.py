@@ -8,24 +8,22 @@ P = dict(
     bar_d=28.0,        # diametro manillar
     bar_clear=0.4,     # holgura diametral
     gap=1.0,           # separacion entre mitades (para que apriete)
-    clamp_w=20.0,      # ancho de la abrazadera a lo largo del manillar
-    arch_t=4.0,        # grosor del arco de la abrazadera
-    lug_h_up=6.0,      # altura patas abrazadera superior
-    lug_h_low=8.0,     # altura patas abrazadera inferior (alojan la tuerca)
-    end_margin=6.5,    # material mas alla del tornillo
-    corner_r=4.0,      # redondeo de los extremos
+    clamp_w=24.0,      # ancho de la abrazadera a lo largo del manillar
+    clamp_wall=4.0,    # pared por encima/debajo del manillar
+    corner_r=4.0,      # redondeo de los extremos de la abrazadera
     bolt_d=5.5,        # paso tornillo M5
+    bolt_spacing=60.0, # distancia entre tornillos
     nut_af=8.2, nut_depth=4.5,       # tuerca M5
     cbore_d=9.5, cbore_depth=2.0,    # rebaje cabeza tornillo
-    tray_in_x=70.0,    # interior bandeja (largo, paralelo al manillar)
+    tray_in_x=71.2,    # interior bandeja (largo, paralelo al manillar)
     tray_in_y=40.0,    # interior bandeja (ancho)
-    tray_depth=14.0,   # profundidad interior
+    tray_depth=14.5,   # profundidad interior
     tray_wall=2.4, tray_floor=3.0,
-    ear_t=5.0,         # grosor orejetas sobre la base de la bandeja
-    saddle_clear=0.3,  # holgura silla bandeja / arco
-    floor_gap=1.0,     # hueco entre arco y fondo bandeja
+    ear_len=24.0,      # largo de la orejeta (a lo largo de la bandeja)
+    ear_out=15.0,      # cuanto sobresale la orejeta de la pared
+    ear_t=5.0, ear_r=5.0,
     ledge_w=10.0, ledge_h=4.0,       # escalon interior
-    hole_x=14.0, hole_y=12.0,        # agujero de cable en el fondo
+    hole_x=10.0, hole_y=17.5,        # agujero de cable en el fondo
 )
 
 app = adsk.core.Application.get()
@@ -33,7 +31,6 @@ ui = app.userInterface
 NEW = adsk.fusion.FeatureOperations.NewBodyFeatureOperation
 JOIN = adsk.fusion.FeatureOperations.JoinFeatureOperation
 CUT = adsk.fusion.FeatureOperations.CutFeatureOperation
-INTERSECT = adsk.fusion.FeatureOperations.IntersectFeatureOperation
 
 
 def cm(v):
@@ -141,60 +138,52 @@ def run(context):
         b = Builder(root)
 
         R = (P['bar_d'] + P['bar_clear']) / 2.0
-        Ro = R + P['arch_t']
+        H = R + P['clamp_wall']
         g = P['gap'] / 2.0
         tox = P['tray_in_x'] + 2 * P['tray_wall']
         toy = P['tray_in_y'] + 2 * P['tray_wall']
-        yb = toy / 2.0 + 5.0
-        L = 2 * (yb + P['end_margin'])
+        yb = P['bolt_spacing'] / 2.0
+        yend = toy / 2.0 + P['ear_out']
+        L = 2 * yend
         w2 = P['clamp_w'] / 2.0
+        el = P['ear_len'] / 2.0
         cr = P['corner_r']
-        zt = Ro + P['floor_gap']
+        zt = H
         ztop = zt + P['tray_floor'] + P['tray_depth']
-        zlug = g + P['lug_h_up']
-        zlow = -(g + P['lug_h_low'])
         ends = [(sx * w2, sy * L / 2) for sx in (1, -1) for sy in (1, -1)]
 
-        # --- Abrazadera superior: arco + patas ---
-        upper = b.box(-w2, w2, -Ro, Ro, g, Ro, NEW)
+        # --- Abrazaderas: bloques con media caña ---
+        upper = b.box(-w2, w2, -L / 2, L / 2, g, H, NEW)
         upper.name = 'Abrazadera_Superior'
-        b.cyl_x(Ro, 4 * w2, INTERSECT, [upper])
-        b.box(-w2, w2, -L / 2, L / 2, g, zlug, JOIN, [upper])
         b.fillet_vertical(upper, ends, cr)
-
-        # --- Abrazadera inferior: arco + patas con tuercas ---
-        lower = b.box(-w2, w2, -Ro, Ro, -Ro, -g, NEW)
+        lower = b.box(-w2, w2, -L / 2, L / 2, -H, -g, NEW)
         lower.name = 'Abrazadera_Inferior'
-        b.cyl_x(Ro, 4 * w2, INTERSECT, [lower])
-        b.box(-w2, w2, -L / 2, L / 2, zlow, -g, JOIN, [lower])
         b.fillet_vertical(lower, ends, cr)
-
         b.cyl_x(R, 200.0, CUT, [upper, lower])
 
-        # --- Bandeja con silla y orejetas ---
-        tray = b.box(-w2, w2, -L / 2, L / 2, zlug, zt + P['ear_t'], NEW)
+        # --- Bandeja: fondo plano, orejetas a ras de la base ---
+        tray = b.box(-tox / 2, tox / 2, -toy / 2, toy / 2, zt, ztop, NEW)
         tray.name = 'Bandeja'
-        b.fillet_vertical(tray, ends, cr)
-        b.cyl_x(Ro + P['saddle_clear'], 4 * w2, CUT, [tray])
-        b.box(-tox / 2, tox / 2, -toy / 2, toy / 2, zt, ztop, JOIN, [tray])
         b.fillet_vertical(tray, [(sx * tox / 2, sy * toy / 2) for sx in (1, -1) for sy in (1, -1)], 2.0)
+        b.box(-el, el, -yend, yend, zt, zt + P['ear_t'], JOIN, [tray])
+        b.fillet_vertical(tray, [(sx * el, sy * yend) for sx in (1, -1) for sy in (1, -1)], P['ear_r'])
         ix, iy = P['tray_in_x'] / 2, P['tray_in_y'] / 2
         zf = zt + P['tray_floor']
         b.box(-ix, ix, -iy, iy, zf, ztop + 1, CUT, [tray])
         b.box(-ix, ix, -iy, -iy + P['ledge_w'], zf, zf + P['ledge_h'], JOIN, [tray])
-        b.box(-ix + 3, -ix + 3 + P['hole_x'], iy - P['hole_y'], iy, zt - 1, zf + 1, CUT, [tray])
+        b.box(ix - P['hole_x'], ix, -P['hole_y'] / 2, P['hole_y'] / 2, zt - 1, zf + 1, CUT, [tray])
 
         # --- Tornilleria M5 ---
         for s in (1, -1):
-            b.cyl_z(0, s * yb, P['bolt_d'] / 2, zlow - 1, ztop + 1, CUT, [tray, upper, lower])
+            b.cyl_z(0, s * yb, P['bolt_d'] / 2, -H - 1, ztop + 1, CUT, [tray, upper, lower])
             b.cyl_z(0, s * yb, P['cbore_d'] / 2, zt + P['ear_t'] - P['cbore_depth'],
                     zt + P['ear_t'] + 1, CUT, [tray])
-            b.hex_z(0, s * yb, P['nut_af'], zlow - 1, zlow + P['nut_depth'], CUT, [lower])
+            b.hex_z(0, s * yb, P['nut_af'], -H - 1, -H + P['nut_depth'], CUT, [lower])
 
         app.activeViewport.fit()
         ui.messageBox(
             'Soporte generado.\n\n'
-            'Separacion tornillos: %.1f mm (2x M5x30 + tuerca)\n'
+            'Separacion tornillos: %.1f mm (2x M5x40 + tuerca)\n'
             'Clic derecho en cada cuerpo > Guardar como malla (STL).\n'
             'Imprime la Abrazadera_Superior boca abajo.' % (2 * yb))
     except Exception:

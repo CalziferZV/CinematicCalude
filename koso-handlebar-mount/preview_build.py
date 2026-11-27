@@ -6,24 +6,24 @@ import manifold3d as m3
 import trimesh
 
 P = dict(
-    bar_d=28.0, bar_clear=0.4, gap=1.0, clamp_w=20.0, arch_t=4.0,
-    lug_h_up=6.0, lug_h_low=8.0, end_margin=6.5, corner_r=4.0,
+    bar_d=28.0, bar_clear=0.4, gap=1.0, clamp_w=24.0, clamp_wall=4.0,
+    corner_r=4.0,
     bolt_d=5.5, nut_af=8.2, nut_depth=4.5, cbore_d=9.5, cbore_depth=2.0,
-    tray_in_x=70.0, tray_in_y=40.0, tray_depth=14.0, tray_wall=2.4, tray_floor=3.0,
-    ear_t=5.0, saddle_clear=0.3, floor_gap=1.0,
-    ledge_w=10.0, ledge_h=4.0, hole_x=14.0, hole_y=12.0,
+    tray_in_x=71.2, tray_in_y=40.0, tray_depth=14.5, tray_wall=2.4, tray_floor=3.0,
+    ear_len=24.0, ear_out=15.0, ear_t=5.0, ear_r=5.0, bolt_spacing=60.0,
+    ledge_w=10.0, ledge_h=4.0, hole_x=10.0, hole_y=17.5,
 )
 R = (P['bar_d'] + P['bar_clear']) / 2
-Ro = R + P['arch_t']
+H = R + P['clamp_wall']
 g = P['gap'] / 2
 tox = P['tray_in_x'] + 2*P['tray_wall']
 toy = P['tray_in_y'] + 2*P['tray_wall']
-yb = toy/2 + 5.0
-L = 2*(yb + P['end_margin'])
+yb = P['bolt_spacing'] / 2
+yend = toy/2 + P['ear_out']          # punta de las orejetas
+L = 2*yend                           # largo abrazadera = envergadura orejetas
 w2 = P['clamp_w']/2
-zt = Ro + P['floor_gap']                    # base de la bandeja
+zt = H
 ztop = zt + P['tray_floor'] + P['tray_depth']
-zlug = g + P['lug_h_up']
 SEG = 128
 
 def box(x0, x1, y0, y1, z0, z1):
@@ -42,21 +42,23 @@ def hex_z(x, y, af, z0, z1):
 holes = cyl_z(0, yb, P['bolt_d']/2, -60, 80) + cyl_z(0, -yb, P['bolt_d']/2, -60, 80)
 cr = P['corner_r']
 
-upper = (box(-w2, w2, -Ro, Ro, g, Ro) ^ cyl_x(Ro)) + rbox(-w2, w2, -L/2, L/2, g, zlug, cr)
-upper = upper - cyl_x(R) - holes
-zlow = -(g + P['lug_h_low'])
-lower = (box(-w2, w2, -Ro, Ro, -Ro, -g) ^ cyl_x(Ro)) + rbox(-w2, w2, -L/2, L/2, zlow, -g, cr)
-lower = lower - cyl_x(R) - holes
+# abrazadera superior: bloque de techo plano (apoyo de la bandeja)
+upper = rbox(-w2, w2, -L/2, L/2, g, H, cr) - cyl_x(R) - holes
+# abrazadera inferior: bloque igual, con tuercas en la cara de abajo
+zlow = -H
+lower = rbox(-w2, w2, -L/2, L/2, -H, -g, cr) - cyl_x(R) - holes
 for s in (1, -1):
     lower -= hex_z(0, s*yb, P['nut_af'], zlow-1, zlow+P['nut_depth'])
 
-mount = rbox(-w2, w2, -L/2, L/2, zlug, zt+P['ear_t'], cr) - cyl_x(Ro + P['saddle_clear'])
-tray = mount + rbox(-tox/2, tox/2, -toy/2, toy/2, zt, ztop, 2.0)
+# bandeja: fondo plano, orejetas a ras de la base
+el = P['ear_len']/2
+tray = rbox(-tox/2, tox/2, -toy/2, toy/2, zt, ztop, 2.0)
+tray += rbox(-el, el, -yend, yend, zt, zt+P['ear_t'], P['ear_r'])
 ix, iy = P['tray_in_x']/2, P['tray_in_y']/2
 zf = zt + P['tray_floor']
 tray -= box(-ix, ix, -iy, iy, zf, ztop+1)
 tray += box(-ix, ix, -iy, -iy+P['ledge_w'], zf-0.01, zf+P['ledge_h'])
-tray -= box(-ix+3, -ix+3+P['hole_x'], iy-P['hole_y'], iy, zt-1, zf+1)   # agujero de cable en el fondo
+tray -= box(ix-P['hole_x'], ix, -P['hole_y']/2, P['hole_y']/2, zt-1, zf+1)   # agujero cable en el fondo
 tray -= holes
 for s in (1, -1):
     tray -= cyl_z(0, s*yb, P['cbore_d']/2, zt+P['ear_t']-P['cbore_depth'], zt+P['ear_t']+1)
@@ -75,7 +77,7 @@ to_tm(tray).export(f"{out}/stl/tray.stl")
 to_tm(upper.rotate([180, 0, 0])).export(f"{out}/stl/clamp_upper.stl")
 to_tm(lower).export(f"{out}/stl/clamp_lower.stl")
 head_seat = zt + P['ear_t'] - P['cbore_depth']
-print(f"R={R:.2f} Ro={Ro:.2f} bolt_spacing={2*yb:.1f} clamp_len={L:.1f} grip(head seat->bottom)={head_seat-zlow:.1f}")
+print(f"R={R:.2f} H={H:.2f} bolt_spacing={2*yb:.1f} clamp_len={L:.1f} grip(head seat->bottom)={head_seat-zlow:.1f}")
 
 if len(sys.argv) > 1:
     import matplotlib; matplotlib.use('Agg')
@@ -92,5 +94,5 @@ if len(sys.argv) > 1:
         ax.set_box_aspect((1, 1, 1)); ax.view_init(elev, azim); ax.set_axis_off(); ax.set_title(title)
     fig = plt.figure(figsize=(14, 7))
     draw(fig.add_subplot(121, projection='3d'), {k: [0, 0, 0] for k in tms}, 'Montado')
-    draw(fig.add_subplot(122, projection='3d'), {'tray': [0, 0, 30], 'clamp_upper': [0, 0, 8], 'clamp_lower': [0, 0, -14]}, 'Explosionado')
+    draw(fig.add_subplot(122, projection='3d'), {'tray': [0, 0, 22], 'clamp_upper': [0, 0, 6], 'clamp_lower': [0, 0, -14]}, 'Explosionado')
     plt.tight_layout(); plt.savefig(sys.argv[1], dpi=110)

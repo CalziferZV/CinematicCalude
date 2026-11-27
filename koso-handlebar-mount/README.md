@@ -2,13 +2,13 @@
 
 Diseño propio, paramétrico, inspirado en las fotos de referencia (no es una copia del modelo de pago de Cults3D).
 
-Tres piezas, unidas con 2 tornillos M5x30 (allen) y 2 tuercas M5:
+Tres piezas, unidas con 2 tornillos M5x40 (allen) y 2 tuercas M5:
 
 | Pieza | Descripción | Orientación de impresión |
 |---|---|---|
-| `Bandeja` | Caja para el marcador con escalón interior y agujero de cable en el fondo; debajo lleva una silla que abraza el arco y las orejetas para los tornillos | Silla sobre la cama, con soportes bajo las alas del fondo |
-| `Abrazadera_Superior` | Arco de 4 mm con patas planas y extremos redondeados | Boca abajo (`stl/clamp_upper.stl` ya viene girada) |
-| `Abrazadera_Inferior` | Arco con patas más gruesas y alojamientos hexagonales para las tuercas | Hexágonos sobre la cama |
+| `Bandeja` | Caja de fondo plano con escalón interior, agujero de cable en el fondo y orejetas a ras de la base | Fondo sobre la cama (sin soportes) |
+| `Abrazadera_Superior` | Bloque de techo plano con media caña y extremos redondeados | Boca abajo (`stl/clamp_upper.stl` ya viene girada) |
+| `Abrazadera_Inferior` | Bloque con media caña y alojamientos hexagonales para las tuercas | Hexágonos sobre la cama |
 
 ![preview](preview.png)
 
@@ -21,8 +21,8 @@ Para cambiar las medidas, edita el bloque `P` al principio del script y vuelve a
 
 ## Medidas clave (por defecto)
 - Manillar: Ø28 mm (`bar_d`).
-- Interior de la bandeja: 70 × 40 × 14 mm. **Mide tu Koso** y ajusta `tray_in_x`, `tray_in_y` y `tray_depth` (deja unos 0,5 mm de holgura).
-- Separación entre tornillos: 54,8 mm. Hueco de 1 mm entre las mitades para que apriete.
+- Interior de la bandeja: 71,2 × 40 × 14,5 mm. **Mide tu Koso** y ajusta `tray_in_x`, `tray_in_y` y `tray_depth` (deja unos 0,5 mm de holgura).
+- Separación entre tornillos: 60 mm. Hueco de 1 mm entre las mitades para que apriete.
 
 ## STL sin Fusion
 `python3 preview_build.py preview.png` regenera los STL en `stl/` y la imagen de vista previa (necesita `manifold3d`, `trimesh` y `matplotlib`).
