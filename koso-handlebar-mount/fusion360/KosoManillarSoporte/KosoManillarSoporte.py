@@ -5,24 +5,27 @@
 import adsk.core, adsk.fusion, traceback, math
 
 P = dict(
-    bar_d=22.2,        # diametro manillar (22.2 = 7/8", 28.6 = 1-1/8")
+    bar_d=28.0,        # diametro manillar
     bar_clear=0.4,     # holgura diametral
     gap=1.0,           # separacion entre mitades (para que apriete)
     clamp_w=20.0,      # ancho de la abrazadera a lo largo del manillar
-    clamp_wall=4.0,    # pared minima alrededor del manillar
+    arch_t=4.0,        # grosor del arco de la abrazadera
+    lug_h_up=6.0,      # altura patas abrazadera superior
+    lug_h_low=8.0,     # altura patas abrazadera inferior (alojan la tuerca)
+    end_margin=6.5,    # material mas alla del tornillo
+    corner_r=4.0,      # redondeo de los extremos
     bolt_d=5.5,        # paso tornillo M5
-    nut_af=8.2,        # tuerca M5 entre caras (8 mm + holgura)
-    nut_depth=4.5,
-    cbore_d=9.5, cbore_depth=2.0,   # avellanado cabeza en orejetas
+    nut_af=8.2, nut_depth=4.5,       # tuerca M5
+    cbore_d=9.5, cbore_depth=2.0,    # rebaje cabeza tornillo
     tray_in_x=70.0,    # interior bandeja (largo, paralelo al manillar)
     tray_in_y=40.0,    # interior bandeja (ancho)
     tray_depth=14.0,   # profundidad interior
     tray_wall=2.4, tray_floor=3.0,
-    ear_r=6.0, ear_t=5.0,            # orejetas de la bandeja
-    end_margin=6.5,    # material mas alla del tornillo en la abrazadera
-    slot_len=14.0, slot_w=12.0,      # ranura de cable en el fondo
-    notch_w=12.0, notch_d=6.0,       # muesca de cable en la pared
-    corner_r=2.0,      # redondeo de aristas verticales
+    ear_t=5.0,         # grosor orejetas sobre la base de la bandeja
+    saddle_clear=0.3,  # holgura silla bandeja / arco
+    floor_gap=1.0,     # hueco entre arco y fondo bandeja
+    ledge_w=10.0, ledge_h=4.0,       # escalon interior
+    door_w=14.0, door_h=8.0,         # abertura de cable en la pared
 )
 
 app = adsk.core.Application.get()
@@ -30,6 +33,7 @@ ui = app.userInterface
 NEW = adsk.fusion.FeatureOperations.NewBodyFeatureOperation
 JOIN = adsk.fusion.FeatureOperations.JoinFeatureOperation
 CUT = adsk.fusion.FeatureOperations.CutFeatureOperation
+INTERSECT = adsk.fusion.FeatureOperations.IntersectFeatureOperation
 
 
 def cm(v):
@@ -92,12 +96,12 @@ class Builder:
         lines.addByTwoPoints(prev.endSketchPoint, first.startSketchPoint)
         return self.extrude(sk.profiles.item(0), z1 - z0, op, bodies)
 
-    def bar_cut(self, r, length, bodies):
+    def cyl_x(self, r, length, op, bodies):
         sk = self.root.sketches.add(self.root.yZConstructionPlane)
         sk.isVisible = False
         sk.sketchCurves.sketchCircles.addByCenterRadius(self.pt(sk, 0, 0, 0), cm(r))
         exts = self.root.features.extrudeFeatures
-        inp = exts.createInput(sk.profiles.item(0), CUT)
+        inp = exts.createInput(sk.profiles.item(0), op)
         inp.setSymmetricExtent(vi(length), True)
         inp.participantBodies = list(bodies)
         exts.add(inp)
@@ -137,53 +141,60 @@ def run(context):
         b = Builder(root)
 
         R = (P['bar_d'] + P['bar_clear']) / 2.0
-        H = R + P['clamp_wall']
+        Ro = R + P['arch_t']
         g = P['gap'] / 2.0
         tox = P['tray_in_x'] + 2 * P['tray_wall']
         toy = P['tray_in_y'] + 2 * P['tray_wall']
-        yb = toy / 2.0 + P['ear_r'] - 1.0
+        yb = toy / 2.0 + 5.0
         L = 2 * (yb + P['end_margin'])
         w2 = P['clamp_w'] / 2.0
         cr = P['corner_r']
+        zt = Ro + P['floor_gap']
+        ztop = zt + P['tray_floor'] + P['tray_depth']
+        zlug = g + P['lug_h_up']
+        zlow = -(g + P['lug_h_low'])
+        ends = [(sx * w2, sy * L / 2) for sx in (1, -1) for sy in (1, -1)]
 
-        # --- Abrazadera (2 mitades) ---
-        upper = b.box(-w2, w2, -L / 2, L / 2, g, H, NEW)
+        # --- Abrazadera superior: arco + patas ---
+        upper = b.box(-w2, w2, -Ro, Ro, g, Ro, NEW)
         upper.name = 'Abrazadera_Superior'
-        b.fillet_vertical(upper, [(sx * w2, sy * L / 2) for sx in (1, -1) for sy in (1, -1)], cr)
-        lower = b.box(-w2, w2, -L / 2, L / 2, -H, -g, NEW)
-        lower.name = 'Abrazadera_Inferior'
-        b.fillet_vertical(lower, [(sx * w2, sy * L / 2) for sx in (1, -1) for sy in (1, -1)], cr)
-        b.bar_cut(R, 200.0, [upper, lower])
+        b.cyl_x(Ro, 4 * w2, INTERSECT, [upper])
+        b.box(-w2, w2, -L / 2, L / 2, g, zlug, JOIN, [upper])
+        b.fillet_vertical(upper, ends, cr)
 
-        # --- Bandeja ---
-        z0 = H
-        ztop = z0 + P['tray_floor'] + P['tray_depth']
-        tray = b.box(-tox / 2, tox / 2, -toy / 2, toy / 2, z0, ztop, NEW)
+        # --- Abrazadera inferior: arco + patas con tuercas ---
+        lower = b.box(-w2, w2, -Ro, Ro, -Ro, -g, NEW)
+        lower.name = 'Abrazadera_Inferior'
+        b.cyl_x(Ro, 4 * w2, INTERSECT, [lower])
+        b.box(-w2, w2, -L / 2, L / 2, zlow, -g, JOIN, [lower])
+        b.fillet_vertical(lower, ends, cr)
+
+        b.cyl_x(R, 200.0, CUT, [upper, lower])
+
+        # --- Bandeja con silla y orejetas ---
+        tray = b.box(-w2, w2, -L / 2, L / 2, zlug, zt + P['ear_t'], NEW)
         tray.name = 'Bandeja'
-        b.fillet_vertical(tray, [(sx * tox / 2, sy * toy / 2) for sx in (1, -1) for sy in (1, -1)], cr)
-        b.box(-P['tray_in_x'] / 2, P['tray_in_x'] / 2, -P['tray_in_y'] / 2, P['tray_in_y'] / 2,
-              z0 + P['tray_floor'], ztop + 1, CUT, [tray])
-        for s in (1, -1):
-            b.cyl_z(0, s * yb, P['ear_r'], z0, z0 + P['ear_t'], JOIN, [tray])
-            ya, yc = sorted((s * toy / 2 * 0.9, s * yb))
-            b.box(-P['ear_r'], P['ear_r'], ya, yc, z0, z0 + P['ear_t'], JOIN, [tray])
-        sx1 = P['tray_in_x'] / 2 - 3
-        b.box(sx1 - P['slot_len'], sx1, -P['slot_w'] / 2, P['slot_w'] / 2,
-              z0 - 1, z0 + P['tray_floor'] + 1, CUT, [tray])
-        b.box(P['tray_in_x'] / 2 - 1, tox / 2 + 1, -P['notch_w'] / 2, P['notch_w'] / 2,
-              ztop - P['notch_d'], ztop + 1, CUT, [tray])
+        b.fillet_vertical(tray, ends, cr)
+        b.cyl_x(Ro + P['saddle_clear'], 4 * w2, CUT, [tray])
+        b.box(-tox / 2, tox / 2, -toy / 2, toy / 2, zt, ztop, JOIN, [tray])
+        b.fillet_vertical(tray, [(sx * tox / 2, sy * toy / 2) for sx in (1, -1) for sy in (1, -1)], 2.0)
+        ix, iy = P['tray_in_x'] / 2, P['tray_in_y'] / 2
+        zf = zt + P['tray_floor']
+        b.box(-ix, ix, -iy, iy, zf, ztop + 1, CUT, [tray])
+        b.box(-ix, ix, -iy, -iy + P['ledge_w'], zf, zf + P['ledge_h'], JOIN, [tray])
+        b.box(-ix + 3, -ix + 3 + P['door_w'], iy - 1, toy / 2 + 1, zf, zf + P['door_h'], CUT, [tray])
 
         # --- Tornilleria M5 ---
         for s in (1, -1):
-            b.cyl_z(0, s * yb, P['bolt_d'] / 2, -H - 1, ztop + 1, CUT, [tray, upper, lower])
-            b.cyl_z(0, s * yb, P['cbore_d'] / 2, z0 + P['ear_t'] - P['cbore_depth'],
-                    z0 + P['ear_t'] + 1, CUT, [tray])
-            b.hex_z(0, s * yb, P['nut_af'], -H - 1, -H + P['nut_depth'], CUT, [lower])
+            b.cyl_z(0, s * yb, P['bolt_d'] / 2, zlow - 1, ztop + 1, CUT, [tray, upper, lower])
+            b.cyl_z(0, s * yb, P['cbore_d'] / 2, zt + P['ear_t'] - P['cbore_depth'],
+                    zt + P['ear_t'] + 1, CUT, [tray])
+            b.hex_z(0, s * yb, P['nut_af'], zlow - 1, zlow + P['nut_depth'], CUT, [lower])
 
         app.activeViewport.fit()
         ui.messageBox(
             'Soporte generado.\n\n'
-            'Separacion tornillos: %.1f mm (2x M5x35 + tuerca)\n'
+            'Separacion tornillos: %.1f mm (2x M5x30 + tuerca)\n'
             'Clic derecho en cada cuerpo > Guardar como malla (STL).\n'
             'Imprime la Abrazadera_Superior boca abajo.' % (2 * yb))
     except Exception:
