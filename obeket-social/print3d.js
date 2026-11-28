@@ -38,7 +38,7 @@ export function printMaterial(color, { rough = 0.42, metal = 0, layer = 0.016, g
   const u = { uCut: { value: 1e3 }, uLayer: { value: layer }, uGlow: { value: new THREE.Color(glow) }, uGlowAmt: { value: 0 },
     uCap: { value: cap ? 1 : 0 }, uInfill: { value: infill }, uSlicer: { value: 0 }, uY0: { value: 0 }, uY1: { value: 1 } };
   m.userData.u = u;
-  m.customProgramCacheKey = () => 'obeket-print-v2';
+  m.customProgramCacheKey = () => 'obeket-print-v3';
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader
@@ -80,7 +80,10 @@ if (!gl_FrontFacing) {
 { vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
   if (capMix > 0.5) normal = upV; else normal = normalize(normal + upV * cos(ph * 6.2831) * 0.32); }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-{ float d = uCut - vW.y; totalEmissiveRadiance += uGlow * uGlowAmt * (1.0 - capMix) * (smoothstep(0.022, 0.0, d) * 1.4 + smoothstep(0.1, 0.0, d) * 0.12); }`);
+{ float d = uCut - vW.y;
+  vec3 fn = normalize(cross(dFdx(vW), dFdy(vW)));             // normal geométrica en el mundo
+  float wall = smoothstep(0.35, 0.75, 1.0 - abs(fn.y));       // el brillo solo en paredes, no en caras planas
+  totalEmissiveRadiance += uGlow * uGlowAmt * (1.0 - capMix) * wall * (smoothstep(0.022, 0.0, d) * 1.4 + smoothstep(0.1, 0.0, d) * 0.12); }`);
   };
   return m;
 }
