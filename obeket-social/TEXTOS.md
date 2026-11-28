@@ -19,30 +19,30 @@ posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha lími
 | Lun 30 nov | **10:00 · 21:00** | Historia + reel | ¿Tienes una idea? · Viral "POV: no tienes regalo" | Alcance y mensajes |
 | Mar 1 dic | **13:30 · 20:30** | Carrusel + historia | Un regalo para cada persona · "¿Qué nombre pondrías en tu adorno?" | Guardados e interacción |
 | Mié 2 dic | **21:00** | Reel | Reel cinematográfico | Imagen premium, alcance |
-| Jue 3 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
+| Jue 3 dic | **21:00** | Reel | NUEVO · Escribe su nombre (fíjalo en el perfil) | Mostrar la personalización |
 | Vie 4 dic | **13:00 · 19:00** | Historias | Quedan 10 días · ✋ Graba tú: 10 s de tu impresora trabajando | Recordatorio y confianza |
-| Sáb 5 dic | **12:00 · 19:00** | Post + historia | ¿De qué color lo quieres? · ✋ Graba tú: pedidos preparándose | Comentarios y confianza |
-| Dom 6 dic | **20:30** | Reel | Reel de marca: quiénes somos | Presentaros a los seguidores nuevos |
+| Sáb 5 dic | **12:00 · 20:30** | Historia + reel | ✋ Graba tú: pedidos preparándose · Top 3: del boceto a la pieza | Confianza y comentarios |
+| Dom 6 dic | **20:00** | Historia | Comparte el reel Top 3 y pregunta "¿cuál es tu favorito?" | Interacción |
 | Lun 7 dic | **13:00** | Historia | Quedan 7 días | Recordatorio |
-| Mar 8 dic | **21:00** | Reel | ✋ Graba tú: timelapse con el móvil de una pieza imprimiéndose | Contenido real, alcance |
-| Mié 9 dic | **13:00** | Historia | Quedan 5 días | Urgencia |
+| Mar 8 dic | **21:00** | Reel | NUEVO · Timelapse "Relájate y mira cómo nace" | Alcance (formato satisfying) |
+| Mié 9 dic | **13:00 · 21:00** | Historia + reel | Quedan 5 días · NUEVO · Así se hace un adorno | Urgencia y confianza |
 | Jue 10 dic | **20:30** | Reel | Últimos días | Urgencia |
 | Vie 11 dic | **13:00** | Historia | Quedan 3 días | Urgencia |
 | Sáb 12 dic | **12:00** | Post | Últimos días | Urgencia |
 | Dom 13 dic | **13:00 · 21:00** | Historias | Mañana es el último día · comparte el reel "Últimos días" | Último empujón |
 | Lun 14 dic | **13:00 · 21:00** | Historias | Hoy es el último día · comparte el reel viral | Último empujón |
 | Mar 15 dic | **13:30** | Post | Y ahora… ¡Reyes! | Abrir campaña de Reyes |
-| Mié 16 dic | **21:00** | Historia | Comparte el reel cinematográfico: "¿Ya tienes el regalo de Reyes?" | Recordatorio |
-| Jue 17 dic | **13:30** | Post | ¿Sabías que…? (1.000 capas) | Curiosidad, alcance |
+| Mié 16 dic | **21:00** | Reel | NUEVO · Reyes "También imprimen en 3D" (fíjalo) | Lanzar Reyes |
+| Jue 17 dic | **21:00** | Reel | Reel de marca: quiénes somos | Presentaros a los seguidores nuevos |
 | Vie 18 dic | **13:00** | Historia | Llegas a tiempo (Reyes) | Recordatorio |
-| Sáb 19 dic | **12:00** | Historia | ✋ Graba tú: pedidos empaquetados o entregados | Confianza |
+| Sáb 19 dic | **12:00 · 19:00** | Post + historia | ¿Sabías que…? (1.000 capas) · ✋ Graba tú: pedidos entregados | Curiosidad y confianza |
 | Dom 20 dic | **20:30** | Reel | ✋ Graba tú: abriendo la caja de un pedido (unboxing) | Contenido real, alcance |
 | Lun 21 dic | **13:00** | Historia | "¿Qué vas a pedir a los Reyes?" (fondo de encuesta + sticker de preguntas) | Interacción |
-| Mar 22 dic | **21:00** | Historia | Comparte el carrusel "Un regalo para cada persona" | Ideas |
+| Mar 22 dic | **21:00** | Historia | Comparte el reel de Reyes: "¿Ya tienes el regalo de Reyes?" | Recordatorio |
 | Mié 23 dic | **13:00** | Historia | Llegas a tiempo (Reyes) | Recordatorio |
 | Jue 24 dic | **11:00** | Post + historia | ¡Feliz Navidad! | Cierre y agradecimiento |
 
-En reserva: post «Lo imaginas. Lo imprimimos.», post «Navidad impresa en 3D» e historia teaser.
+En reserva: post «Lo imaginas. Lo imprimimos.», post «Navidad impresa en 3D», post «¿De qué color lo quieres?» e historia teaser.
 
 Consejos: fija en el perfil el reel de Navidad y el carrusel de ideas; responde a todos los DM en menos de 24 h;
 en historias usa el sticker "Cuenta atrás" con la fecha límite.
@@ -51,20 +51,64 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 
 ## Captions
 
-### NUEVO · Post "¿Sabías que…?" — `marca-03-sabias-que`
+### NUEVO · Reel "Escribe su nombre" — `reel-nombre.mp4`
+> Escribe su nombre… y lo imprimimos ✨
+> Adornos personalizados con el nombre de cada persona, en sus colores. Dinos sus nombres por DM y te lo preparamos. Pedidos hasta el 14 de diciembre.
+>
+> #adornosnavideños #regalospersonalizados #navidad #impresion3d #obeket
+>
+> Música: "Easy Lemon" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+
+*Se teclea el nombre, el adorno cambia en directo, se elige el color y se imprime. Es el reel que mejor explica la personalización: fíjalo en el perfil.*
+
+### NUEVO · Reel timelapse "Relájate y mira cómo nace" — `reel-asmr.mp4`
+> Relájate y mira cómo nace 🎄
+> Un árbol de Navidad impreso en 3D, capa a capa, desde la primera línea hasta la estrella. ¿Lo quieres en casa (o con un nombre)? Escríbenos por DM. Pedidos hasta el 14 de diciembre.
+>
+> #satisfying #timelapse #impresion3d #3dprinting #arboldenavidad #navidad #obeket
+>
+> Música: "Silent Night" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+
+*Timelapse tranquilo con el sonido real de la impresora y el relleno visible por dentro. Es el formato "satisfying", que suele verse entero varias veces.*
+
+### NUEVO · Reel "Así se hace un adorno" — `reel-proceso.mp4`
+> Así se hace un adorno impreso en 3D 👇
+> 1 · Diseño: lo modelamos a partir de tu idea
+> 2 · Laminado: lo dividimos en capas de 0,2 mm
+> 3 · Impresión: capa a capa, con relleno por dentro
+> 4 · Listo para regalar
+> Tú pones la idea. Nosotros, todo lo demás. Escríbenos por DM.
+>
+> #impresion3d #comosehace #procesocreativo #regalospersonalizados #obeket
+>
+> Música: "Dreamer" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+
+*Explica el proceso en 4 pasos: diseño, laminado, impresión y listo para regalar. Da confianza a quien no conoce la impresión 3D.*
+
+### NUEVO · Reel de Reyes "También imprimen en 3D" — `reel-reyes.mp4`
+> Este año, los Reyes Magos también imprimen en 3D 👑✨
+> Coronas, estrellas y regalos con nombre, hechos a medida. Pedidos para Reyes hasta el 30 de diciembre, por mensaje directo.
+>
+> #reyesmagos #nochedereyes #regalosdereyes #regalospersonalizados #impresion3d #obeket
+>
+> Música: "O Little Town of Bethlehem" de Kevin MacLeod (incompetech.com) · CC BY 4.0
+
+*Abre la campaña de Reyes al día siguiente del post "Y ahora… ¡Reyes!". Fíjalo en el perfil en lugar del reel de Navidad a partir del 15.*
+
+### Post "¿Sabías que…?" — `marca-03-sabias-que`
 > ¿Sabías que esta pieza tiene más de 1.000 capas? 🤯
 > Cada una mide 0,2 mm, más fina que una tarjeta de crédito. Así, capa a capa, convertimos tu idea en un objeto real.
 > ¿Qué te gustaría imprimir? Cuéntanoslo por DM.
 >
 > #impresion3d #3dprinting #diseño3d #personalizado #obeket
 
-### NUEVO · Post "¿De qué color lo quieres?" — `marca-04-elige-color`
+### Post "¿De qué color lo quieres?" — `marca-04-elige-color`
 > Azul, naranja o verde… ¿De qué color lo quieres tú? 🎨
 > Imprimimos en el color que elijas. Dinos tu favorito en comentarios 👇
 >
 > #impresion3d #3dprinting #diseño3d #personalizado #obeket
 
-### NUEVO · Carrusel "Un regalo para cada persona" — `navidad-04-por-persona-1…5`
+### Carrusel "Un regalo para cada persona" — `navidad-04-por-persona-1…5`
 > Un regalo impreso en 3D para cada persona de tu lista 🎁👉
 > 👨‍👩‍👧 Familia: un adorno con cada nombre
 > 🧒 Peques: su estrella, en su color
@@ -74,19 +118,19 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 >
 > #ideasderegalo #amigoinvisible #regalosempresa #navidad #regalosdenavidad #regalospersonalizados #impresion3d #obeket
 
-### NUEVO · Post "Y ahora… ¡Reyes!" — `reyes-01-campana`
+### Post "Y ahora… ¡Reyes!" — `reyes-01-campana`
 > ¡Gracias por todos vuestros pedidos de Navidad! ❤️
 > Y ahora… ¡Reyes! 👑 Todavía puedes regalar algo único impreso en 3D. Pedidos para Reyes hasta el 30 de diciembre, por mensaje directo.
 >
 > #reyesmagos #regalosdereyes #regalospersonalizados #impresion3d #obeket
 
-### NUEVO · Post "¡Feliz Navidad!" — `navidad-05-feliz-navidad`
+### Post "¡Feliz Navidad!" — `navidad-05-feliz-navidad`
 > ¡Feliz Navidad de parte de todo el equipo de OBEKET! 🎄✨
 > Gracias por confiarnos vuestras ideas este año. Nos encanta saber que algo que hemos impreso está hoy bajo vuestro árbol.
 >
 > #feliznavidad #navidad #impresion3d #obeket
 
-### NUEVO · Reel cinematográfico — `reel-cine.mp4`
+### Reel cinematográfico — `reel-cine.mp4`
 > Cada capa mide 0,2 milímetros. Miles de capas para una sola idea. ✨
 > Esta Navidad, regala algo hecho solo para esa persona.
 > Adornos y regalos personalizados impresos en 3D. Pedidos hasta el 14 de diciembre, por mensaje directo.
@@ -95,7 +139,7 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 >
 > Música: "It Came Upon a Midnight Clear" de Kevin MacLeod (incompetech.com) · CC BY 4.0
 
-### NUEVO · Reel viral "POV" — `reel-viral.mp4`
+### Reel viral "POV" — `reel-viral.mp4`
 > POV: es 24 de diciembre y aún no tienes regalo 😰
 > Tranqui 😎 Lo imprimimos en 3D con su nombre, en su color favorito y para nadie más.
 > Comenta 🎄 y te decimos cómo pedirlo (pedidos hasta el 14 de diciembre).
@@ -106,7 +150,7 @@ en historias usa el sticker "Cuenta atrás" con la fecha límite.
 
 Responde por DM a cada persona que comente 🎄: así el reel gana alcance.
 
-### NUEVO · Reel "Top 3" del boceto a la pieza — `reel-top3.mp4`
+### Reel "Top 3" del boceto a la pieza — `reel-top3.mp4`
 > TOP 3 regalos impresos en 3D que van a triunfar esta Navidad 🎄
 > #3 Estrella para el árbol, en tu color favorito
 >

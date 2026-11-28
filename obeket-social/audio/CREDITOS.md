@@ -13,6 +13,10 @@ Uso comercial permitido. Obligatorio citar al autor: añade esta línea al texto
 | reel-cine | "It Came Upon a Midnight Clear" |
 | reel-viral | "Jingle Bells (Calm)" + "Oh, Christmas Tree" |
 | reel-top3 | "We Wish You a Merry Christmas" |
+| reel-asmr | "Silent Night" |
+| reel-nombre | "Easy Lemon" |
+| reel-proceso | "Dreamer" |
+| reel-reyes | "O Little Town of Bethlehem" |
 
 https://creativecommons.org/licenses/by/4.0/
 

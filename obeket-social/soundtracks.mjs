@@ -37,4 +37,20 @@ export const SOUNDTRACKS = {
     s: [...[2.5, 7, 11.5].flatMap((a) => [air(a, 0.18), { f: E('pencil'), at: a + 0.15, from: 0.4, dur: 1.4, gain: 2.2, lp: 5000, fout: 0.3 },
       printer(a + 1.5, 1.4, 1.0)]), air(16, 0.2)],
   },
+  'reel-asmr': {
+    m: [{ f: M('silent-night'), from: 1.0, at: 0, dur: 20, gain: 1.6, fin: 1.0, fout: 2.4 }],
+    s: [printer(0, 15.6, 1.3), air(15.7, 0.14)],
+  },
+  'reel-nombre': {
+    m: [{ f: M('easy-lemon-60-second'), from: 0, at: 0, dur: 18, gain: 0.9, fin: 0.3, fout: 1.6 }],
+    s: [air(5.4, 0.16), printer(5.6, 5.0, 1.0), air(10.8, 0.14), air(13.3, 0.16)],
+  },
+  'reel-proceso': {
+    m: [{ f: M('dreamer'), from: 0, at: 0, dur: 20, gain: 0.95, fin: 0.6, fout: 2 }],
+    s: [air(2.4, 0.15), air(6.4, 0.15), air(10.6, 0.15), printer(10.9, 4.2, 1.0), air(15.6, 0.15), air(17.75, 0.12)],
+  },
+  'reel-reyes': {
+    m: [{ f: M('bethlehem'), from: 0.8, at: 0, dur: 18, gain: 1.25, fin: 1.0, fout: 2 }],
+    s: [air(3.3, 0.14), printer(3.3, 5.3, 0.9), air(8.85, 0.14), air(13.0, 0.16), boom(13.0, 0.22)],
+  },
 };

@@ -29,24 +29,67 @@ export function createStage(canvas, w, h, fov = 28) {
 
 // Material de filamento: estrías de capa (color + relieve en el brillo), corte por altura y brillo
 // naranja en la capa que se está imprimiendo.
-export function printMaterial(color, { rough = 0.42, metal = 0, layer = 0.016, glow = 0xff6a13 } = {}) {
+//   cap: la pieza es maciza → al cortarla se ve la sección con el relleno en rejilla (como una impresión
+//        real a medio hacer). Truco: las caras interiores visibles por el corte se pintan con lo que se
+//        vería en el plano del corte (intersección del rayo de la cámara con ese plano).
+//   uSlicer: colorea por altura como la vista previa de un laminador (azul → verde → amarillo → naranja).
+export function printMaterial(color, { rough = 0.42, metal = 0, layer = 0.016, glow = 0xff6a13, cap = false, infill = 0.075 } = {}) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, side: THREE.DoubleSide });
-  const u = { uCut: { value: 1e3 }, uLayer: { value: layer }, uGlow: { value: new THREE.Color(glow) }, uGlowAmt: { value: 0 } };
+  const u = { uCut: { value: 1e3 }, uLayer: { value: layer }, uGlow: { value: new THREE.Color(glow) }, uGlowAmt: { value: 0 },
+    uCap: { value: cap ? 1 : 0 }, uInfill: { value: infill }, uSlicer: { value: 0 }, uY0: { value: 0 }, uY1: { value: 1 } };
   m.userData.u = u;
-  m.customProgramCacheKey = () => 'obeket-print';
+  m.customProgramCacheKey = () => 'obeket-print-v2';
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vW;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uCut, uLayer, uGlowAmt; uniform vec3 uGlow; varying vec3 vW;')
-      .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif (vW.y > uCut) discard;\nfloat ph = fract(vW.y / uLayer);\nfloat ridge = smoothstep(0.0, 0.3, ph) * smoothstep(1.0, 0.7, ph);')
-      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= mix(0.80, 1.0, ridge);\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.5;')
-      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n{ vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz); normal = normalize(normal + upV * cos(ph * 6.2831) * 0.32); }')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{ float d = uCut - vW.y; totalEmissiveRadiance += uGlow * uGlowAmt * (smoothstep(0.022, 0.0, d) * 1.4 + smoothstep(0.1, 0.0, d) * 0.12); }');
+      .replace('#include <common>', `#include <common>
+uniform float uCut, uLayer, uGlowAmt, uCap, uInfill, uSlicer, uY0, uY1; uniform vec3 uGlow; varying vec3 vW;
+vec3 slicerRamp(float k) {
+  k = clamp(k, 0.0, 1.0);
+  vec3 a = vec3(0.16, 0.36, 0.95), b = vec3(0.10, 0.78, 0.72), c = vec3(0.45, 0.86, 0.25), d = vec3(0.98, 0.82, 0.20), e = vec3(1.0, 0.45, 0.10);
+  if (k < 0.25) return mix(a, b, k / 0.25);
+  if (k < 0.5) return mix(b, c, (k - 0.25) / 0.25);
+  if (k < 0.75) return mix(c, d, (k - 0.5) / 0.25);
+  return mix(d, e, (k - 0.75) / 0.25);
+}`)
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+if (vW.y > uCut) discard;
+float ph = fract(vW.y / uLayer);
+float ridge = smoothstep(0.0, 0.3, ph) * smoothstep(1.0, 0.7, ph);
+float capMix = 0.0;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+if (uSlicer > 0.5) { diffuseColor.rgb = slicerRamp((vW.y - uY0) / max(uY1 - uY0, 1e-3)); diffuseColor.rgb *= mix(0.62, 1.0, ridge); }
+else diffuseColor.rgb *= mix(0.80, 1.0, ridge);
+if (!gl_FrontFacing) {
+  if (uCap > 0.5 && cameraPosition.y > uCut + 1e-4) {
+    vec3 rd = normalize(vW - cameraPosition);
+    float tt = (uCut - cameraPosition.y) / min(rd.y, -1e-4);
+    vec3 P = cameraPosition + rd * tt;
+    vec2 q = vec2(P.x + P.z, P.x - P.z) * 0.70710678 / uInfill;
+    vec2 f = abs(fract(q) - 0.5);
+    float lines = max(smoothstep(0.13, 0.07, f.x), smoothstep(0.13, 0.07, f.y));
+    vec3 base = uSlicer > 0.5 ? slicerRamp((uCut - uY0) / max(uY1 - uY0, 1e-3)) : diffuse;
+    diffuseColor.rgb = base * mix(0.30, 1.0, lines);
+    capMix = 1.0;
+  } else diffuseColor.rgb *= 0.5;
+}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{ vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+  if (capMix > 0.5) normal = upV; else normal = normalize(normal + upV * cos(ph * 6.2831) * 0.32); }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+{ float d = uCut - vW.y; totalEmissiveRadiance += uGlow * uGlowAmt * (1.0 - capMix) * (smoothstep(0.022, 0.0, d) * 1.4 + smoothstep(0.1, 0.0, d) * 0.12); }`);
   };
   return m;
+}
+
+// Vista de laminador (colores por altura) encendida o apagada en una pieza
+export function setSlicer(g, on) {
+  g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(g);
+  for (const m of g.userData.mats) { m.userData.u.uSlicer.value = on ? 1 : 0; m.userData.u.uY0.value = box.min.y; m.userData.u.uY1.value = box.max.y; }
 }
 
 // Una pieza imprimible: grupo con altura conocida (de 0 a h en su eje Y local)
@@ -105,7 +148,7 @@ export function bauble(color = 0xc8102e, { ribs = 14 } = {}) {
   }
   geo.computeVertexNormals();
   const body = new THREE.Mesh(geo, printMaterial(color, { rough: 0.32 }));
-  const gold = printMaterial(0xe8b54a, { rough: 0.28, metal: 0.85 });
+  const gold = printMaterial(0xe8b54a, { rough: 0.28, metal: 0.85, cap: true });
   const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.16, 48), gold);
   cap.position.y = 2 * R + 0.04;
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.022, 16, 48), gold);
@@ -125,7 +168,7 @@ export function star(color = 0xe8b54a, { metal = 0.75 } = {}) {
   geo.translate(0, 0, -0.09);
   geo.computeBoundingBox();
   geo.translate(0, -geo.boundingBox.min.y, 0);
-  return piece([new THREE.Mesh(geo, printMaterial(color, { rough: 0.3, metal }))], geo.boundingBox.max.y - geo.boundingBox.min.y);
+  return piece([new THREE.Mesh(geo, printMaterial(color, { rough: 0.3, metal, cap: true }))], geo.boundingBox.max.y - geo.boundingBox.min.y);
 }
 
 export function tree(color = 0x1f7a4d) {
@@ -148,7 +191,7 @@ export function tree(color = 0x1f7a4d) {
     pos.setXYZ(i, v.x * k, v.y, v.z * k);
   }
   geo.computeVertexNormals();
-  const body = new THREE.Mesh(geo, printMaterial(color, { rough: 0.5 }));
+  const body = new THREE.Mesh(geo, printMaterial(color, { rough: 0.5, cap: true }));
   const top = star(0xe8b54a).children[0];
   top.scale.setScalar(0.24);
   top.position.y = H - 0.02;
@@ -156,11 +199,11 @@ export function tree(color = 0x1f7a4d) {
 }
 
 export function gift(color = 0xc8102e, ribbon = 0xe8b54a) {
-  const box = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 1, 1, 1, 1), printMaterial(color, { rough: 0.45 }));
+  const box = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 1, 1, 1, 1), printMaterial(color, { rough: 0.45, cap: true }));
   box.position.y = 0.4;
-  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.18, 1.08), printMaterial(color, { rough: 0.45 }));
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.18, 1.08), printMaterial(color, { rough: 0.45, cap: true }));
   lid.position.y = 0.89;
-  const rm = printMaterial(ribbon, { rough: 0.3, metal: 0.6 });
+  const rm = printMaterial(ribbon, { rough: 0.3, metal: 0.6, cap: true });
   const r1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.99, 1.1), rm); r1.position.y = 0.495;
   const r2 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.99, 0.16), rm); r2.position.y = 0.495;
   const b1 = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.05, 16, 40), rm); b1.position.set(-0.15, 1.08, 0); b1.rotation.set(0, 0.3, 0.6);
@@ -191,8 +234,8 @@ export function nameTag(name, { plate = 0xf5f1e8, letters = 0xc8102e } = {}) {
   const hole = new THREE.Path(); hole.absarc(0, H + 0.02, 0.08, 0, Math.PI * 2, true); s.holes.push(hole);
   const pg = new THREE.ExtrudeGeometry(s, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 3 });
   pg.translate(0, 0, -0.04);
-  const pm = new THREE.Mesh(pg, printMaterial(plate, { rough: 0.5 }));
-  const lm = new THREE.Mesh(tg, printMaterial(letters, { rough: 0.35 }));
+  const pm = new THREE.Mesh(pg, printMaterial(plate, { rough: 0.5, cap: true, infill: 0.06 }));
+  const lm = new THREE.Mesh(tg, printMaterial(letters, { rough: 0.35, cap: true, infill: 0.05 }));
   return piece([pm, lm], H + 0.22);
 }
 
@@ -220,12 +263,20 @@ export function nozzle() {
   add(new THREE.BoxGeometry(0.06, 0.16, 0.06), dark, 0, 0.1, 0.13).rotation.x = -0.5;          // boca de ventilación
   add(new THREE.CylinderGeometry(0.022, 0.022, 0.5, 12), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.3, transparent: true, opacity: 0.85 }), 0, 0.8, 0); // tubo PTFE
   const glow = new THREE.PointLight(0xff8a3a, 0, 0.9, 2); glow.position.y = -0.01; g.add(glow);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color: 0xff9a4a, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.9 }));
+  halo.scale.setScalar(0.32); halo.position.y = 0.005; g.add(halo);
+  g.userData.halo = halo;
   g.rotation.y = Math.PI / 2;
   g.userData.glow = glow;
   // hilo recién extruido (en coordenadas del mundo; se añade a la escena al colocarlo)
   const trailMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, transparent: true, depthWrite: false });
   g.userData.trail = new THREE.Mesh(new THREE.BufferGeometry(), trailMat);
   g.userData.trail.frustumCulled = false;
+  const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const tglow = new THREE.Mesh(new THREE.BufferGeometry(), glowMat);
+  tglow.frustumCulled = false;
+  g.userData.trail.add(tglow);
+  g.userData.tglow = tglow;
   return g;
 }
 
@@ -243,12 +294,7 @@ function surfacePoint(piece, cx, cz, y, th, fallback) {
 // Coloca la boquilla sobre la capa: recorre el contorno real de la pieza a la altura del corte y deja
 // detrás un hilo de filamento incandescente que se enfría.
 export function placeNozzle(nz, cut, box, t, { speed = 3, show = 1, size = 0.6, piece = LAST_PIECE } = {}) {
-  const trail = nz.userData.trail;
-  if (!trail.parent && nz.parent) nz.parent.add(trail);
-  nz.visible = trail.visible = show > 0.01;
-  nz.userData.glow.intensity = 1.2 * show;
-  nz.scale.setScalar(Math.max(0.001, show) * size);
-  if (!nz.visible) return;
+  if (!prepNozzle(nz, show, size)) return;
   const cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2;
   const th0 = t * Math.min(speed, 3.2);
   const fb0 = new THREE.Vector3(cx + Math.cos(th0) * (box.max.x - box.min.x) * 0.4, cut, cz + Math.sin(th0) * (box.max.z - box.min.z) * 0.4);
@@ -261,18 +307,184 @@ export function placeNozzle(nz, cut, box, t, { speed = 3, show = 1, size = 0.6, 
     pts.push(p.clone().add(out));
     prev = p;
   }
-  nz.position.set(pts[0].x, cut + 0.012, pts[0].z);
-  // tubo con degradado: blanco-amarillo junto a la boquilla → naranja → apagado
-  trail.geometry.dispose();
-  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), N * 2, 0.0085, 6, false);
-  const cols = new Float32Array(geo.attributes.position.count * 4), ring = 7;
-  for (let i = 0; i < geo.attributes.position.count; i++) {
-    const u = Math.floor(i / ring) / (N * 2), hot = Math.pow(1 - u, 1.6);
-    cols[i * 4] = 1.0 + 0.8 * hot; cols[i * 4 + 1] = 0.3 + 0.6 * hot * hot; cols[i * 4 + 2] = 0.05 + 0.3 * hot * hot * hot;
-    cols[i * 4 + 3] = Math.min(1, hot * 1.4);
+  drawTrail(nz, pts, cut);
+}
+
+function prepNozzle(nz, show, size) {
+  const trail = nz.userData.trail;
+  if (!trail.parent && nz.parent) nz.parent.add(trail);
+  nz.visible = trail.visible = show > 0.01;
+  nz.userData.glow.intensity = 1.2 * show;
+  nz.userData.halo.material.opacity = 0.9 * show;
+  nz.scale.setScalar(Math.max(0.001, show) * size);
+  return nz.visible;
+}
+
+// pts[0] = punta de la boquilla; el resto, el hilo que deja detrás (ya enfriándose)
+function drawTrail(nz, pts, y) {
+  nz.position.set(pts[0].x, y + 0.012, pts[0].z);
+  const trail = nz.userData.trail, tglow = nz.userData.tglow, N = pts.length - 1;
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const build = (radius, alphaK) => {
+    const geo = new THREE.TubeGeometry(curve, N * 2, radius, 6, false);
+    const cols = new Float32Array(geo.attributes.position.count * 4), ring = 7;
+    for (let i = 0; i < geo.attributes.position.count; i++) {
+      const u = Math.floor(i / ring) / (N * 2), hot = Math.pow(1 - u, 1.6);
+      cols[i * 4] = 1.0 + 0.8 * hot; cols[i * 4 + 1] = 0.3 + 0.6 * hot * hot; cols[i * 4 + 2] = 0.05 + 0.3 * hot * hot * hot;
+      cols[i * 4 + 3] = Math.min(1, hot * 1.4) * alphaK;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 4));
+    return geo;
+  };
+  trail.geometry.dispose(); trail.geometry = build(0.0085, 1);
+  tglow.geometry.dispose(); tglow.geometry = build(0.024, 0.28);
+}
+
+// Falda (skirt): la primera línea que traza la impresora alrededor de la pieza, sobre la cama.
+// Devuelve un objeto con update(progreso, t, boquilla).
+export function skirt(radius = 0.95, color = 0x1f7a4d, y = 0.006) {
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.45 });
+  const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+  mesh.userData.update = (k, nz, { show = 1, size = 0.6, start = Math.PI * 0.35 } = {}) => {
+    k = Math.max(0, Math.min(1, k));
+    mesh.visible = k > 0.002;
+    const arc = (a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => { const a = a0 + (a1 - a0) * (i / n); return new THREE.Vector3(Math.cos(a) * radius, y, Math.sin(a) * radius); });
+    const end = start + k * Math.PI * 2;
+    if (mesh.visible) {
+      mesh.geometry.dispose();
+      mesh.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc(start, end, Math.max(4, Math.ceil(k * 90)))), Math.max(8, Math.ceil(k * 160)), 0.008, 6, k >= 0.999);
+    }
+    if (nz) {
+      if (!prepNozzle(nz, show, size)) return;
+      drawTrail(nz, arc(end, Math.max(start, end - 1.6), 30), y);
+    }
+  };
+  return mesh;
+}
+
+// Coloca la boquilla en reposo (sin hilo), por ejemplo cuando sube al terminar
+export function parkNozzle(nz, pos, { show = 1, size = 0.6 } = {}) {
+  if (!prepNozzle(nz, show, size)) return;
+  nz.position.copy(pos);
+  nz.userData.trail.visible = false;
+  nz.userData.glow.intensity = 0.3 * show;
+  nz.userData.halo.material.opacity = 0.25 * show;
+}
+
+let HALO = null;
+export function haloTexture() {
+  if (HALO) return HALO;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'); const gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.12)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  HALO = new THREE.CanvasTexture(c);
+  return HALO;
+}
+
+// Destello de estrella (halo + rayos finos), para la estrella de Oriente o la punta del árbol
+export function starGlow(color = 0xffd27a, size = 1.6) {
+  const g = new THREE.Group();
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTexture(), color, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
+  halo.scale.setScalar(size); g.add(halo);
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'); x.translate(128, 128);
+  for (let i = 0; i < 8; i++) {
+    x.save(); x.rotate((i * Math.PI) / 4);
+    const L = i % 2 ? 70 : 125, gr = x.createLinearGradient(0, 0, L, 0);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.beginPath(); x.moveTo(0, -2.2); x.lineTo(L, 0); x.lineTo(0, 2.2); x.fill(); x.restore();
   }
-  geo.setAttribute('color', new THREE.BufferAttribute(cols, 4));
-  trail.geometry = geo;
+  const rays = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
+  rays.scale.setScalar(size * 1.5); g.add(rays);
+  g.userData.set = (o, rot = 0) => { halo.material.opacity = o; rays.material.opacity = o * 0.9; rays.material.rotation = rot; g.visible = o > 0.003; };
+  return g;
+}
+
+// Cama de impresión: lámina de PEI texturizado dorado sobre placa de aluminio, con la marca grabada
+export function bed(w = 2.6, d = 2.6, label = 'OBEKET') {
+  const c = document.createElement('canvas'); c.width = c.height = 1024;
+  const x = c.getContext('2d');
+  x.fillStyle = '#9c7a3c'; x.fillRect(0, 0, 1024, 1024);
+  let s = 12345; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 26000; i++) { const v = rnd(); x.fillStyle = v > 0.5 ? `rgba(255,226,160,${0.1 + rnd() * 0.18})` : `rgba(60,40,10,${0.08 + rnd() * 0.16})`; x.fillRect(rnd() * 1024, rnd() * 1024, 1 + rnd() * 2.2, 1 + rnd() * 2.2); }
+  x.strokeStyle = 'rgba(255,235,190,0.35)'; x.lineWidth = 3; x.strokeRect(28, 28, 968, 968);
+  x.fillStyle = 'rgba(255,240,205,0.5)'; x.font = '700 42px Inter, sans-serif'; x.textAlign = 'center';
+  x.fillText(label.split('').join(' '), 512, 975);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const top = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.62, metalness: 0.25 });
+  const side = new THREE.MeshStandardMaterial({ color: 0x2b2b30, roughness: 0.5, metalness: 0.6 });
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, d), [side, side, top, side, side, side]);
+  m.position.y = -0.027;
+  return m;
+}
+
+// Corona de Rey Mago: aro macizo con picos, gemas en la banda y bolitas en las puntas
+export function crown(color = 0xd9a441, gems = [0xc8102e, 0x1e5bd8, 0x1f9a5a], { metal = 0.85 } = {}) {
+  const ri = 0.36, ro = 0.42, h0 = 0.34, hs = 0.26, spikes = 5;
+  const pts = [new THREE.Vector2(ri, 0), new THREE.Vector2(ro, 0), new THREE.Vector2(ro, 0.01), new THREE.Vector2(ro, 0.99), new THREE.Vector2(ro, 1),
+    new THREE.Vector2(ri, 1), new THREE.Vector2(ri, 0.99), new THREE.Vector2(ri, 0.01), new THREE.Vector2(ri, 0)];
+  const geo = new THREE.LatheGeometry(pts, 200);
+  const pos = geo.attributes.position, v = new THREE.Vector3();
+  const zig = (th) => { const k = ((((th + Math.PI / 2) * spikes) / (Math.PI * 2)) % 1 + 1) % 1; return 1 - Math.abs(k * 2 - 1); };
+  for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i); const th = Math.atan2(v.z, v.x); pos.setY(i, v.y * (h0 + hs * Math.pow(zig(th), 1.4))); }
+  geo.computeVertexNormals();
+  const mat = printMaterial(color, { rough: 0.3, metal, cap: true, infill: 0.05 });
+  const meshes = [new THREE.Mesh(geo, mat)];
+  const band = new THREE.Mesh(new THREE.TorusGeometry(ro + 0.005, 0.03, 12, 120), printMaterial(color, { rough: 0.25, metal, cap: true }));
+  band.rotation.x = Math.PI / 2; band.position.y = 0.09; meshes.push(band);
+  for (let i = 0; i < spikes; i++) {
+    const th = -Math.PI / 2 + (i / spikes) * Math.PI * 2;
+    const gem = new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), printMaterial(gems[i % gems.length], { rough: 0.15, metal: 0.1, cap: true }));
+    gem.position.set(Math.cos(th) * (ro + 0.02), 0.19, Math.sin(th) * (ro + 0.02)); meshes.push(gem);
+    const tb = th + Math.PI / spikes;  // las puntas están a medio camino entre gema y gema
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 12), printMaterial(color, { rough: 0.25, metal, cap: true }));
+    ball.position.set(Math.cos(tb) * ((ri + ro) / 2), h0 + hs + 0.015, Math.sin(tb) * ((ri + ro) / 2)); meshes.push(ball);
+  }
+  return piece(meshes, h0 + hs + 0.06);
+}
+
+// Alambre (vista de diseño CAD) de una pieza, sobre una silueta translúcida. draw(k) lo revela de abajo
+// arriba, con una línea de barrido brillante.
+export function wireOf(g, color = 0x7fd8ff, angle = 22) {
+  const out = new THREE.Group();
+  const mats = [];
+  const reveal = { value: -10 };
+  const withReveal = (m) => {
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uRev = reveal;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vWy;').replace('#include <project_vertex>', '#include <project_vertex>\nvWy = (modelMatrix * vec4(transformed, 1.0)).y;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uRev; varying float vWy;').replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif (vWy > uRev) discard;');
+    };
+    m.customProgramCacheKey = () => 'wire-reveal-' + m.type;
+    mats.push(m); return m;
+  };
+  g.updateMatrixWorld(true);
+  const inv = g.matrixWorld.clone().invert();
+  g.traverse((o) => {
+    if (!o.isMesh) return;
+    const rel = inv.clone().multiply(o.matrixWorld);
+    const ls = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, angle), withReveal(new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.95 })));
+    const gh = new THREE.Mesh(o.geometry, withReveal(new THREE.MeshBasicMaterial({ color: 0x2a8fd8, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide })));
+    for (const x of [ls, gh]) { x.matrixAutoUpdate = false; x.matrix.copy(rel); out.add(x); }
+  });
+  const scan = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  scan.rotation.x = -Math.PI / 2; out.add(scan);
+  out.userData.draw = (k, opacity = 0.95) => {
+    out.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    out.children.forEach((c) => { if (c !== scan) box.expandByObject(c); });
+    const y0 = box.min.y, y1 = box.max.y;
+    k = Math.max(0, Math.min(1, k));
+    reveal.value = k >= 1 ? 1e3 : y0 + (y1 - y0) * k;
+    mats.forEach((m) => (m.opacity = m.isLineBasicMaterial ? opacity : 0.16 * (opacity / 0.95)));
+    // la línea de barrido (en coordenadas locales del grupo)
+    const sz = box.getSize(new THREE.Vector3());
+    const local = out.worldToLocal(new THREE.Vector3(0, reveal.value, 0));
+    scan.position.set(0, local.y, 0); scan.scale.set(sz.x * 0.85 / out.scale.x, 0.03 / out.scale.z, 1);
+    scan.material.opacity = k > 0 && k < 1 ? 0.75 * opacity : 0;
+  };
+  return out;
 }
 
 // Sombra suave en el suelo (disco con degradado)
@@ -321,4 +533,17 @@ export function frameCam(camera, dist, cy, below = 0.22, ang = 0, tilt = 0.5) {
   const ty = cy + below * dist * Math.tan(((camera.fov / 2) * Math.PI) / 180);
   camera.position.set(Math.sin(ang) * dist, ty + tilt, Math.cos(ang) * dist);
   camera.lookAt(0, ty, 0);
+}
+
+// Cámara orbitando un punto: dist, elevación y acimut (radianes); 'below' desplaza el punto hacia abajo
+// en pantalla (fracción de media altura: 0.2 → un 10 % de la pantalla por debajo del centro)
+export function orbitCam(camera, center, dist, elev, azim = 0, below = 0) {
+  const c = center.isVector3 ? center : new THREE.Vector3(...center);
+  const pos = new THREE.Vector3(Math.sin(azim) * Math.cos(elev), Math.sin(elev), Math.cos(azim) * Math.cos(elev)).multiplyScalar(dist).add(c);
+  camera.position.copy(pos);
+  camera.lookAt(c);
+  if (below) {
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    camera.lookAt(c.clone().add(up.multiplyScalar(below * dist * Math.tan(((camera.fov / 2) * Math.PI) / 180))));
+  }
 }
