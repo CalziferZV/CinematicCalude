@@ -8,25 +8,21 @@ posts/historias en `out/posts/*.png`. Los textos variables (usuario, fecha lími
 
 ---
 
-## Calendario (24 nov → 24 dic, hora peninsular)
+## Calendario (28 nov → 24 dic, hora peninsular)
 
 **Estrategia:** la Navidad se lanza hoy, porque los regalos personalizados necesitan días de producción y es la semana del Black Friday. Historias todos los días; feed 4–5 veces por semana, con prioridad para los reels. Fija en el perfil el reel de Navidad, «Cómo funciona» y «4 regalos». Crea destacados «Navidad», «Cómo pedir» y «Pedidos». ✋ = grabar algo real con el móvil.
 
 | Fecha | Hora | Formato | Qué publicar | Objetivo |
 |---|---|---|---|---|
-| Mar 24 nov | **13:00 · 21:00** | Historia + reel | "Ya está aquí la Navidad" · Reel de Navidad (fíjalo en el perfil) | Lanzar la campaña |
-| Mié 25 nov | **13:30 · 20:30** | Carrusel + historia | Cómo funciona (fíjalo) · encuesta "¿Qué te imprimirías?" | Explicar cómo pedir |
-| Jue 26 nov | **21:00** | Reel | Reel cinematográfico | Imagen premium, alcance |
-| Vie 27 nov | **20:30** | Reel | Viral "POV: no tienes regalo" (Black Friday: humor en vez de descuento) | Alcance y comentarios |
-| Sáb 28 nov | **12:00 · 19:00** | Carrusel + historia | Un regalo para cada persona · ✋ Graba tú: 10 s de tu impresora trabajando | Guardados y confianza |
-| Dom 29 nov | **20:00** | Carrusel | 4 regalos que no verás en tiendas (fíjalo) | Guardados y compartidos |
-| Lun 30 nov | **10:00** | Historia | ¿Tienes una idea? + comparte el reel de Navidad | Mensajes directos |
-| Mar 1 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
-| Mié 2 dic | **13:00** | Historia | Encuesta "¿Qué nombre pondrías en tu adorno?" | Interacción |
-| Jue 3 dic | **21:00** | Reel | Reel de marca: quiénes somos | Presentaros a los seguidores nuevos |
-| Vie 4 dic | **13:00** | Historia | Quedan 10 días | Recordatorio |
-| Sáb 5 dic | **12:00** | Historia | ✋ Graba tú: pedidos preparándose | Confianza |
-| Dom 6 dic | **20:00** | Post | ¿De qué color lo quieres? | Comentarios |
+| Sáb 28 nov | **13:00 · 20:30** | Carrusel + reel | Cómo funciona (fíjalo) · Reel de Navidad (fíjalo) + historia "Ya está aquí la Navidad" a las 13:30 | Arrancar hoy y llenar el perfil |
+| Dom 29 nov | **12:00 · 20:00** | Historia + carrusel | Encuesta "¿Qué te imprimirías?" · 4 regalos que no verás en tiendas (fíjalo) | Guardados |
+| Lun 30 nov | **10:00 · 21:00** | Historia + reel | ¿Tienes una idea? · Viral "POV: no tienes regalo" | Alcance y mensajes |
+| Mar 1 dic | **13:30 · 20:30** | Carrusel + historia | Un regalo para cada persona · "¿Qué nombre pondrías en tu adorno?" | Guardados e interacción |
+| Mié 2 dic | **21:00** | Reel | Reel cinematográfico | Imagen premium, alcance |
+| Jue 3 dic | **21:00** | Reel | Top 3: del boceto a la pieza | Comentarios (votar 3, 2 o 1) |
+| Vie 4 dic | **13:00 · 19:00** | Historias | Quedan 10 días · ✋ Graba tú: 10 s de tu impresora trabajando | Recordatorio y confianza |
+| Sáb 5 dic | **12:00 · 19:00** | Post + historia | ¿De qué color lo quieres? · ✋ Graba tú: pedidos preparándose | Comentarios y confianza |
+| Dom 6 dic | **20:30** | Reel | Reel de marca: quiénes somos | Presentaros a los seguidores nuevos |
 | Lun 7 dic | **13:00** | Historia | Quedan 7 días | Recordatorio |
 | Mar 8 dic | **21:00** | Reel | ✋ Graba tú: timelapse con el móvil de una pieza imprimiéndose | Contenido real, alcance |
 | Mié 9 dic | **13:00** | Historia | Quedan 5 días | Urgencia |
